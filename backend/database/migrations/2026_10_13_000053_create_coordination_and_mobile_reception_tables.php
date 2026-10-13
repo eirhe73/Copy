@@ -88,7 +88,7 @@ return new class extends Migration
 
             $table->index('patient_id');
             $table->index('status');
-            $table->index(['accepted_institution_id', 'accepted_department_id']);
+            $table->index(['accepted_institution_id', 'accepted_department_id'], 'idx_accepted_target');
         });
     }
 
