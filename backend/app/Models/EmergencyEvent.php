@@ -15,13 +15,18 @@ class EmergencyEvent extends BaseModel
         'patient_id', 'patient_mode', 'temp_gender', 'temp_summary', 'chief',
         'risk_level', 'event_stage', 'event_status',
         'close_reason', 'close_check_result', 'closed_at', 'closed_by_user_id',
+        'task120_id', 'level', 'destination', 'vehicle_id', 'vehicle_plate', 'status',
+        'started_at', 'eta_hospital_minutes', 'eta_patient_minutes', 'score_plan', 'treat_plan',
     ];
 
     protected $casts = [
         'occurred_at' => 'datetime',
         'eta' => 'datetime',
         'closed_at' => 'datetime',
+        'started_at' => 'datetime',
         'close_check_result' => 'array',
+        'level' => 'integer',
+        'status' => 'integer',
         'is_deleted' => 'boolean',
     ];
 

@@ -9,11 +9,16 @@ class Organization extends BaseModel
     protected $fillable = [
         'org_code', 'org_name', 'org_type', 'county_name',
         'address', 'lng', 'lat', 'contact_phone',
+        'short_name', 'level', 'province', 'city', 'town',
+        'verified', 'current_operation_verified', 'verification_scope', 'tier',
     ];
 
     protected $casts = [
         'lng' => 'decimal:6',
         'lat' => 'decimal:6',
+        'verified' => 'boolean',
+        'current_operation_verified' => 'boolean',
+        'tier' => 'integer',
         'is_deleted' => 'boolean',
     ];
 
