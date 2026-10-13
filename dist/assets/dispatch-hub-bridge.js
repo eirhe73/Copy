@@ -1,0 +1,44 @@
+/**
+ * 120 院前工作台：纠正主站 Hash 误用（/#/dispatch、/#/dispatch.html）→ /dispatch.html#live
+ * 保留 ?legacy=1 或 localStorage huaxi-dispatch-legacy=1 可进旧版 /#/dispatch。
+ */
+;(function () {
+  function path() {
+    return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+  }
+
+  function hashQuery() {
+    const raw = location.hash.replace(/^#/, '')
+    return new URLSearchParams(raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : '')
+  }
+
+  function legacyMode() {
+    if (hashQuery().get('legacy') === '1') return true
+    try {
+      return localStorage.getItem('huaxi-dispatch-legacy') === '1'
+    } catch {
+      return false
+    }
+  }
+
+  function redirectToHub() {
+    if (legacyMode()) return
+    const p = path()
+    const isOldDispatch = p === '/dispatch'
+    const isWrongHtmlHash = p === '/dispatch.html'
+    if (!isOldDispatch && !isWrongHtmlHash) return
+
+    const q = hashQuery()
+    const qs = q.toString()
+    location.replace(qs ? `/dispatch.html#live?${qs}` : '/dispatch.html#live')
+  }
+
+  function mount() {
+    document.getElementById('huaxi-dispatch-subnav')?.remove()
+    redirectToHub()
+  }
+
+  window.addEventListener('hashchange', mount)
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount)
+  else mount()
+})()
