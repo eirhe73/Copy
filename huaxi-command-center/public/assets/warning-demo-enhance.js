@@ -120,7 +120,7 @@
       .map((x) => `<span class="hx-warn-loop">${esc(x.stage)} <strong>${x.count}</strong></span>`)
       .join('')
     const html = `<header class="hx-warning-demo-head hx-warning-demo-head--page">
-      <span class="hx-warning-demo-tag">院内早期预警 · 演示数据</span>
+      <span class="hx-warning-demo-tag">院内早期预警</span>
       <span>24h 活跃 <strong>${s.activeAlerts ?? '—'}</strong></span>
       <span>NEWS <strong>${s.newsAttention ?? '—'}</strong></span>
       <span>危急值 <strong>${s.criticalValue ?? '—'}</strong></span>

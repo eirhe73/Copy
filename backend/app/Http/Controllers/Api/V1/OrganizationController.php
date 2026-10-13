@@ -5,27 +5,27 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\OrganizationResource;
 use App\Models\Organization;
+use App\Services\OrganizationService;
+use App\Support\Result;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 class OrganizationController extends Controller
 {
-    /**
-     * 机构列表（转诊双方 / 受理机构下拉选项）
-     */
-    public function index(Request $request): AnonymousResourceCollection
+    public function __construct(private readonly OrganizationService $service)
     {
-        $query = Organization::query();
+    }
 
-        $query->when($request->input('org_type'), fn ($q, $v) => $q->where('org_type', $v))
-            ->when($request->input('county_name'), fn ($q, $v) => $q->where('county_name', $v))
-            ->when($request->input('keyword'), fn ($q, $v) => $q->where('org_name', 'like', "%{$v}%"));
+    /**
+     * 机构列表（医共体成员机构名录，§3.1）
+     */
+    public function index(Request $request): array
+    {
+        $filters = [
+            'level' => $request->query('level'),
+            'keyword' => $request->query('keyword'),
+        ];
 
-        $organizations = $query->orderBy('org_code')
-            ->paginate($request->integer('per_page', 50))
-            ->appends($request->query());
-
-        return OrganizationResource::collection($organizations);
+        return Result::success('获取成功', $this->service->list($filters));
     }
 
     /**
@@ -34,5 +34,21 @@ class OrganizationController extends Controller
     public function show(Organization $organization): OrganizationResource
     {
         return new OrganizationResource($organization);
+    }
+
+    /**
+     * 获取科室结构（科室树，§3.4）
+     */
+    public function departments(string $id): array
+    {
+        return Result::success('获取成功', $this->service->departments($id));
+    }
+
+    /**
+     * 获取机构权限范围（§3.5）
+     */
+    public function permissions(string $id): array
+    {
+        return Result::success('获取成功', $this->service->permissions($id));
     }
 }

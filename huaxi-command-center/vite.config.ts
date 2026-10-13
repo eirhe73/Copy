@@ -23,6 +23,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     port: 5173,
     strictPort: false,
+    proxy: {
+      '/backend-api': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/backend-api/, '/api'),
+      },
+    },
   },
   preview: {
     port: 4173,

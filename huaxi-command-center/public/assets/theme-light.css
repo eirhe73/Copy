@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 浅色主题 — 覆盖默认深蓝大屏样式（加载于 index-BRuArrdm.css 之后）
  */
 :root {
@@ -6528,8 +6528,7 @@ main.meeting .video-state {
   font-weight: 600;
   color: #0369a1;
 }
-
-/* ========== 导图补项 · IA 查询视图 ========== */
+/* ========== 瀵煎浘琛ラ」 路 IA 鏌ヨ瑙嗗浘 ========== */
 .hx-ia-view-head {
   display: flex;
   flex-wrap: wrap;
@@ -6595,12 +6594,12 @@ main.meeting .video-state {
   text-align: left;
 }
 
-.hx-sh-status--紧张 {
+.hx-sh-status--绱у紶 {
   color: #c2410c;
   font-weight: 600;
 }
 
-.hx-sh-status--关注 {
+.hx-sh-status--鍏虫敞 {
   color: #b45309;
 }
 
@@ -6665,7 +6664,7 @@ main.meeting .video-state {
   color: #0369a1;
 }
 
-/* —— 协作机构 /organizations · 公开科室浅色 —— */
+/* 鈥斺€?鍗忎綔鏈烘瀯 /organizations 路 鍏紑绉戝娴呰壊 鈥斺€?*/
 main.workspace .workspace-heading h1 {
   color: #0f172a !important;
 }
@@ -6763,6 +6762,170 @@ main.workspace .tab-row button.active {
 
 .source-list time {
   color: #64748b !important;
+}
+
+
+
+/* 鏉垮潡 3 / 4 / 5 鍚庣 API 闈㈡澘 */
+.hx-plate-api-wrap {
+  margin: 0 0 1.25rem;
+}
+
+.hx-plate-api {
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #f8fafc 100%);
+  border: 1px solid #bae6fd;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.hx-plate-api > header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-bottom: 10px;
+}
+
+.hx-plate-api > header strong {
+  font-size: 15px;
+  color: #0c4a6e;
+}
+
+.hx-plate-api-meta {
+  flex: 1 1 100%;
+  font-size: 12px;
+  color: #64748b;
+}
+
+@media (min-width: 640px) {
+  .hx-plate-api-meta {
+    flex: 1 1 auto;
+    text-align: right;
+  }
+}
+
+.hx-plate-api-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 999px;
+}
+
+.hx-plate-api-badge--live {
+  color: #065f46;
+  background: #d1fae5;
+  border: 1px solid #6ee7b7;
+}
+
+.hx-plate-api-badge--mock {
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+}
+
+.hx-plate-api-scroll {
+  overflow-x: auto;
+  margin-top: 8px;
+}
+
+.hx-plate-api table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.hx-plate-api th,
+.hx-plate-api td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  vertical-align: top;
+}
+
+.hx-plate-api th {
+  color: #475569;
+  font-weight: 600;
+  background: #f1f5f9;
+}
+
+.hx-plate-api td small {
+  display: block;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.hx-plate-api-empty {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.hx-plate-api-note,
+.hx-plate-api-foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+  color: #64748b;
+  line-height: 1.55;
+}
+
+.hx-plate-api-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 8px 0 12px;
+}
+
+.hx-plate-api-kpis > div {
+  flex: 1 1 100px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.hx-plate-api-kpis b {
+  display: block;
+  font-size: 20px;
+  color: #0369a1;
+}
+
+.hx-plate-api-kpis span {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.hx-plate-api-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  .hx-plate-api-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hx-plate-api-cols h3 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.hx-plate-api-cols ul {
+  margin: 0;
+  padding-left: 18px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.hx-plate-api-cols li {
+  margin-bottom: 6px;
+  line-height: 1.45;
 }
 
 

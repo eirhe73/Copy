@@ -9,10 +9,14 @@ class Patient extends BaseModel
     protected $fillable = [
         'patient_code', 'real_name', 'gender', 'birth_date', 'age',
         'id_card', 'phone', 'address', 'medical_history', 'allergy_history',
+        'prehospital', 'is_draft', 'entry', 'stage',
+        'source_record_id', 'institution_id', 'department_id',
     ];
 
     protected $casts = [
         'birth_date' => 'date',
+        'prehospital' => 'array',
+        'is_draft' => 'boolean',
         'is_deleted' => 'boolean',
     ];
 
