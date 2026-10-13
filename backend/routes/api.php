@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\V1\PatientRegistrationController;
 use App\Http\Controllers\Api\V1\QcIssueController;
 use App\Http\Controllers\Api\V1\QcStandardController;
 use App\Http\Controllers\Api\V1\SlaRecordController;
+use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\TransferTrackController;
 use App\Http\Controllers\Api\V1\VehicleController;
@@ -63,14 +64,30 @@ Route::middleware('auth:api')->get('/user', function (Request $request) {
 */
 Route::prefix('v1')->group(function () {
 
+    // 健康检查（免鉴权，08 §3.1）
+    Route::get('health', function () {
+        return response()->json([
+            'code' => 200,
+            'message' => 'success',
+            'data' => [
+                'status' => 'up',
+                'service' => 'huaxi-command-center-api',
+                'version' => '1.1.0',
+                'time' => now()->toIso8601String(),
+                'uptime' => defined('LARAVEL_START') ? (int) (microtime(true) - LARAVEL_START) : 0,
+            ],
+        ]);
+    });
+
     // 登录（免鉴权，§3.2）
     Route::post('auth/login', [AuthController::class, 'login']);
 
     Route::middleware('auth:api')->group(function () {
 
-        // 认证：登出 / 当前用户 /
+        // 认证：登出 / 当前用户 / 刷新令牌
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
+        Route::post('auth/refresh-token', [AuthController::class, 'refreshToken']);
 
         /*
         |======================================================================
@@ -233,6 +250,12 @@ Route::prefix('v1')->group(function () {
         Route::post('mobile-reception/{token}/accept', [MobileReceptionController::class, 'accept']);
         Route::get('reception/institutions', [MobileReceptionController::class, 'institutions']);
         Route::get('reception/departments', [MobileReceptionController::class, 'departments']);
+
+        // 系统设置：演示数据重置 / 通知渠道 / 偏好配置（08 §3.1~3.4）
+        Route::post('settings/demo-reset', [SettingController::class, 'demoReset']);
+        Route::get('settings/notification-channels', [SettingController::class, 'notificationChannels']);
+        Route::get('settings/preferences', [SettingController::class, 'preferences']);
+        Route::put('settings/preferences', [SettingController::class, 'updatePreferences']);
     });
 });
 
