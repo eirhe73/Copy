@@ -7,12 +7,12 @@ export function SystemFooter() {
   const scope =
     user && typeof user === 'object' && (user as { kind?: string }).kind === 'admin'
       ? '全域数据范围'
-      : '华西演示 · API 后端'
+      : '华西 · API 后端'
 
   return (
     <footer className="system-footer">
       <span>
-        <i /> 本地演示环境 · 数据来自 Laravel API
+        <i /> 数据来自 Laravel API（/backend-api/v1）
       </span>
       <span>{scope}</span>
       <div>

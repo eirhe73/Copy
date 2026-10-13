@@ -246,7 +246,7 @@ watch(region, () => {
             <span class="value">{{ erToday }}</span>
           </div>
           <div v-if="region === 'weiyuan' && mapVehicles.length" class="gis-veh-chip">
-            院前 {{ mapVehicles.length }} 车 · GPS 演示
+            院前 {{ mapVehicles.length }} 车 · GPS 实时
             <span v-if="updatedAt" class="muted">更新 {{ updatedAt.slice(11, 16) }}</span>
           </div>
         </section>

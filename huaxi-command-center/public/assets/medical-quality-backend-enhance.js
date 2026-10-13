@@ -67,16 +67,21 @@
           .join('')
       : '<tr><td colspan="7">暂无整改单或后端未返回数据</td></tr>'
 
-    box.innerHTML = `<section class="hx-plate-api hx-qc-backend" aria-label="整改台账·后端">
-      <header><strong>4.3 质控提醒 · 整改台账（后端 qc-issues）</strong>
+    const html = `<section class="hx-plate-api hx-qc-backend" aria-label="整改台账·后端">
+      <header><strong>4.3 质控提醒 · 整改台账</strong>
         <span class="hx-plate-api-badge hx-plate-api-badge--live">${issues.length} 条</span></header>
       <div class="hx-plate-api-scroll"><table>
         <thead><tr><th>编号</th><th>标题</th><th>级别</th><th>状态</th><th>责任人</th><th>督查对象</th><th>整改期限</th></tr></thead>
         <tbody>${rows}</tbody>
       </table></div>
-      <p class="hx-plate-api-foot">上方 React 列表仍为演示存档；本表为 Laravel 实库数据。</p>
     </section>`
+    if (box.dataset.html === html) return
+    box.dataset.html = html
+    box.innerHTML = html
   }
+
+  let lastFetch = 0
+  const FETCH_COOLDOWN_MS = 15000
 
   function render() {
     if (path() !== '/medical-quality') {
@@ -84,7 +89,12 @@
       return
     }
     if (!window.hxBackend?.strict?.()) return
-    loadIssues().then(renderPanel)
+    const now = Date.now()
+    if (now - lastFetch < FETCH_COOLDOWN_MS) return
+    lastFetch = now
+    loadIssues().then(renderPanel).catch(() => {
+      lastFetch = 0
+    })
   }
 
   window.hxEnhance(render, { wait: 520, observeRoot: true, afterNav: 120 })
