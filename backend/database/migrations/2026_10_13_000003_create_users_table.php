@@ -18,6 +18,10 @@ return new class extends Migration
             $table->string('phone', 50)->nullable();
             $table->string('email', 150)->nullable();
             $table->string('identity_type', 50)->index()->comment('身份类型：医生/护士/调度员等');
+            $table->string('role_view', 16)->default('doctor')->comment('数据权限角色：doctor/director');
+            $table->string('profession', 16)->default('')->comment('职业：doctor/nurse');
+            $table->string('member_id', 64)->nullable()->comment('关联 organization_members.member_id');
+            $table->string('department_id', 32)->default('')->comment('所属科室编码');
             $table->string('home_route', 200)->nullable()->comment('登录后默认路由');
             $table->string('user_status', 20)->default('USER_ACTIVE')->index()->comment('用户状态');
             $table->dateTime('last_login_at')->nullable();

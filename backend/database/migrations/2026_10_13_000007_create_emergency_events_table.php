@@ -33,7 +33,7 @@ return new class extends Migration
             $table->string('scene_rr', 20)->nullable()->comment('现场呼吸');
             $table->string('scene_temp', 20)->nullable()->comment('现场体温');
             $table->unsignedBigInteger('patient_id')->nullable()->index()->comment('关联患者');
-            $table->string('patient_mode', 20)->default('PATIENT_MODE_TEMP')->comment('患者模式：临时/建档');
+            $table->string('patient_mode', 32)->default('PATIENT_MODE_TEMP')->comment('患者模式：临时/建档');
             $table->string('temp_gender', 20)->default('GENDER_UNKNOWN')->comment('临时患者性别');
             $table->text('temp_summary')->nullable()->comment('临时患者摘要');
             $table->text('chief')->comment('主诉');
@@ -44,6 +44,17 @@ return new class extends Migration
             $table->json('close_check_result')->nullable()->comment('关闭检查结果');
             $table->dateTime('closed_at')->nullable();
             $table->unsignedBigInteger('closed_by_user_id')->nullable();
+            $table->string('task120_id', 32)->nullable()->unique()->comment('120 任务号');
+            $table->unsignedTinyInteger('level')->default(1)->comment('等级：0重症1急症2一般');
+            $table->string('destination', 64)->default('')->comment('目标医院');
+            $table->string('vehicle_id', 32)->default('')->index()->comment('车辆编号');
+            $table->string('vehicle_plate', 16)->default('')->comment('车牌');
+            $table->unsignedTinyInteger('status')->default(1)->index()->comment('状态：0待命1出警中2现场处置3返院途中');
+            $table->dateTime('started_at')->nullable()->index()->comment('出警时间');
+            $table->unsignedInteger('eta_hospital_minutes')->default(0)->comment('预计到院分钟');
+            $table->unsignedInteger('eta_patient_minutes')->nullable()->comment('预计到患者分钟');
+            $table->string('score_plan', 255)->default('')->comment('院前评分方案');
+            $table->text('treat_plan')->nullable()->comment('救治方案');
             $table->boolean('is_deleted')->default(false);
             $table->timestamp('deleted_at')->nullable();
             $table->timestamps();

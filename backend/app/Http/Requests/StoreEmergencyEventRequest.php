@@ -35,7 +35,7 @@ class StoreEmergencyEventRequest extends FormRequest
             'scene_rr' => ['nullable', 'string', 'max:20'],
             'scene_temp' => ['nullable', 'string', 'max:20'],
             'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
-            'patient_mode' => ['nullable', 'string', 'max:20'],
+            'patient_mode' => ['nullable', 'string', 'max:32'],
             'temp_gender' => ['nullable', 'string', 'max:20'],
             'temp_summary' => ['nullable', 'string'],
             'chief' => ['required', 'string'],

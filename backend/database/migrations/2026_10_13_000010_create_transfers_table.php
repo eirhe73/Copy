@@ -33,6 +33,13 @@ return new class extends Migration
             $table->json('resource_prep')->nullable()->comment('资源准备');
             $table->string('handover_status', 30)->nullable()->comment('交接状态');
             $table->unsignedBigInteger('initiator_user_id')->comment('发起人');
+            $table->string('from_institution_id', 32)->nullable()->comment('转出机构编号');
+            $table->string('to_institution_id', 32)->nullable()->comment('转入机构编号');
+            $table->string('doctor_id', 64)->nullable()->comment('随车医生账号');
+            $table->string('nurse_id', 64)->nullable()->comment('随车护士账号');
+            $table->dateTime('started_at')->nullable()->comment('开始转运时间');
+            $table->dateTime('arrived_at')->nullable()->comment('到达时间');
+            $table->dateTime('handover_at')->nullable()->comment('交接时间');
             $table->boolean('is_deleted')->default(false);
             $table->timestamp('deleted_at')->nullable();
             $table->timestamps();

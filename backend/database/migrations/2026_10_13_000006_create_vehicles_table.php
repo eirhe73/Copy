@@ -10,10 +10,15 @@ return new class extends Migration
     {
         Schema::create('vehicles', function (Blueprint $table) {
             $table->id();
+            $table->string('vehicle_id', 32)->nullable()->unique()->comment('车辆编号，如 AMB-1');
             $table->string('plate_number', 20)->unique()->comment('车牌号');
             $table->string('vehicle_type', 50)->default('AMBULANCE')->comment('车辆类型');
             $table->unsignedBigInteger('org_id')->index()->comment('所属机构');
             $table->string('vehicle_status', 30)->default('VEHICLE_STANDBY')->index()->comment('状态：出警中/站内待命');
+            $table->unsignedTinyInteger('status')->default(0)->index()->comment('状态：0待命1出警中2现场处置3返院途中');
+            $table->string('bound_hospital', 64)->default('')->comment('绑定医院');
+            $table->string('crew', 64)->default('')->comment('随车班组');
+            $table->string('current_event_id', 32)->nullable()->index()->comment('当前关联急救事件编号');
             $table->string('driver_name', 100)->nullable();
             $table->string('driver_phone', 50)->nullable();
             $table->decimal('latest_lng', 10, 6)->nullable()->comment('最新经度');

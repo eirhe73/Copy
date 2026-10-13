@@ -20,6 +20,13 @@ return new class extends Migration
             $table->string('address', 500)->nullable();
             $table->text('medical_history')->nullable()->comment('既往史');
             $table->text('allergy_history')->nullable()->comment('过敏史');
+            $table->json('prehospital')->nullable()->comment('院前上报明细');
+            $table->unsignedTinyInteger('is_draft')->default(0)->comment('是否草稿：1草稿0已提交');
+            $table->string('entry', 16)->default('field')->comment('接诊入口：field现场/inpatient院内');
+            $table->string('stage', 32)->default('registered')->comment('患者阶段');
+            $table->string('source_record_id', 64)->nullable()->comment('来源业务记录编号');
+            $table->string('institution_id', 32)->nullable()->comment('上报机构编号');
+            $table->string('department_id', 32)->nullable()->comment('上报科室编号');
             $table->boolean('is_deleted')->default(false);
             $table->timestamp('deleted_at')->nullable();
             $table->timestamps();
