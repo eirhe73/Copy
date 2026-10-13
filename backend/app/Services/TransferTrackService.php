@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\ResponseCode;
+use App\Models\Handover;
+use App\Models\PatientVital;
 use App\Models\Transfer;
 use App\Models\TransferMilestone;
 use App\Models\VehicleLocation;
@@ -94,6 +96,103 @@ class TransferTrackService extends Service
             'vehiclePlate' => $vehicle?->plate_number ?? '',
             'points' => $points,
             'milestones' => $this->milestones($transferNo),
+        ];
+    }
+
+    /**
+     * 车载监护（§3.12：患者/车辆摘要 + 最新体征 + 近 N 条时序）
+     */
+    public function monitor(string $transferNo, array $filters): array
+    {
+        $transfer = Transfer::query()->with(['vehicle', 'patient'])->where('transfer_code', $transferNo)->first();
+        $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
+
+        $vehicle = $transfer->vehicle;
+        $patient = $transfer->patient;
+        [$status, $statusLabel] = $this->status($transfer->transfer_status);
+
+        // 体征表 patient_id 存 patient_code，优先取患者编码，缺失时回退主键字符串
+        $patientId = $patient?->patient_code ?? ($transfer->patient_id === null ? null : (string) $transfer->patient_id);
+        $limit = min(max((int) ($filters['limit'] ?? 30), 1), 200);
+
+        $series = collect();
+        if ($patientId !== null) {
+            $series = PatientVital::query()
+                ->where('patient_id', $patientId)
+                ->orderByDesc('measured_at')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
+        }
+
+        return [
+            'updatedAt' => now()->toIso8601String(),
+            'transferNo' => $transfer->transfer_code,
+            'patientId' => $patientId,
+            'patientName' => $patient?->real_name ?? '',
+            'vehicleId' => $vehicle?->vehicle_id ?? ($transfer->vehicle_id === null ? null : (string) $transfer->vehicle_id),
+            'vehiclePlate' => $vehicle?->plate_number ?? '',
+            'status' => $status,
+            'statusLabel' => $statusLabel,
+            'latest' => $this->vital($series->last()),
+            'series' => $series->map(fn (PatientVital $v) => $this->vital($v))->all(),
+        ];
+    }
+
+    /**
+     * 到院交接清单（§3.13）
+     */
+    public function handoverList(string $transferNo): array
+    {
+        $transfer = Transfer::query()->where('transfer_code', $transferNo)->first();
+        $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
+
+        $list = Handover::query()
+            ->where('transfer_no', $transferNo)
+            ->orderByDesc('handover_at')
+            ->get()
+            ->map(fn (Handover $h) => [
+                'handoverId' => $h->handover_no,
+                'task120Id' => $h->task120_id,
+                'eventId' => $h->event_id,
+                'patientId' => $h->patient_id,
+                'patientName' => $h->patient_name,
+                'fromStaffId' => $h->from_staff_id,
+                'fromStaffName' => $h->from_staff_name,
+                'toStaffId' => $h->to_staff_id,
+                'toStaffName' => $h->to_staff_name,
+                'toDept' => $h->to_dept,
+                'handoverAt' => $h->handover_at?->toIso8601String(),
+                'items' => $h->items,
+                'signature' => $h->signature,
+            ])->all();
+
+        return [
+            'transferNo' => $transfer->transfer_code,
+            'total' => count($list),
+            'list' => $list,
+        ];
+    }
+
+    /**
+     * 单条体征（车载监护字段契约）
+     */
+    private function vital(?PatientVital $vital): ?array
+    {
+        if ($vital === null) {
+            return null;
+        }
+
+        return [
+            'heartRate' => (int) $vital->heart_rate,
+            'spo2' => (int) $vital->spo2,
+            'resp' => (int) $vital->resp,
+            'temp' => (float) $vital->temp,
+            'systolic' => (int) $vital->systolic,
+            'diastolic' => (int) $vital->diastolic,
+            'news' => $vital->news,
+            'at' => $vital->measured_at?->toIso8601String(),
         ];
     }
 
