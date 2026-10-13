@@ -13,7 +13,7 @@
 ## 快速开始
 
 ```bash
-cd E:\copy\huaxi-command-center
+cd huaxi-command-center
 npm install
 npm run dev
 ```
