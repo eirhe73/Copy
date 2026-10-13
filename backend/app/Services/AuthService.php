@@ -8,6 +8,7 @@ use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
+use Tymon\JWTAuth\JWTGuard;
 
 /**
  * 认证服务：登录、登出、当前用户、令牌续期（JWT）
@@ -44,7 +45,7 @@ class AuthService extends Service
         );
         $this->assert($user->user_status !== self::STATUS_DISABLED, ResponseCode::FORBIDDEN, '账号已停用，请联系管理员');
 
-        $token = auth('api')->login($user);
+        $token = $this->guard()->login($user);
 
         $user->forceFill([
             'last_login_at' => now(),
@@ -64,9 +65,9 @@ class AuthService extends Service
      */
     public function logout(): void
     {
-        $this->assert(auth('api')->check(), ResponseCode::UNAUTHORIZED);
+        $this->assert($this->guard()->check(), ResponseCode::UNAUTHORIZED);
 
-        auth('api')->logout();
+        $this->guard()->logout();
     }
 
     /**
@@ -74,7 +75,7 @@ class AuthService extends Service
      */
     public function me(): array
     {
-        $user = auth('api')->user();
+        $user = $this->guard()->user();
         $this->assert($user instanceof User, ResponseCode::UNAUTHORIZED);
 
         $org = $this->organization($user);
@@ -103,13 +104,24 @@ class AuthService extends Service
      */
     public function refresh(): array
     {
-        $this->assert(auth('api')->check(), ResponseCode::UNAUTHORIZED);
+        $this->assert($this->guard()->check(), ResponseCode::UNAUTHORIZED);
 
         return [
-            'token' => auth('api')->refresh(),
+            'token' => $this->guard()->refresh(),
             'tokenType' => 'Bearer',
             'expiresAt' => $this->expiresAt(),
         ];
+    }
+
+    /**
+     * JWT 认证守卫：api guard 驱动为 jwt，运行时即 Tymon\JWTAuth\JWTGuard
+     */
+    private function guard(): JWTGuard
+    {
+        /** @var JWTGuard $guard */
+        $guard = auth('api');
+
+        return $guard;
     }
 
     /**
@@ -117,7 +129,7 @@ class AuthService extends Service
      */
     private function expiresAt(): string
     {
-        return Carbon::now()->addMinutes((int) auth('api')->factory()->getTTL())->toIso8601String();
+        return Carbon::now()->addMinutes((int) $this->guard()->factory()->getTTL())->toIso8601String();
     }
 
     /**
