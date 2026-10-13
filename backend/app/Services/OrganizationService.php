@@ -98,6 +98,85 @@ class OrganizationService extends Service
     }
 
     /**
+     * 新增机构（§3.2）
+     */
+    public function store(array $data): array
+    {
+        $org = Organization::create($this->mapOrgData($data));
+
+        return ['orgId' => $org->org_code];
+    }
+
+    /**
+     * 更新机构（§3.3，仅更新传入字段）
+     */
+    public function update(string $id, array $data): array
+    {
+        $org = $this->findOrg($id);
+        $org->update($this->mapOrgData($data));
+
+        return ['orgId' => $org->org_code, 'verified' => (bool) $org->verified];
+    }
+
+    /**
+     * 机构成员（§3.6，可选按科室/职业过滤）
+     */
+    public function members(string $id, array $filters): array
+    {
+        $org = $this->findOrg($id);
+
+        $members = OrganizationMember::query()
+            ->where('org_code', $org->org_code)
+            ->when(! empty($filters['deptId']), fn ($q, $v) => $q->where('dept_id', $v))
+            ->when(! empty($filters['profession']), fn ($q, $v) => $q->where('profession', $v))
+            ->orderBy('member_id')
+            ->get();
+
+        $deptNames = Department::query()
+            ->whereIn('dept_code', $members->pluck('dept_id')->all())
+            ->pluck('dept_name', 'dept_code')->all();
+
+        $list = $members->map(fn (OrganizationMember $m) => [
+            'memberId' => $m->member_id,
+            'name' => $m->name,
+            'title' => $m->title,
+            'profession' => $m->profession,
+            'deptId' => $m->dept_id,
+            'deptName' => $deptNames[$m->dept_id] ?? '',
+            'evidenceAsOf' => $m->evidence_as_of ?: null,
+        ])->values()->all();
+
+        return ['orgId' => $org->org_code, 'total' => count($list), 'list' => $list];
+    }
+
+    /**
+     * 请求字段（camelCase）→ 模型字段（snake_case）
+     */
+    private function mapOrgData(array $data): array
+    {
+        $map = [
+            'orgId' => 'org_code',
+            'name' => 'org_name',
+            'shortName' => 'short_name',
+            'level' => 'level',
+            'province' => 'province',
+            'city' => 'city',
+            'county' => 'county_name',
+            'town' => 'town',
+            'verified' => 'verified',
+        ];
+
+        $out = [];
+        foreach ($map as $camel => $snake) {
+            if (array_key_exists($camel, $data)) {
+                $out[$snake] = $data[$camel];
+            }
+        }
+
+        return $out;
+    }
+
+    /**
      * 机构列表项字段
      */
     public function summary(Organization $org): array

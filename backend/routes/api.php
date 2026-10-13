@@ -176,10 +176,13 @@ Route::prefix('v1')->group(function () {
         |======================================================================
         */
 
-        // 机构（转诊双方 / 受理机构选项）+ 机构科室结构 / 权限范围（02 §3.1/3.4/3.5）
+        // 机构（转诊双方 / 受理机构选项）+ 机构科室结构 / 权限范围（06 §3.1~3.6）
         Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show']);
+        Route::post('organizations', [OrganizationController::class, 'store']);
+        Route::put('organizations/{id}', [OrganizationController::class, 'update']);
         Route::get('organizations/{id}/departments', [OrganizationController::class, 'departments']);
         Route::get('organizations/{id}/permissions', [OrganizationController::class, 'permissions']);
+        Route::get('organizations/{id}/users', [OrganizationController::class, 'users']);
 
         // 患者建档：POST /patients 由患者登记接口接管，其余方法沿用
         Route::post('patients', [PatientRegistrationController::class, 'store']);
