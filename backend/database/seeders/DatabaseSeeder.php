@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             QualitySeeder::class,
             SlaSeeder::class,
             MessageSeeder::class,
+
+            // 基层医声（04-会诊协同）：基层反馈 / 问题上报 + 协作消息
+            DrSeeder::class,
         ]);
     }
 }

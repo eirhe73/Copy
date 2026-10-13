@@ -7,10 +7,15 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class DrMessageResource extends JsonResource
 {
-    private const KIND_LABELS = ['TEXT' => '文字', 'VOICE' => '语音', 'IMAGE' => '图片', 'FILE' => '文件'];
+    /** kind 整数 → 字符串码；§4.4 */
+    private const KIND_CODES = [0 => 'TEXT', 1 => 'VOICE', 2 => 'IMAGE', 3 => 'FILE'];
+
+    private const KIND_LABELS = [0 => '文字', 1 => '语音', 2 => '图片', 3 => '文件'];
 
     public function toArray(Request $request): array
     {
+        $kind = (int) $this->kind;
+
         return [
             'messageId' => $this->message_id,
             'threadId' => $this->thread_id,
@@ -18,8 +23,8 @@ class DrMessageResource extends JsonResource
             'institutionName' => $this->institution_name,
             'senderId' => $this->sender_id,
             'senderName' => $this->sender_name,
-            'kind' => $this->kind,
-            'kindLabel' => self::KIND_LABELS[$this->kind] ?? $this->kind,
+            'kind' => self::KIND_CODES[$kind] ?? 'UNKNOWN',
+            'kindLabel' => self::KIND_LABELS[$kind] ?? '未知',
             'content' => $this->content,
             'mediaUrl' => $this->media_url,
             'durationSec' => (int) $this->duration_sec,

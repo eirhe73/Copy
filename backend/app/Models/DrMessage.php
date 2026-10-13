@@ -14,7 +14,11 @@ class DrMessage extends Model
         'sender_id', 'sender_name', 'kind', 'content', 'media_url', 'duration_sec', 'is_read',
     ];
 
+    // dr_messages 仅含 created_at（§2.2），无 updated_at
+    public const UPDATED_AT = null;
+
     protected $casts = [
+        'kind' => 'integer',
         'duration_sec' => 'integer',
         'is_read' => 'boolean',
     ];

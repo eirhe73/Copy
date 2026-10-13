@@ -3,7 +3,9 @@
 namespace App\Services;
 
 use App\Enums\ResponseCode;
+use App\Models\ConsultRoom;
 use App\Models\ConsultSession;
+use App\Models\Department;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Support\Str;
@@ -20,9 +22,9 @@ class ConsultationService extends Service
     private const STATUS_LABELS = [0 => '待接诊', 1 => '会诊中', 2 => '已结束'];
 
     /**
-     * 会诊队列（默认待接诊）
+     * 会诊队列（§5.1，默认待接诊）
      */
-    public function queue(array $params): array
+    public function index(array $params): array
     {
         $query = ConsultSession::query()
             ->with('participants')
@@ -51,9 +53,9 @@ class ConsultationService extends Service
     }
 
     /**
-     * 发起会诊
+     * 发起会诊（§5.3，同步创建会诊室）
      */
-    public function create(array $data): array
+    public function store(array $data): array
     {
         $patientId = $data['patientId'] ?? null;
         $patientName = $data['patientName'] ?? '';
@@ -62,9 +64,9 @@ class ConsultationService extends Service
         $age = (int) ($data['age'] ?? 0);
 
         if (! empty($patientId)) {
-            $patient = Patient::where('patient_code', $patientId)->first();
+            $patient = Patient::where('patient_id', $patientId)->first();
             if ($patient) {
-                $patientName = $patient->real_name;
+                $patientName = $patient->name;
                 $gender = $gender ?: $patient->gender;
                 $age = $age ?: (int) $patient->age;
             }
@@ -77,11 +79,15 @@ class ConsultationService extends Service
         $this->assert(! $duplicated, ResponseCode::CONFLICT, '该患者已存在待接诊或会诊中的申请');
 
         $token = $data['token'] ?? (string) Str::uuid();
+        $consultCode = substr($token, 0, 6);
+        $sessionId = $this->nextSessionId();
+        $hospital = $data['targetHospital'];
+        $department = $data['targetDepartment'];
 
         $session = ConsultSession::create([
-            'session_id' => $this->nextSessionId(),
+            'session_id' => $sessionId,
             'token' => $token,
-            'consult_code' => substr($token, 0, 6),
+            'consult_code' => $consultCode,
             'mode' => 'standalone',
             'compatible120' => false,
             'patient_id' => $patientId,
@@ -91,25 +97,35 @@ class ConsultationService extends Service
             'chief_complaint' => $chiefComplaint,
             'source_hospital' => $data['sourceHospital'] ?? '',
             'source_department' => $data['sourceDepartment'] ?? '',
-            'hospital' => $data['targetHospital'],
-            'department' => $data['targetDepartment'],
+            'hospital' => $hospital,
+            'department' => $department,
             'nominated_doctor_id' => $data['nominatedDoctorId'] ?? null,
             'note' => $data['note'] ?? '',
             'status' => 0,
         ]);
 
+        ConsultRoom::create([
+            'token' => $token,
+            'consult_code' => $consultCode,
+            'session_id' => $sessionId,
+            'patient_id' => $patientId ?? '',
+            'room_name' => trim($patientName.' · '.$hospital.' · '.$department, ' ·'),
+            'media_mode' => 'PLACEHOLDER',
+            'status' => 0,
+        ]);
+
         return [
             'sessionId' => $session->session_id,
-            'token' => $session->token,
-            'consultCode' => $session->consult_code,
-            'consultLink' => rtrim(request()->root(), '/').'/#/room/'.$session->token,
+            'token' => $token,
+            'consultCode' => $consultCode,
+            'consultLink' => rtrim(request()->root(), '/').'/#/room/'.$token,
             'status' => self::STATUS_NAMES[0],
             'statusLabel' => self::STATUS_LABELS[0],
         ];
     }
 
     /**
-     * 入院会诊会话（最近一条待接诊/会诊中）
+     * 入院会诊会话（§3.1，最近一条待接诊/会诊中）
      */
     public function admission(): ?array
     {
@@ -136,17 +152,19 @@ class ConsultationService extends Service
     }
 
     /**
-     * 会诊详情
+     * 会诊详情（§5.2）
      */
-    public function detail(string $sessionId): array
+    public function show(string $sessionId): array
     {
-        $session = ConsultSession::with('participants')->where('session_id', $sessionId)->first();
+        $session = ConsultSession::with(['participants', 'room'])->where('session_id', $sessionId)->first();
         $this->assert($session !== null, ResponseCode::NOT_FOUND, '会诊会话不存在');
+
+        $room = $session->room;
 
         return [
             'sessionId' => $session->session_id,
-            'token' => $session->token,
-            'consultCode' => $session->consult_code,
+            'token' => $room->token ?? $session->token,
+            'consultCode' => $room->consult_code ?? $session->consult_code,
             'patient' => ['patientId' => $session->patient_id] + $this->patientOf($session),
             'sourceHospital' => $session->source_hospital,
             'sourceDepartment' => $session->source_department,
@@ -155,7 +173,10 @@ class ConsultationService extends Service
             'participants' => $this->participantsOf($session),
             'status' => self::STATUS_NAMES[$session->status] ?? 'UNKNOWN',
             'statusLabel' => self::STATUS_LABELS[$session->status] ?? '',
-            'room' => ['token' => $session->token, 'mediaMode' => 'PLACEHOLDER'],
+            'room' => [
+                'token' => $room->token ?? $session->token,
+                'mediaMode' => $room->media_mode ?? 'PLACEHOLDER',
+            ],
             'opinionSummary' => (string) ($session->opinions()->orderByDesc('id')->value('content') ?? ''),
             'createdAt' => optional($session->created_at)->toIso8601String(),
             'acceptedAt' => optional($session->accepted_at)->toIso8601String(),
@@ -163,31 +184,30 @@ class ConsultationService extends Service
     }
 
     /**
-     * 可选接诊医生（基于 users 医生账号组装）
+     * 可选接诊医生（§5.5，支持机构/科室过滤）
      */
     public function doctors(array $params): array
     {
-        if (! empty($params['departmentId'])) {
-            // users 表无科室归属列，无法按科室过滤
-            return ['doctors' => []];
-        }
-
         $query = User::query()->with('organization')->where('identity_type', 'DOCTOR');
         $query->when($params['institutionId'] ?? null, function ($q, $v) {
             $q->where(function ($sub) use ($v) {
                 $sub->where('org_id', $v)
                     ->orWhereHas('organization', fn ($o) => $o->where('org_code', $v));
             });
-        })->when($params['keyword'] ?? null, fn ($q, $v) => $q->where('real_name', 'like', "%{$v}%"));
+        })->when($params['departmentId'] ?? null, fn ($q, $v) => $q->where('department_id', $v))
+            ->when($params['keyword'] ?? null, fn ($q, $v) => $q->where('real_name', 'like', "%{$v}%"));
 
-        $doctors = $query->orderByDesc('id')->limit(100)->get()->map(fn (User $user) => [
+        $users = $query->orderByDesc('id')->limit(100)->get();
+        $deptNames = $this->departmentNames($users->pluck('department_id')->all());
+
+        $doctors = $users->map(fn (User $user) => [
             'doctorId' => $user->username,
             'name' => $user->real_name,
             'profession' => 'doctor',
             'institutionId' => $user->organization->org_code ?? '',
             'institutionName' => $user->organization->org_name ?? '',
-            'departmentId' => '',
-            'departmentName' => '',
+            'departmentId' => $user->department_id ?? '',
+            'departmentName' => $deptNames[$user->department_id] ?? '',
             'online' => false,
         ])->all();
 
@@ -195,7 +215,7 @@ class ConsultationService extends Service
     }
 
     /**
-     * 医生接诊（仅待接诊可接）
+     * 医生接诊（§5.4，仅待接诊可接）
      */
     public function accept(string $sessionId, array $data): array
     {
@@ -221,6 +241,8 @@ class ConsultationService extends Service
             'opened_at' => $now,
             'status' => 1,
         ]);
+        ConsultRoom::where('session_id', $sessionId)
+            ->update(['status' => 1, 'opened_at' => $now]);
 
         return [
             'sessionId' => $session->session_id,
@@ -275,7 +297,7 @@ class ConsultationService extends Service
     }
 
     /**
-     * 队列条目
+     * 队列条目（§5.1）
      */
     private function queueItem(ConsultSession $session, array $nominatedNames): array
     {
@@ -328,6 +350,19 @@ class ConsultationService extends Service
         return User::whereIn('username', $usernames)->pluck('real_name', 'username')->all();
     }
 
+    /**
+     * 批量取科室名称（以 dept_code 为键）
+     */
+    private function departmentNames(array $codes): array
+    {
+        $codes = array_values(array_filter($codes));
+        if ($codes === []) {
+            return [];
+        }
+
+        return Department::whereIn('dept_code', $codes)->pluck('dept_name', 'dept_code')->all();
+    }
+
     private function genderName(int $gender): string
     {
         return $gender === 1 ? 'FEMALE' : 'MALE';
@@ -335,6 +370,6 @@ class ConsultationService extends Service
 
     private function genderCode(?string $gender): int
     {
-        return in_array($gender, ['FEMALE', 'GENDER_FEMALE'], true) ? 1 : 0;
+        return (in_array($gender, ['FEMALE', 'GENDER_FEMALE'], true) || (int) $gender === 1) ? 1 : 0;
     }
 }

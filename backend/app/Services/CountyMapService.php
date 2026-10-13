@@ -98,26 +98,15 @@ class CountyMapService extends Service
     private function links(array $nodeCodes): array
     {
         $rows = Transfer::query()
-            ->whereNotNull('from_org_id')
-            ->whereNotNull('to_org_id')
-            ->selectRaw('from_org_id, to_org_id, COUNT(*) as flow')
-            ->groupBy('from_org_id', 'to_org_id')
+            ->selectRaw('source_institution_id, target_institution_id, COUNT(*) as flow')
+            ->groupBy('source_institution_id', 'target_institution_id')
             ->get();
 
-        if ($rows->isEmpty()) {
-            return [];
-        }
-
-        $codes = Organization::query()
-            ->whereIn('id', $rows->pluck('from_org_id')->merge($rows->pluck('to_org_id'))->unique()->all())
-            ->pluck('org_code', 'id');
-
         return $rows->map(fn ($row) => [
-            'from' => $codes[$row->from_org_id] ?? null,
-            'to' => $codes[$row->to_org_id] ?? null,
+            'from' => $row->source_institution_id,
+            'to' => $row->target_institution_id,
             'flow' => (int) $row->flow,
-        ])->filter(fn ($l) => $l['from'] !== null && $l['to'] !== null
-                && in_array($l['from'], $nodeCodes, true)
+        ])->filter(fn ($l) => in_array($l['from'], $nodeCodes, true)
                 && in_array($l['to'], $nodeCodes, true))
             ->values()->all();
     }

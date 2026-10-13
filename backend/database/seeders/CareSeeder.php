@@ -62,7 +62,7 @@ class CareSeeder extends Seeder
 
         DB::table('ward_round_notes')->insert([
             ['id' => 1, 'note_no' => "WN-{$ymd}-001", 'round_id' => "WR-{$ymd}-001", 'patient_id' => $p3, 'kind' => '查房意见', 'content' => '维持目前治疗，密切监测意识及瞳孔变化。', 'actor_id' => 'doctor_wang', 'actor_name' => '王建国', 'noted_at' => $at(8, 15), 'created_at' => $now, 'updated_at' => $now],
-            ['id' => 2, 'note_no' => "WN-{$ymd}-002", 'round_id' => "WR-{$ymd}-001", 'patient_id' => $p3, 'kind' => '护理记录', 'content' => '翻身拍背一次，皮肤完好。', 'actor_id' => 'nurse_chen', 'actor_name' => '陈静', 'noted_at' => $at(8, 18), 'created_at' => $now, 'updated_at' => $now],
+            ['id' => 2, 'note_no' => "WN-{$ymd}-002", 'round_id' => "WR-{$ymd}-001", 'patient_id' => $p3, 'kind' => '护理建议', 'content' => '翻身拍背一次，皮肤完好。', 'actor_id' => 'nurse_chen', 'actor_name' => '陈静', 'noted_at' => $at(8, 18), 'created_at' => $now, 'updated_at' => $now],
             ['id' => 3, 'note_no' => "WN-{$ymd}-003", 'round_id' => "WR-{$ymd}-002", 'patient_id' => $p1, 'kind' => '查房意见', 'content' => '建议复查血气分析，必要时上调氧浓度。', 'actor_id' => 'doctor_sun', 'actor_name' => '孙丽', 'noted_at' => $at(11, 15), 'created_at' => $now, 'updated_at' => $now],
         ]);
 

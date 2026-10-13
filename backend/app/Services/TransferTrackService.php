@@ -16,19 +16,15 @@ use Carbon\Carbon;
 class TransferTrackService extends Service
 {
     /**
-     * 转运状态映射：存储值 => 展示名（支持英文码与中文标签双向匹配）
+     * 转运状态映射：int 存储值 => [英文码, 中文标签]（§4.2）
      */
     private const STATUS_LABELS = [
-        'TRANSFER_PENDING' => '待转运',
-        'TRANSFER_CONFIRMED' => '已确认',
-        'TRANSFER_REJECTED' => '已拒绝',
-        'TRANSFER_CANCELLED' => '已取消',
-        'TRANSPORTING' => '转运中',
-        'ARRIVED' => '已到院',
-        'HANDOVER' => '已交接',
-        'TRANSFER_ARRIVED' => '已到院',
-        'TRANSFER_HANDOVER' => '已交接',
-        'TRANSFER_COMPLETED' => '已完成',
+        0 => ['REQUESTED', '待接收'],
+        1 => ['ACCEPTED', '已接收'],
+        2 => ['IN_TRANSIT', '转运中'],
+        3 => ['ARRIVED', '到院'],
+        4 => ['COMPLETED', '已完成'],
+        5 => ['REJECTED', '已拒绝'],
     ];
 
     /**
@@ -36,27 +32,27 @@ class TransferTrackService extends Service
      */
     public function detail(string $transferNo): array
     {
-        $transfer = Transfer::query()->with(['vehicle', 'patient'])->where('transfer_code', $transferNo)->first();
+        $transfer = Transfer::query()->with(['vehicle', 'patient'])->where('transfer_id', $transferNo)->first();
         $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
 
         $vehicle = $transfer->vehicle;
-        [$status, $statusLabel] = $this->status($transfer->transfer_status);
+        [$status, $statusLabel] = $this->status($transfer->status);
 
         return [
-            'transferNo' => $transfer->transfer_code,
+            'transferNo' => $transfer->transfer_id,
             'patientId' => $transfer->patient_id === null ? null : (string) $transfer->patient_id,
-            'patientName' => $transfer->patient?->real_name ?? '',
-            'vehicleId' => $vehicle?->vehicle_id ?? ($transfer->vehicle_id === null ? null : (string) $transfer->vehicle_id),
+            'patientName' => $transfer->patient?->name ?? '',
+            'vehicleId' => $vehicle?->vehicle_id ?? $transfer->transport_vehicle_id,
             'vehiclePlate' => $vehicle?->plate_number ?? '',
             'status' => $status,
             'statusLabel' => $statusLabel,
-            'fromInstitutionId' => $transfer->from_institution_id,
-            'toInstitutionId' => $transfer->to_institution_id,
+            'fromInstitutionId' => $transfer->source_institution_id,
+            'toInstitutionId' => $transfer->target_institution_id,
             'doctorId' => $transfer->doctor_id,
             'nurseId' => $transfer->nurse_id,
             'startedAt' => $transfer->started_at?->toIso8601String(),
             'arrivedAt' => $transfer->arrived_at?->toIso8601String(),
-            'handoverAt' => $transfer->handover_at?->toIso8601String(),
+            'handoverAt' => $transfer->completed_at?->toIso8601String(),
             'milestones' => $this->milestones($transferNo),
         ];
     }
@@ -66,11 +62,11 @@ class TransferTrackService extends Service
      */
     public function track(string $transferNo, array $filters): array
     {
-        $transfer = Transfer::query()->with('vehicle')->where('transfer_code', $transferNo)->first();
+        $transfer = Transfer::query()->with('vehicle')->where('transfer_id', $transferNo)->first();
         $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
 
         $vehicle = $transfer->vehicle;
-        $vehicleId = $vehicle?->vehicle_id ?? ($transfer->vehicle_id === null ? null : (string) $transfer->vehicle_id);
+        $vehicleId = $vehicle?->vehicle_id ?? $transfer->transport_vehicle_id;
 
         $query = VehicleLocation::query()->where('vehicle_id', $vehicleId);
 
@@ -91,7 +87,7 @@ class TransferTrackService extends Service
 
         return [
             'updatedAt' => now()->toIso8601String(),
-            'transferNo' => $transfer->transfer_code,
+            'transferNo' => $transfer->transfer_id,
             'vehicleId' => $vehicleId,
             'vehiclePlate' => $vehicle?->plate_number ?? '',
             'points' => $points,
@@ -104,15 +100,15 @@ class TransferTrackService extends Service
      */
     public function monitor(string $transferNo, array $filters): array
     {
-        $transfer = Transfer::query()->with(['vehicle', 'patient'])->where('transfer_code', $transferNo)->first();
+        $transfer = Transfer::query()->with(['vehicle', 'patient'])->where('transfer_id', $transferNo)->first();
         $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
 
         $vehicle = $transfer->vehicle;
         $patient = $transfer->patient;
-        [$status, $statusLabel] = $this->status($transfer->transfer_status);
+        [$status, $statusLabel] = $this->status($transfer->status);
 
-        // 体征表 patient_id 存 patient_code，优先取患者编码，缺失时回退主键字符串
-        $patientId = $patient?->patient_code ?? ($transfer->patient_id === null ? null : (string) $transfer->patient_id);
+        // 体征表 patient_id 存患者业务编号
+        $patientId = $patient?->patient_id ?? $transfer->patient_id;
         $limit = min(max((int) ($filters['limit'] ?? 30), 1), 200);
 
         $series = collect();
@@ -128,10 +124,10 @@ class TransferTrackService extends Service
 
         return [
             'updatedAt' => now()->toIso8601String(),
-            'transferNo' => $transfer->transfer_code,
+            'transferNo' => $transfer->transfer_id,
             'patientId' => $patientId,
-            'patientName' => $patient?->real_name ?? '',
-            'vehicleId' => $vehicle?->vehicle_id ?? ($transfer->vehicle_id === null ? null : (string) $transfer->vehicle_id),
+            'patientName' => $patient?->name ?? '',
+            'vehicleId' => $vehicle?->vehicle_id ?? $transfer->transport_vehicle_id,
             'vehiclePlate' => $vehicle?->plate_number ?? '',
             'status' => $status,
             'statusLabel' => $statusLabel,
@@ -145,11 +141,11 @@ class TransferTrackService extends Service
      */
     public function handoverList(string $transferNo): array
     {
-        $transfer = Transfer::query()->where('transfer_code', $transferNo)->first();
+        $transfer = Transfer::query()->where('transfer_id', $transferNo)->first();
         $this->assert($transfer !== null, ResponseCode::NOT_FOUND, '转运任务不存在');
 
         $list = Handover::query()
-            ->where('transfer_no', $transferNo)
+            ->where('transfer_no', $transfer->transfer_id)
             ->orderByDesc('handover_at')
             ->get()
             ->map(fn (Handover $h) => [
@@ -169,7 +165,7 @@ class TransferTrackService extends Service
             ])->all();
 
         return [
-            'transferNo' => $transfer->transfer_code,
+            'transferNo' => $transfer->transfer_id,
             'total' => count($list),
             'list' => $list,
         ];
@@ -214,25 +210,10 @@ class TransferTrackService extends Service
     }
 
     /**
-     * 状态码与展示名归一化
+     * 状态码与展示名归一化：int => [英文码, 中文标签]
      */
-    private function status(?string $raw): array
+    private function status(?int $raw): array
     {
-        $raw = (string) $raw;
-
-        if ($raw === '') {
-            return ['', ''];
-        }
-
-        if (isset(self::STATUS_LABELS[$raw])) {
-            return [$raw, self::STATUS_LABELS[$raw]];
-        }
-
-        $code = array_search($raw, self::STATUS_LABELS, true);
-        if ($code !== false) {
-            return [$code, $raw];
-        }
-
-        return [$raw, $raw];
+        return self::STATUS_LABELS[(int) $raw] ?? ['', ''];
     }
 }

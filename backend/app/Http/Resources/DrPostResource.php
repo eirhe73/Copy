@@ -7,18 +7,29 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 class DrPostResource extends JsonResource
 {
-    private const CATEGORY_LABELS = ['FEEDBACK' => '基层反馈', 'ISSUE' => '问题上报'];
+    /** category 整数 → 字符串码；§4.1 */
+    private const CATEGORY_CODES = [0 => 'FEEDBACK', 1 => 'ISSUE'];
 
-    private const STATUS_LABELS = ['PENDING' => '待处理', 'REPLIED' => '已回复', 'RESOLVED' => '已办结'];
+    private const CATEGORY_LABELS = [0 => '基层反馈', 1 => '问题上报'];
 
+    /** status 整数 → 字符串码；§4.3 */
+    private const STATUS_CODES = [0 => 'PENDING', 1 => 'REPLIED', 2 => 'RESOLVED'];
+
+    private const STATUS_LABELS = [0 => '待处理', 1 => '已回复', 2 => '已办结'];
+
+    /** priority 整数 → 显示文本；§4.2 */
     private const PRIORITY_LABELS = [0 => '普通', 1 => '紧急'];
 
     public function toArray(Request $request): array
     {
+        $category = (int) $this->category;
+        $status = (int) $this->status;
+        $priority = (int) $this->priority;
+
         return [
             'postId' => $this->post_id,
-            'category' => $this->category,
-            'categoryLabel' => self::CATEGORY_LABELS[$this->category] ?? $this->category,
+            'category' => self::CATEGORY_CODES[$category] ?? 'UNKNOWN',
+            'categoryLabel' => self::CATEGORY_LABELS[$category] ?? '未知',
             'title' => $this->title,
             'content' => $this->content,
             'institutionId' => $this->institution_id,
@@ -27,10 +38,10 @@ class DrPostResource extends JsonResource
             'reporterId' => $this->reporter_id,
             'reporterName' => $this->reporter_name,
             'contact' => $this->contact,
-            'priority' => (int) $this->priority,
-            'priorityLabel' => self::PRIORITY_LABELS[$this->priority] ?? (string) $this->priority,
-            'status' => $this->status,
-            'statusLabel' => self::STATUS_LABELS[$this->status] ?? $this->status,
+            'priority' => $priority,
+            'priorityLabel' => self::PRIORITY_LABELS[$priority] ?? '普通',
+            'status' => self::STATUS_CODES[$status] ?? 'UNKNOWN',
+            'statusLabel' => self::STATUS_LABELS[$status] ?? '未知',
             'reply' => $this->reply,
             'repliedAt' => $this->replied_at?->toIso8601String(),
             'attachments' => $this->attachments,

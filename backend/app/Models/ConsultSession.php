@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class ConsultSession extends Model
 {
@@ -21,6 +22,11 @@ class ConsultSession extends Model
         'opened_at' => 'datetime',
         'closed_at' => 'datetime',
     ];
+
+    public function room(): HasOne
+    {
+        return $this->hasOne(ConsultRoom::class, 'session_id', 'session_id');
+    }
 
     public function participants(): HasMany
     {
