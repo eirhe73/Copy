@@ -10,7 +10,7 @@ return [
     | 生产环境请把 allowed_origins 改为正式域名。
     */
 
-    'paths' => ['api/*', 'sanctum/csrf-cookie', 'login', 'logout'],
+    'paths' => ['api/*'],
 
     'allowed_methods' => ['*'],
 

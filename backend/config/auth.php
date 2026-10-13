@@ -14,7 +14,7 @@ return [
     */
 
     'defaults' => [
-        'guard' => 'web',
+        'guard' => 'api',
         'passwords' => 'users',
     ],
 
@@ -38,6 +38,12 @@ return [
     'guards' => [
         'web' => [
             'driver' => 'session',
+            'provider' => 'users',
+        ],
+
+        // 接口统一使用 JWT 认证（tymon/jwt-auth）
+        'api' => [
+            'driver' => 'jwt',
             'provider' => 'users',
         ],
     ],
