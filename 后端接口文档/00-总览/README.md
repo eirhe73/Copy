@@ -53,7 +53,7 @@
 - **后端框架**：Laravel 10（PHP 8.1+）
 - **数据库**：MySQL 8.x，字符集 `utf8mb4`，排序规则 `utf8mb4_unicode_ci`
 - **接口风格**：RESTful，返回标准 JSON
-- **认证**：Laravel Sanctum（Token），见 §2.6
+- **认证**：JWT（tymon/jwt-auth），见 §2.6
 
 ### 2.2 统一响应结构
 
@@ -98,11 +98,12 @@
 
 ### 2.6 认证与权限
 
-前端登录页当前为演示级（任意账号密码进入）。正式实现建议：
+后端已落地 JWT 认证（tymon/jwt-auth，guard `api`）：
 
-- `POST /api/v1/auth/login`：账号 + 密码 → 返回 `token`（Sanctum）。
-- 除健康检查与登录外，其余接口需 `Authorization: Bearer {token}`。
-- 权限维度预留：`roleView`（`doctor` / `director`），用于质控/SLA 数据集权限；具体见质控模块。
+- `POST /api/v1/auth/login`：账号 + 密码 → 返回 `token` 与 `tokenType: "Bearer"`，并记录 `last_login_at` / `last_login_ip`。
+- `POST /api/v1/auth/logout`（登出）、`GET /api/v1/auth/me`（当前用户）需登录后调用。
+- 除健康检查与登录外，其余接口统一经 `auth:api` 中间件校验，请求头 `Authorization: Bearer {token}`。
+- 数据权限字段已落库：`users.role_view`（`doctor` / `director`，默认 `doctor`），用于质控/SLA 数据集权限；具体见质控模块。
 
 ---
 
@@ -204,7 +205,9 @@ Boolean：`true` = 床位紧张，`false` = 正常。
 │   ├── 01-基层调度板块接口.md       ← 3.1～3.4（转诊/机构/科室/诊疗·体征）
 │   ├── 02-医院质控板块接口.md       ← 4.1～4.3（SLA/标准/整改/报表/导出）
 │   ├── 03-基层医生Dr板块接口.md     ← 5.1 视频契约 + doctors / clinical-records
-│   └── 02-华西·…三大模块接口文档-模板V1.0.md ← 历史模板（路径以板块完整版为准）
+│   ├── 02-华西·…三大模块接口文档-模板V1.0.md ← 历史模板（路径以板块完整版为准）
+│   ├── 04-前端数据流转文档-三大模块.md ← 前端数据流转分析（链路详解 + 待确认清单）
+│   └── 05-数据库设计表文档-三大模块.md ← 数据库设计（16 表数据字典 + DDL + 待确认清单）
 └── 10-急救调度与监控专项/            （产品 IA 双板块 · 完整字段/参数/示例，无外链详述）
     ├── 01-急救调度板块接口.md       ← 1.1～1.5 全部接口（院前+会诊+登记+GPS/监控）
     ├── 02-急救监控板块接口.md       ← 2.1～2.7 全部接口（预警/床位/设备/中心/重症/消息）
