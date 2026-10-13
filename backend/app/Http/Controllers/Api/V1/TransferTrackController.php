@@ -33,4 +33,24 @@ class TransferTrackController extends Controller
 
         return Result::success('获取成功', $this->service->track($transferNo, $filters));
     }
+
+    /**
+     * 车载监护（§3.12）
+     */
+    public function monitor(Request $request, string $transferNo): array
+    {
+        $filters = $request->validate([
+            'limit' => ['nullable', 'integer', 'min:1', 'max:200'],
+        ]);
+
+        return Result::success('获取成功', $this->service->monitor($transferNo, $filters));
+    }
+
+    /**
+     * 到院交接清单（§3.13）
+     */
+    public function handoverList(string $transferNo): array
+    {
+        return Result::success('获取成功', $this->service->handoverList($transferNo));
+    }
 }

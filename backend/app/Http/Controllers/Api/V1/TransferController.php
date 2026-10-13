@@ -7,6 +7,7 @@ use App\Http\Requests\RejectTransferRequest;
 use App\Http\Requests\StoreTransferRequest;
 use App\Http\Requests\UpdateTransferRequest;
 use App\Http\Resources\TransferResource;
+use App\Models\Organization;
 use App\Models\Transfer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -119,5 +120,88 @@ class TransferController extends Controller
         $transfer->delete();
 
         return response()->noContent();
+    }
+
+    /**
+     * 华西绿色通道（§2.3.5，配置类，占位字段）
+     */
+    public function greenChannel(Request $request): JsonResponse
+    {
+        $channels = [
+            ['type' => 'chest_pain', 'name' => '胸痛中心', 'openCount' => 0, 'reservedBeds' => 0, 'avgResponseMinutes' => 0],
+            ['type' => 'stroke', 'name' => '卒中中心', 'openCount' => 0, 'reservedBeds' => 0, 'avgResponseMinutes' => 0],
+            ['type' => 'trauma', 'name' => '创伤中心', 'openCount' => 0, 'reservedBeds' => 0, 'avgResponseMinutes' => 0],
+            ['type' => 'critical_pregnant', 'name' => '危重孕产妇', 'openCount' => 0, 'reservedBeds' => 0, 'avgResponseMinutes' => 0],
+            ['type' => 'neonatal', 'name' => '危重新生儿', 'openCount' => 0, 'reservedBeds' => 0, 'avgResponseMinutes' => 0],
+        ];
+
+        return response()->json([
+            'updatedAt' => now()->toIso8601String(),
+            'channels' => $channels,
+        ]);
+    }
+
+    /**
+     * 响应时长统计（§2.3.6：口径 = confirmed_at - started_at，仅计入已接收）
+     */
+    public function responseTime(Request $request): JsonResponse
+    {
+        $days = min(max((int) ($request->input('days', 7)), 1), 90);
+        $from = now()->subDays($days);
+
+        $rows = Transfer::query()
+            ->whereNotNull('started_at')
+            ->whereNotNull('confirmed_at')
+            ->where('started_at', '>=', $from)
+            ->when($request->input('institution_id'), fn ($q, $v) => $q->where('to_org_id', $v))
+            ->get(['id', 'from_org_id', 'to_org_id', 'started_at', 'confirmed_at'])
+            ->map(fn (Transfer $t) => [
+                'minutes' => max(0, (int) $t->started_at->diffInMinutes($t->confirmed_at, false)),
+                'orgId' => $t->to_org_id,
+                'date' => $t->confirmed_at->toDateString(),
+            ]);
+
+        $minutes = $rows->pluck('minutes')->sort()->values();
+        $count = $minutes->count();
+
+        $avg = $count ? (float) round($minutes->avg(), 1) : 0;
+        $min = $count ? (int) $minutes->first() : 0;
+        $max = $count ? (int) $minutes->last() : 0;
+        $p50 = $count ? (int) $minutes->get((int) floor(($count - 1) * 0.5)) : 0;
+        $p90 = $count ? (int) $minutes->get((int) floor(($count - 1) * 0.9)) : 0;
+
+        // 机构维度（按转入机构聚合）
+        $byOrgIds = $rows->groupBy('orgId')->filter(fn ($g, $k) => $k !== null && $k !== '');
+        $orgNames = Organization::query()->whereIn('id', $byOrgIds->keys())->pluck('org_name', 'id');
+
+        $byInstitution = $byOrgIds->map(function ($group, $orgId) use ($orgNames) {
+            $mins = $group->pluck('minutes');
+
+            return [
+                'institutionId' => (string) $orgId,
+                'institutionName' => $orgNames[$orgId] ?? (string) $orgId,
+                'count' => $mins->count(),
+                'avgResponseMinutes' => (float) round($mins->avg(), 1),
+            ];
+        })->sortByDesc('count')->values()->all();
+
+        // 按日趋势
+        $trend = $rows->groupBy('date')->map(function ($group, $date) {
+            return [
+                'date' => $date,
+                'avgResponseMinutes' => (float) round($group->pluck('minutes')->avg(), 1),
+            ];
+        })->sortKeys()->values()->all();
+
+        return response()->json([
+            'updatedAt' => now()->toIso8601String(),
+            'avgResponseMinutes' => $avg,
+            'p50Minutes' => $p50,
+            'p90Minutes' => $p90,
+            'minMinutes' => $min,
+            'maxMinutes' => $max,
+            'byInstitution' => $byInstitution,
+            'trend' => $trend,
+        ]);
     }
 }

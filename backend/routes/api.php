@@ -50,6 +50,20 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 });
 
 // 健康检查：访问 GET /api/health 验证后端可达
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
