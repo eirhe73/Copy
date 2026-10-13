@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\ResponseCode;
 use App\Models\Department;
 use App\Models\Organization;
+use App\Models\OrganizationMember;
 
 /**
  * 机构名录、科室结构与权限范围
