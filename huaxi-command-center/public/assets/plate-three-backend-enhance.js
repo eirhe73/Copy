@@ -61,7 +61,8 @@
   async function backendOk() {
     if (!window.hxBackend?.enabled?.()) return false
     const h = await window.hxBackend.health()
-    return !!h?.status
+    if (!h?.status) return false
+    return window.hxBackend.ensureAuth()
   }
 
   async function renderOrganizations() {
@@ -154,11 +155,9 @@
       'hx-plate-api-consult',
       `${header(
         '3.1 基层会诊',
-        live
-          ? '会诊队列仍走本机 scenario；转诊/机构/质控/Dr. 已接 Laravel v1'
-          : '后端未连接 · 全部为演示存档',
+        live ? 'GET /consultations · 见上方 hx-wire-consult 面板' : '后端未连接 · 全部为演示存档',
         live,
-      )}<p class="hx-plate-api-note">生产会诊音视频与待办需单独接口；当前可配合 <a href="/#/transfers">转诊</a> 与 <a href="/dispatch.html#live">院前</a> 后端数据演示闭环。</p></section>`,
+      )}<p class="hx-plate-api-note">会诊意见写接口：/#/room/:token 保存时 POST /rooms/{token}/opinions。</p></section>`,
     )
   }
 

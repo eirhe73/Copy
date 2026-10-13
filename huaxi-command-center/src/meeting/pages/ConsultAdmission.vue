@@ -26,8 +26,20 @@ function startStandalone() {
   if (session.value) session.value.status = 'in-call'
 }
 
-function saveNote() {
+async function saveNote() {
   localStorage.setItem('huaxi-consult-note-demo', note.value)
+  const token = session.value?.sessionId
+  if (token && window.hxBackend?.enabled?.()) {
+    try {
+      await window.hxBackend.ensureAuth()
+      await window.hxBackend.post(`/rooms/${encodeURIComponent(token)}/opinions`, {
+        content: note.value,
+        authorRole: 'doctor',
+      })
+    } catch (e) {
+      console.warn('会诊意见 API', e)
+    }
+  }
 }
 </script>
 
