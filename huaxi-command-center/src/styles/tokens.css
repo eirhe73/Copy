@@ -1,0 +1,20 @@
+:root {
+  --bg-deep: #071a3b;
+  --bg-mid: #0a2448;
+  --cyan: #26d7ff;
+  --blue: #0085ed;
+  --teal: #13dbce;
+  --amber: #ffaf55;
+  --red: #ff739d;
+  --muted: #84a8cc;
+  --line: #204f7d;
+  --panel: #102d56;
+  --text: #e6f1ff;
+  --u-num-family: Rajdhani, 'DIN Alternate', 'Bahnschrift', 'Microsoft YaHei', Arial,
+    sans-serif;
+  --u-shadow-panel: 0 6px 18px rgba(1, 12, 30, 0.55),
+    inset 0 1px 0 rgba(120, 200, 255, 0.1);
+  --u-radius-panel: 6px;
+  --header-h: 72px;
+  --sidebar-w: 240px;
+}

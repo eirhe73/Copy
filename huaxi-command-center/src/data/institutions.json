@@ -1,0 +1,586 @@
+[
+  {
+    "id": "huaxi",
+    "name": "四川大学华西医院",
+    "shortName": "华西医院",
+    "level": "center",
+    "levelLabel": "中心医院",
+    "province": "四川省",
+    "city": "成都市",
+    "verified": true,
+    "verificationScope": "官网公开的机构名称、选录科室及选录专业人员；不包含实时执业、出诊或值班状态。",
+    "sourceIds": [
+      "huaxi-departments",
+      "huaxi-contact"
+    ],
+    "departments": [
+      {
+        "id": "emergency",
+        "name": "急诊科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "icu",
+        "name": "重症医学科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "respiratory",
+        "name": "呼吸与危重症医学科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "cardiology",
+        "name": "心脏内科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "neurology",
+        "name": "神经内科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "neurosurgery",
+        "name": "神经外科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "trauma",
+        "name": "创伤医学中心",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "gastroenterology",
+        "name": "消化内科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "nephrology",
+        "name": "肾脏内科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "orthopedics",
+        "name": "骨科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "radiology",
+        "name": "放射科",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      },
+      {
+        "id": "laboratory",
+        "name": "实验医学科（检验科）",
+        "sourceIds": [
+          "huaxi-departments"
+        ]
+      }
+    ],
+    "staff": [
+      {
+        "id": "huaxi-cao-yu",
+        "name": "曹钰",
+        "title": "主任医师",
+        "profession": "医师",
+        "departmentId": "emergency",
+        "sourceIds": [
+          "huaxi-cao-yu"
+        ]
+      },
+      {
+        "id": "huaxi-kang-yan",
+        "name": "康焰",
+        "title": "主任医师、教授",
+        "profession": "医师",
+        "departmentId": "icu",
+        "sourceIds": [
+          "huaxi-kang-yan"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "huaxi-departments",
+        "title": "四川大学华西医院：华西坝院区科室导航",
+        "url": "https://www.wchscu.cn/departone.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "huaxi-contact",
+        "title": "四川大学华西医院：公众版首页",
+        "url": "https://www.wchscu.cn/public/index.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "huaxi-cao-yu",
+        "title": "四川大学华西医院：曹钰",
+        "url": "https://www.wchscu.cn/expertlist/detail/68771.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "huaxi-kang-yan",
+        "title": "四川大学华西医院：康焰",
+        "url": "https://www.wchscu.cn/expertlist/detail/57326.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      }
+    ]
+  },
+  {
+    "id": "neijiang-first",
+    "name": "内江市第一人民医院",
+    "shortName": "内江一院",
+    "level": "city",
+    "levelLabel": "市级医院",
+    "province": "四川省",
+    "city": "内江市",
+    "verified": true,
+    "verificationScope": "医院及直属院校公开资料中的机构名称、选录科室及选录专业人员；人员资料不代表实时出诊状态。",
+    "sourceIds": [
+      "neijiang-school"
+    ],
+    "departments": [
+      {
+        "id": "emergency",
+        "name": "急诊科",
+        "sourceIds": [
+          "neijiang-technical"
+        ]
+      },
+      {
+        "id": "icu",
+        "name": "重症医学科",
+        "sourceIds": [
+          "neijiang-icu"
+        ]
+      },
+      {
+        "id": "respiratory",
+        "name": "呼吸与危重症医学科",
+        "sourceIds": [
+          "neijiang-respiratory"
+        ]
+      },
+      {
+        "id": "cardiology",
+        "name": "心血管内科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "neurology",
+        "name": "神经内科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "neurosurgery",
+        "name": "神经外科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "general-surgery",
+        "name": "普外科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "gastroenterology",
+        "name": "消化内科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "orthopedics",
+        "name": "骨科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "pediatrics",
+        "name": "儿科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "anesthesiology",
+        "name": "麻醉科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      },
+      {
+        "id": "laboratory",
+        "name": "检验科",
+        "sourceIds": [
+          "neijiang-school"
+        ]
+      }
+    ],
+    "staff": [
+      {
+        "id": "neijiang-li-xianhua",
+        "name": "李先华",
+        "title": "主任医师",
+        "profession": "医师",
+        "departmentId": "respiratory",
+        "sourceIds": [
+          "neijiang-li-xianhua"
+        ]
+      },
+      {
+        "id": "neijiang-wang-yali",
+        "name": "王雅丽",
+        "title": "副主任护师",
+        "profession": "护理",
+        "departmentId": "icu",
+        "sourceIds": [
+          "neijiang-wang-yali"
+        ],
+        "evidenceAsOf": "2025-02-24"
+      }
+    ],
+    "sources": [
+      {
+        "id": "neijiang-school",
+        "title": "内江卫生与健康职业学院：直属附属医院内江市第一人民医院",
+        "url": "https://www.njnhvc.edu.cn/p/0/?StId=st_app_news_i_x638646987516507595",
+        "accessedAt": "2026-09-24",
+        "type": "school-official"
+      },
+      {
+        "id": "neijiang-technical",
+        "title": "内江市第一人民医院：医疗技术分级管理目录",
+        "url": "https://www.njyy.com.cn/News/info/id/6752.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "neijiang-icu",
+        "title": "内江市第一人民医院：图播图说一院（2025年度重症医学质控）",
+        "url": "https://www.njyy.com.cn/News/info/id/6628.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "neijiang-respiratory",
+        "title": "内江市第一人民医院：呼吸与危重症医学科已获6个国家级认定",
+        "url": "https://www.njyy.com.cn/News/info/id/6594.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "neijiang-li-xianhua",
+        "title": "内江市第一人民医院：李先华呼吸科名医工作室",
+        "url": "https://www.njyy.com.cn/News/info/id/5718.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "neijiang-wang-yali",
+        "title": "内江市第一人民医院：2025年2月26日健康知识讲座团队",
+        "url": "https://www.njyy.com.cn/News/info/id/5399.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      }
+    ]
+  },
+  {
+    "id": "weiyuan",
+    "name": "威远县人民医院",
+    "shortName": "威远县医院",
+    "level": "county",
+    "levelLabel": "县级医院",
+    "province": "四川省",
+    "city": "内江市",
+    "county": "威远县",
+    "verified": true,
+    "verificationScope": "医院官网公开的机构名称、选录科室及选录专业人员；急诊科另由中国网2023年报道确认。未导入床位、接诊量等运行数据。",
+    "sourceIds": [
+      "weiyuan-home",
+      "weiyuan-about"
+    ],
+    "departments": [
+      {
+        "id": "emergency",
+        "name": "急诊科",
+        "sourceIds": [
+          "weiyuan-china-news"
+        ],
+        "evidenceAsOf": "2023-12-15"
+      },
+      {
+        "id": "icu",
+        "name": "重症医学科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "respiratory",
+        "name": "呼吸与危重症医学科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "cardiology",
+        "name": "心血管、内分泌内科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "neurology",
+        "name": "神经内科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "neurosurgery",
+        "name": "神经外科、烧伤科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "general-surgery",
+        "name": "普外科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "gastroenterology",
+        "name": "消化、肿瘤内科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "nephrology",
+        "name": "肾病、血液内科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "orthopedics",
+        "name": "骨科、胸外科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "pediatrics",
+        "name": "儿科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "obstetrics",
+        "name": "妇产科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "radiology",
+        "name": "放射科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "laboratory",
+        "name": "医学检验科",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      }
+    ],
+    "staff": [
+      {
+        "id": "weiyuan-lai-jun",
+        "name": "赖军",
+        "title": "主任医师",
+        "profession": "医师",
+        "departmentId": "icu",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "weiyuan-hu-xuefeng",
+        "name": "胡雪峰",
+        "title": "副主任医师",
+        "profession": "医师",
+        "departmentId": "respiratory",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      },
+      {
+        "id": "weiyuan-shi-shengwu",
+        "name": "史盛武",
+        "title": "副主任医师",
+        "profession": "医师",
+        "departmentId": "neurology",
+        "sourceIds": [
+          "weiyuan-home"
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "weiyuan-home",
+        "title": "威远县人民医院：科室介绍和专家介绍",
+        "url": "https://www.wyrmyy120.cn/",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "weiyuan-about",
+        "title": "威远县人民医院：医院简介",
+        "url": "https://www.wyrmyy120.cn/about.aspx?mid=299",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official"
+      },
+      {
+        "id": "weiyuan-china-news",
+        "title": "中国网：威远县人民医院2023年下半年工作侧记",
+        "url": "https://szjj.china.com.cn/2023-12/15/content_42637261.html",
+        "accessedAt": "2026-09-24",
+        "type": "national-media",
+        "publishedAt": "2023-12-15"
+      }
+    ]
+  },
+  {
+    "id": "lianjie",
+    "name": "威远县连界镇卫生院",
+    "shortName": "连界镇卫生院",
+    "level": "township",
+    "levelLabel": "乡镇卫生院",
+    "province": "四川省",
+    "city": "内江市",
+    "county": "威远县",
+    "town": "连界镇",
+    "verified": true,
+    "verificationScope": "国家卫健委名单及公立医院官网证实机构名称；消化内科仅依据四川在线2024年报道。未找到适合收录的当前医护名录。",
+    "sourceIds": [
+      "lianjie-nhc",
+      "lianjie-hospital-news"
+    ],
+    "departments": [
+      {
+        "id": "gastroenterology",
+        "name": "消化内科",
+        "sourceIds": [
+          "lianjie-scol-department"
+        ],
+        "evidenceAsOf": "2024-03"
+      }
+    ],
+    "staff": [],
+    "sources": [
+      {
+        "id": "lianjie-nhc",
+        "title": "国家卫生健康委员会：基层医疗卫生机构名单附件（含威远县连界镇卫生院）",
+        "url": "https://www.nhc.gov.cn/jws/c100073/202306/3e81330a22104d8cb150a4a5257f2f06/files/1732860137705_72035.pdf",
+        "accessedAt": "2026-09-24",
+        "type": "government-official"
+      },
+      {
+        "id": "lianjie-hospital-news",
+        "title": "内江市第二人民医院：与威远县连界镇卫生院签订远程影像协作协议",
+        "url": "https://www.njs2yy.com/news_hos/2022/3YaO1Rdx.html",
+        "accessedAt": "2026-09-24",
+        "type": "hospital-official",
+        "publishedAt": "2022-04-30"
+      },
+      {
+        "id": "lianjie-scol-department",
+        "title": "四川在线：参与人次超过150万，基层医疗机构公开报道",
+        "url": "https://sichuan.scol.com.cn/ggxw/202403/82486259.html",
+        "accessedAt": "2026-09-24",
+        "type": "provincial-media",
+        "publishedAt": "2024-03"
+      },
+      {
+        "id": "lianjie-scol-development",
+        "title": "四川在线：提升基层服务能力，威远县大力推进县域医疗次中心建设",
+        "url": "https://neijiang.scol.com.cn/qxlb/202411/82848795.html",
+        "accessedAt": "2026-09-24",
+        "type": "provincial-media",
+        "publishedAt": "2024-11-27"
+      }
+    ]
+  },
+  {
+    "id": "chuanshi",
+    "name": "威远县连界镇船石村卫生室",
+    "shortName": "船石村卫生室",
+    "level": "village",
+    "levelLabel": "村卫生室",
+    "province": "四川省",
+    "city": "内江市",
+    "county": "威远县",
+    "town": "连界镇",
+    "verified": true,
+    "verificationScope": "仅核实2020年四川省疾控中心转载省政府报道中的该机构名称；当前名称、执业状态、科室及医护名单待核实。",
+    "evidenceAsOf": "2020-02-02",
+    "currentOperationVerified": false,
+    "sourceIds": [
+      "chuanshi-cdc"
+    ],
+    "departments": [],
+    "staff": [],
+    "sources": [
+      {
+        "id": "chuanshi-cdc",
+        "title": "四川省疾病预防控制中心转载四川省人民政府：彭清华在内江检查督导农村疫情防控工作",
+        "url": "https://www.sccdc.cn/Article/View?id=3420",
+        "accessedAt": "2026-09-24",
+        "type": "government-official-reprint",
+        "publishedAt": "2020-02-02"
+      }
+    ]
+  }
+]

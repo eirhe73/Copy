@@ -1,0 +1,413 @@
+/**
+ * 首页 3D 地图 — 浅色医疗指挥（与全站浅色调一致，地图区做层次与可读性）
+ */
+.dashboard-center .main-map {
+  position: relative;
+  overflow: hidden;
+  min-height: 420px;
+  background: #f4f7fa !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: none !important;
+}
+
+.dashboard-center {
+  perspective: none;
+}
+
+.dashboard-center .county-map {
+  height: 100%;
+  min-height: 380px;
+  background: transparent !important;
+  border: none !important;
+}
+
+.dashboard-center .map-stage {
+  filter: none;
+}
+
+.dashboard-center .map-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: saturate(0.92) contrast(1.02);
+}
+
+/* 左右 KPI：保留原「今日急诊」语义，做成浅底信息卡 */
+.dashboard-center .map-kpi {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(226, 232, 240, 0.95) !important;
+  border-radius: 12px !important;
+  padding: 12px 16px !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important;
+  min-width: 108px;
+  z-index: 5;
+}
+
+.dashboard-center .map-kpi.left {
+  left: auto !important;
+  right: 14px !important;
+  bottom: 18% !important;
+}
+
+.dashboard-center .map-kpi.right {
+  display: none !important;
+}
+
+.dashboard-center .map-kpi strong {
+  font-size: 32px !important;
+  font-weight: 700 !important;
+  color: #0369a1 !important;
+  background: none !important;
+  -webkit-text-fill-color: #0369a1 !important;
+}
+
+.dashboard-center .map-kpi span {
+  font-size: 12px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.dashboard-center .map-kpi .platform {
+  margin-top: 8px !important;
+  width: 40px !important;
+  height: 40px !important;
+  border-radius: 10px !important;
+  background: linear-gradient(145deg, #e0f2fe, #bae6fd) !important;
+  color: #0284c7 !important;
+  box-shadow: none !important;
+}
+
+.dashboard-center .region-switch.segmented {
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05) !important;
+}
+
+.dashboard-center .region-switch.segmented button.selected {
+  background: #1e4b7b !important;
+  color: #fff !important;
+}
+
+.dashboard-center .map-legend {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 6px 10px;
+  margin: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.dashboard-center .map-tools {
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.06) !important;
+}
+
+.dashboard-center .map-tools button,
+.dashboard-center .map-tools .icon-btn {
+  color: #475569 !important;
+}
+
+.dashboard-center .map-caption,
+.dashboard-center .county-map .map-caption,
+.dashboard-center .county-map .north {
+  background: rgba(255, 255, 255, 0.85) !important;
+  color: #64748b !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+}
+
+.dashboard-center .center-caption {
+  background: rgba(255, 255, 255, 0.75) !important;
+  color: #475569 !important;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px !important;
+}
+
+/* —— 协作节点：默认收起，点开再滑出 —— */
+.map-med-tab {
+  position: absolute;
+  top: 56px;
+  left: 0;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px;
+  border: 1px solid #e2e8f0;
+  border-left: none;
+  border-radius: 0 10px 10px 0;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 2px 2px 12px rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  font: inherit;
+  color: #0369a1;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e4b7b;
+}
+
+.map-med-tab-count {
+  writing-mode: horizontal-tb;
+  font-size: 11px;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0284c7;
+  border-radius: 999px;
+  padding: 2px 7px;
+  letter-spacing: 0;
+}
+
+.map-med-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.dashboard-center .main-map.map-nodes-open .map-med-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.map-med-sidepanel {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  bottom: 48px;
+  z-index: 6;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-left: none;
+  border-radius: 0 12px 12px 0;
+  box-shadow: 8px 0 32px rgba(15, 23, 42, 0.1);
+  pointer-events: auto;
+  overflow: hidden;
+  transform: translateX(-102%);
+  transition: transform 0.22s ease;
+}
+
+.dashboard-center .main-map.map-nodes-open .map-med-sidepanel {
+  transform: translateX(0);
+}
+
+.map-med-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.map-med-side-head strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.map-med-close {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-med-close:hover {
+  background: #e2e8f0;
+}
+
+.map-med-side-tip {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.45;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.map-med-side-list {
+  overflow-y: auto;
+  padding: 4px 6px 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.map-med-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 8px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.map-med-row:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.map-med-row.active {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.map-med-tier {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.map-med-tier.t0 {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.map-med-tier.t1 {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.map-med-tier.t2 {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.map-med-row-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.map-med-row-stat {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.map-med-row-stat em {
+  display: block;
+  font-style: normal;
+}
+
+.map-med-row-stat strong {
+  font-size: 14px;
+  color: #0284c7;
+}
+
+.map-med-row-stat strong.warn {
+  color: #ea580c;
+}
+
+.map-med-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.map-med-row-dot.busy {
+  background: #f59e0b;
+}
+
+@media (max-width: 1200px) {
+  .map-med-sidepanel {
+    width: 210px;
+    max-height: 42%;
+  }
+}
+
+/* 地图只留标题和图例 */
+.dashboard-center .main-map.tm-map {
+  min-height: 420px;
+}
+
+.tm-hud {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.tm-title {
+  position: absolute;
+  top: 10px;
+  left: 12px;
+  white-space: nowrap;
+}
+
+.tm-title strong {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: #334155;
+}
+
+.tm-legend {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tm-legend i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.tm-legend i.hub { background: #1e4b7b; }
+.tm-legend i.town { background: #0f766e; }
+.tm-legend i.car { background: #c2410c; }
+
+.dashboard-center .main-map.tm-map .map-kpi,
+.dashboard-center .main-map.tm-map .hx-demo-flag {
+  display: none !important;
+}
