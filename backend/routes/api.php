@@ -26,6 +26,8 @@ use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\PatientRegistrationController;
 use App\Http\Controllers\Api\V1\QcIssueController;
 use App\Http\Controllers\Api\V1\QcStandardController;
+use App\Http\Controllers\Api\V1\QualityMetricController;
+use App\Http\Controllers\Api\V1\RectifyController;
 use App\Http\Controllers\Api\V1\SlaRecordController;
 use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\TransferTrackController;
@@ -45,6 +47,7 @@ use Illuminate\Support\Facades\Route;
 | be assigned to the "api" middleware group. Make something great!
 |
 */
+
 
 // 健康检查：免鉴权，供网关/负载均衡存活探测
 Route::get('/health', function () {
@@ -218,6 +221,17 @@ Route::prefix('v1')->group(function () {
 
         // 医院质控：环节时限 SLA 台账
         Route::apiResource('sla-records', SlaRecordController::class);
+
+        // 医院质控：整改单（完整模型）与质控报表（05 §5.4~5.8）
+        Route::get('quality/rectify-ledger', [RectifyController::class, 'ledger']);
+        Route::get('quality/rectify/{rectify}', [RectifyController::class, 'show']);
+        Route::post('quality/rectify/{rectify}/close', [RectifyController::class, 'close']);
+        Route::get('quality/reports', [RectifyController::class, 'reports']);
+        Route::get('quality/reports/export', [RectifyController::class, 'export']);
+
+        // 医院质控：质量指标与趋势（05 §5.9~5.10）
+        Route::get('quality/metrics', [QualityMetricController::class, 'index']);
+        Route::get('quality/metrics/trend', [QualityMetricController::class, 'trend']);
 
         // 科室（机构管理页「科室结构」模块）
         Route::apiResource('departments', DepartmentController::class)->only(['index', 'show']);
