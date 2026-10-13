@@ -160,7 +160,7 @@ export const APP_ROUTES: AppRouteMeta[] = [
   },
   {
     path: '/medical-quality/reports',
-    title: '质控报表',
+    title: '质控统计',
     group: '质控管理',
     modules: ['筛查覆盖', '机构统计', '导出 CSV'],
   },

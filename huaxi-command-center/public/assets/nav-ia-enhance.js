@@ -2,12 +2,26 @@
  * 医生视角：院前四页进同一工作台；会诊 / 转诊 / 协同仍走主站。
  */
 ;(function () {
-  const DISPATCH_KEEP = ['实时出警', '急救事件', '救护车列表', '患者登记', '远程会诊', '转诊交接', '任务协同']
+  const DISPATCH_KEEP = [
+    '实时出警',
+    '急救事件',
+    '救护车列表',
+    '患者登记',
+    '远程会诊',
+    '基层会诊',
+    '医院转诊',
+    '基层机构管理',
+    '基层远程监护',
+  ]
   const DISPATCH_GO = {
     实时出警: '/dispatch.html#live',
     急救事件: '/dispatch.html#events',
     患者登记: '/dispatch.html#register',
     救护车列表: '/dispatch.html#ambulances',
+  }
+  const DISPATCH_HASH = {
+    '/dispatch': '/dispatch.html#live',
+    '/dispatch?hub=ambulances': '/dispatch.html#ambulances',
   }
 
   function links(nav) {
@@ -35,12 +49,10 @@
     }
 
     if (names.includes('预警总览')) {
-      /* 院内早期预警：预警总览、科室全景、重点关注、科室床位、预警通知、运行统计 — 全部保留 */
       items.forEach((a) => setHidden(a, false))
       return
     }
 
-    /* 县域智慧重症：重症监护、床位全景、乡镇监护、视频监控、床旁设备、五大中心、协作机构 — 全部保留 */
     if (names.includes('重症监护')) {
       items.forEach((a) => setHidden(a, false))
     }
@@ -53,7 +65,13 @@
       if (!(node instanceof Element)) return
       const a = node.closest('nav.subnav > a')
       if (!a || a.dataset.iaExtra) return
-      const dest = DISPATCH_GO[text(a)]
+      let dest = DISPATCH_GO[text(a)]
+      if (!dest) {
+        const href = a.getAttribute('href') || ''
+        const path = href.replace(/^#\/?/, '').split('?')[0]
+        const qs = href.includes('?') ? href.slice(href.indexOf('?')) : ''
+        dest = DISPATCH_HASH[`${path}${qs}`] || DISPATCH_HASH[path]
+      }
       if (!dest) return
       event.preventDefault()
       event.stopPropagation()
