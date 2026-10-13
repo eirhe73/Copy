@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\CareCenterController;
 use App\Http\Controllers\Api\V1\ClinicalRecordController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\ConsultRoomController;
+use App\Http\Controllers\Api\V1\CoordinationController;
 use App\Http\Controllers\Api\V1\CountyMapController;
 use App\Http\Controllers\Api\V1\CriticalCareController;
 use App\Http\Controllers\Api\V1\DepartmentController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\V1\DispatchTaskController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\EmergencyEventController;
 use App\Http\Controllers\Api\V1\MessageController;
+use App\Http\Controllers\Api\V1\MobileReceptionController;
 use App\Http\Controllers\Api\V1\MonitoringStreamController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\PatientController;
@@ -220,6 +222,14 @@ Route::prefix('v1')->group(function () {
         // 基层医生 Dr：医生管理 + 诊疗记录
         Route::apiResource('doctors', DoctorController::class);
         Route::apiResource('clinical-records', ClinicalRecordController::class);
+
+        // 移动端与会诊：协同待办 / 任务协同 / 手机重症接收（07 §3.1~3.6）
+        Route::get('coordination/todos', [CoordinationController::class, 'todos']);
+        Route::get('coordination/tasks', [CoordinationController::class, 'tasks']);
+        Route::get('mobile-reception/{token}', [MobileReceptionController::class, 'show']);
+        Route::post('mobile-reception/{token}/accept', [MobileReceptionController::class, 'accept']);
+        Route::get('reception/institutions', [MobileReceptionController::class, 'institutions']);
+        Route::get('reception/departments', [MobileReceptionController::class, 'departments']);
     });
 });
 
