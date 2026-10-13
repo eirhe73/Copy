@@ -19,8 +19,8 @@ class DisposeWarningRequest extends FormRequest
         return [
             'stage' => ['required', 'string', 'in:预警触发,护士确认,医生到床,干预完成'],
             'note' => ['nullable', 'string', 'max:255'],
-            'actorId' => ['nullable', 'string', 'max:32'],
-            'actorName' => ['nullable', 'string', 'max:64'],
+            'actorId' => ['required', 'string', 'max:32'],
+            'actorName' => ['required', 'string', 'max:64'],
             'nextStatus' => ['nullable', 'string', 'in:new,acknowledged,treating,resolved'],
         ];
     }

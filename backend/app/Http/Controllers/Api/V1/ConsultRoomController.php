@@ -18,7 +18,7 @@ class ConsultRoomController extends Controller
     /** 会诊室信息 */
     public function show(string $token): array
     {
-        return Result::success('获取成功', $this->service->room($token));
+        return Result::success('获取成功', $this->service->show($token));
     }
 
     /** 临床资料 */
@@ -30,7 +30,7 @@ class ConsultRoomController extends Controller
     /** 提交会诊意见 */
     public function opinions(StoreOpinionRequest $request, string $token): array
     {
-        return Result::success('获取成功', $this->service->submitOpinion($token, $request->validated()));
+        return Result::success('提交成功', $this->service->opinions($token, $request->validated()));
     }
 
     /** 患者入会 */

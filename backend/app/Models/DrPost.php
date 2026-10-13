@@ -16,6 +16,8 @@ class DrPost extends Model
     ];
 
     protected $casts = [
+        'category' => 'integer',
+        'status' => 'integer',
         'priority' => 'integer',
         'attachments' => 'array',
         'replied_at' => 'datetime',

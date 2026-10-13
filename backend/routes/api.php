@@ -8,9 +8,11 @@ use App\Http\Controllers\Api\V1\CareCenterController;
 use App\Http\Controllers\Api\V1\ClinicalRecordController;
 use App\Http\Controllers\Api\V1\ConsultationController;
 use App\Http\Controllers\Api\V1\ConsultRoomController;
-use App\Http\Controllers\Api\V1\CoordinationController;
 use App\Http\Controllers\Api\V1\CountyMapController;
 use App\Http\Controllers\Api\V1\CriticalCareController;
+use App\Http\Controllers\Api\V1\DashboardController;
+use App\Http\Controllers\Api\V1\DashboardLayoutController;
+use App\Http\Controllers\Api\V1\DemoController;
 use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DeviceController;
 use App\Http\Controllers\Api\V1\DispatchCasePushController;
@@ -19,17 +21,18 @@ use App\Http\Controllers\Api\V1\DispatchHandoverController;
 use App\Http\Controllers\Api\V1\DispatchPatientController;
 use App\Http\Controllers\Api\V1\DispatchTaskController;
 use App\Http\Controllers\Api\V1\DoctorController;
+use App\Http\Controllers\Api\V1\DrMessageController;
+use App\Http\Controllers\Api\V1\DrPostController;
 use App\Http\Controllers\Api\V1\EmergencyEventController;
 use App\Http\Controllers\Api\V1\MessageController;
-use App\Http\Controllers\Api\V1\MobileReceptionController;
 use App\Http\Controllers\Api\V1\MonitoringStreamController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\PatientController;
+use App\Http\Controllers\Api\V1\PatientProfileController;
 use App\Http\Controllers\Api\V1\PatientRegistrationController;
 use App\Http\Controllers\Api\V1\QcIssueController;
 use App\Http\Controllers\Api\V1\QcStandardController;
 use App\Http\Controllers\Api\V1\SlaRecordController;
-use App\Http\Controllers\Api\V1\SettingController;
 use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\TransferTrackController;
 use App\Http\Controllers\Api\V1\VehicleController;
@@ -38,11 +41,16 @@ use App\Http\Controllers\Api\V1\WarningController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-
-
-
-
-
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Here is where you can register API routes for your application. These
+| routes are loaded by the RouteServiceProvider and all of them will
+| be assigned to the "api" middleware group. Make something great!
+|
+*/
 
 // 健康检查：免鉴权，供网关/负载均衡存活探测
 Route::get('/health', function () {
@@ -52,42 +60,20 @@ Route::get('/health', function () {
         'time' => now()->toIso8601String(),
     ]);
 });
-
-// 当前登录用户（JWT）
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
 /*
 | V1 业务接口
 | 鉴权范围：仅健康检查与登录免鉴权，其余接口需 Authorization: Bearer {jwt}
 */
 Route::prefix('v1')->group(function () {
 
-    // 健康检查（免鉴权，08 §3.1）
-    Route::get('health', function () {
-        return response()->json([
-            'code' => 200,
-            'message' => 'success',
-            'data' => [
-                'status' => 'up',
-                'service' => 'huaxi-command-center-api',
-                'version' => '1.1.0',
-                'time' => now()->toIso8601String(),
-                'uptime' => defined('LARAVEL_START') ? (int) (microtime(true) - LARAVEL_START) : 0,
-            ],
-        ]);
-    });
-
     // 登录（免鉴权，§3.2）
     Route::post('auth/login', [AuthController::class, 'login']);
 
     Route::middleware('auth:api')->group(function () {
 
-        // 认证：登出 / 当前用户 / 刷新令牌
+        // 认证：登出 / 当前用户 /
         Route::post('auth/logout', [AuthController::class, 'logout']);
         Route::get('auth/me', [AuthController::class, 'me']);
-        Route::post('auth/refresh-token', [AuthController::class, 'refreshToken']);
 
         /*
         |======================================================================
@@ -113,9 +99,18 @@ Route::prefix('v1')->group(function () {
         Route::get('ambulances/{vehicleId}', [AmbulanceController::class, 'show']);
         Route::get('vehicles/gps', [VehicleGpsController::class, 'index']);
 
-        // 转运任务详情 & 轨迹回放（01 §3.11、§3.2）
+        // 转诊协同静态段（03-转诊协同 §3.5~3.6）
+        // 须先于下方 transfers/{transferNo} 动态段注册，否则被 [A-Za-z]... 约束捕获
+        Route::get('transfers/green-channel', [TransferController::class, 'greenChannel']);
+        Route::get('transfers/response-time', [TransferController::class, 'responseTime']);
+
+        // 转运任务详情 & 车载监护 / 轨迹回放 / 交接清单（01 §3.11、§3.1~3.3）
         // 须注册在 apiResource('transfers') 之前；约束单号以字母开头，避免吞掉数字主键
+        Route::get('transfers/{transferNo}/monitor', [TransferTrackController::class, 'monitor'])
+            ->where('transferNo', '[A-Za-z][A-Za-z0-9\-_]*');
         Route::get('transfers/{transferNo}/track', [TransferTrackController::class, 'track'])
+            ->where('transferNo', '[A-Za-z][A-Za-z0-9\-_]*');
+        Route::get('transfers/{transferNo}/handover-list', [TransferTrackController::class, 'handoverList'])
             ->where('transferNo', '[A-Za-z][A-Za-z0-9\-_]*');
         Route::get('transfers/{transferNo}', [TransferTrackController::class, 'show'])
             ->where('transferNo', '[A-Za-z][A-Za-z0-9\-_]*');
@@ -163,6 +158,14 @@ Route::prefix('v1')->group(function () {
         Route::get('beds/{id}/devices', [BedController::class, 'devices']);
         Route::get('beds/{id}/inspections', [BedController::class, 'inspections']);
 
+        // 指挥大屏总览（01-指挥大屏 §3.1~3.7）
+        Route::get('dashboard/overview', [DashboardController::class, 'overview']);
+        Route::get('dashboard/kpi', [DashboardController::class, 'kpi']);
+        Route::get('dashboard/event-stream', [DashboardController::class, 'eventStream']);
+        Route::get('dashboard/dispatch-overview', [DashboardController::class, 'dispatchOverview']);
+        Route::get('dashboard/layout', [DashboardLayoutController::class, 'layout']);
+        Route::post('dashboard/layout', [DashboardLayoutController::class, 'saveLayout']);
+
         // 2.3 县域地图 & 2.2 四元绑定（02 §11）
         Route::get('dashboard/county-map', [CountyMapController::class, 'index']);
         Route::get('care-bindings', [CareBindingController::class, 'index']);
@@ -193,18 +196,23 @@ Route::prefix('v1')->group(function () {
         |======================================================================
         */
 
-        // 机构（转诊双方 / 受理机构选项）+ 机构科室结构 / 权限范围（06 §3.1~3.6）
+        // 机构（转诊双方 / 受理机构选项）+ 机构科室结构 / 权限范围（02 §3.1/3.4/3.5）
         Route::apiResource('organizations', OrganizationController::class)->only(['index', 'show']);
-        Route::post('organizations', [OrganizationController::class, 'store']);
-        Route::put('organizations/{id}', [OrganizationController::class, 'update']);
         Route::get('organizations/{id}/departments', [OrganizationController::class, 'departments']);
         Route::get('organizations/{id}/permissions', [OrganizationController::class, 'permissions']);
-        Route::get('organizations/{id}/users', [OrganizationController::class, 'users']);
 
         // 患者建档：POST /patients 由患者登记接口接管，其余方法沿用
         Route::post('patients', [PatientRegistrationController::class, 'store']);
         Route::post('patients/ocr-id', [PatientRegistrationController::class, 'ocrId']);
         Route::post('patients/pre-admission', [PatientRegistrationController::class, 'preAdmission']);
+
+        // 患者扩展（03-患者与床位 §3.4~3.6、§3.9~3.10）：静态段 export/stages 必须先于 apiResource('patients')
+        Route::get('patients/export', [PatientProfileController::class, 'export']);
+        Route::get('patients/stages', [PatientProfileController::class, 'stages']);
+        Route::get('patients/{id}/timeline', [PatientProfileController::class, 'timeline']);
+        Route::get('patients/{id}/consultations', [PatientProfileController::class, 'consultations']);
+        Route::get('patients/{id}/warnings', [PatientProfileController::class, 'warnings']);
+
         Route::apiResource('patients', PatientController::class)->except(['store']);
 
         // 急救事件（实时出警 / 急救事件 / 患者登记）
@@ -217,6 +225,9 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('transfers', TransferController::class);
         Route::post('transfers/{transfer}/confirm', [TransferController::class, 'confirm']);
         Route::post('transfers/{transfer}/reject', [TransferController::class, 'reject']);
+
+        // 基层转诊演示流程（03-转诊协同 §3.1）
+        Route::get('demo/transfer-steps', [DemoController::class, 'transferSteps']);
 
         // 救护车
         Route::apiResource('vehicles', VehicleController::class);
@@ -243,19 +254,10 @@ Route::prefix('v1')->group(function () {
         Route::apiResource('doctors', DoctorController::class);
         Route::apiResource('clinical-records', ClinicalRecordController::class);
 
-        // 移动端与会诊：协同待办 / 任务协同 / 手机重症接收（07 §3.1~3.6）
-        Route::get('coordination/todos', [CoordinationController::class, 'todos']);
-        Route::get('coordination/tasks', [CoordinationController::class, 'tasks']);
-        Route::get('mobile-reception/{token}', [MobileReceptionController::class, 'show']);
-        Route::post('mobile-reception/{token}/accept', [MobileReceptionController::class, 'accept']);
-        Route::get('reception/institutions', [MobileReceptionController::class, 'institutions']);
-        Route::get('reception/departments', [MobileReceptionController::class, 'departments']);
-
-        // 系统设置：演示数据重置 / 通知渠道 / 偏好配置（08 §3.1~3.4）
-        Route::post('settings/demo-reset', [SettingController::class, 'demoReset']);
-        Route::get('settings/notification-channels', [SettingController::class, 'notificationChannels']);
-        Route::get('settings/preferences', [SettingController::class, 'preferences']);
-        Route::put('settings/preferences', [SettingController::class, 'updatePreferences']);
+        // 基层医声 Dr（04-会诊协同 §3.1~§3.4）：基层反馈 / 问题上报 + 协作消息
+        Route::get('dr/posts', [DrPostController::class, 'index']);
+        Route::post('dr/posts', [DrPostController::class, 'store']);
+        Route::get('dr/messages', [DrMessageController::class, 'index']);
+        Route::post('dr/messages', [DrMessageController::class, 'store']);
     });
 });
-

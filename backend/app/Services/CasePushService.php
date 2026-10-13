@@ -23,7 +23,7 @@ class CasePushService extends Service
         $emergency = null;
 
         if ($patientId) {
-            $patient = Patient::query()->where('patient_code', $patientId)->first();
+            $patient = Patient::query()->where('patient_id', $patientId)->first();
             if (! $patient) {
                 $emergency = EmergencyPatient::query()->where('patient_no', $patientId)->latest('id')->first();
             }
@@ -32,21 +32,21 @@ class CasePushService extends Service
         if (! $patient && ! $emergency && $task120Id) {
             $emergency = EmergencyPatient::query()->where('task120_id', $task120Id)->latest('id')->first();
             if ($emergency && $emergency->patient_no) {
-                $patient = Patient::query()->where('patient_code', $emergency->patient_no)->first();
+                $patient = Patient::query()->where('patient_id', $emergency->patient_no)->first();
             }
         }
 
         $this->assert($patient || $emergency, ResponseCode::NOT_FOUND, '未找到对应病例');
 
-        $resolvedId = $patient?->patient_code ?? $emergency?->patient_no;
+        $resolvedId = $patient?->patient_id ?? $emergency?->patient_no;
         $messages = Message::query()->where('patient_id', $resolvedId)->orderBy('at')->get();
 
         return [
             'patientId' => $resolvedId,
-            'patientName' => $patient?->real_name ?? $emergency?->name ?? '',
+            'patientName' => $patient?->name ?? $emergency?->name ?? '',
             'gender' => $this->resolveGender($patient, $emergency),
             'age' => (int) ($patient?->age ?? $emergency?->age ?? 0),
-            'entry' => $patient?->entry ?? 'field',
+            'entry' => 'field',
             'step' => $patient?->stage ?? 'registered',
             'sourceInstitutionId' => $patient?->institution_id ?? '',
             'sourceDepartmentId' => $patient?->department_id ?? '',
@@ -67,9 +67,11 @@ class CasePushService extends Service
     private function resolveGender(?Patient $patient, ?EmergencyPatient $emergency): string
     {
         if ($patient) {
-            return match ($patient->gender) {
-                'GENDER_FEMALE' => 'FEMALE',
-                default => 'MALE',
+            return match ((int) $patient->gender) {
+                1 => 'FEMALE',
+                0 => 'MALE',
+                2 => 'UNKNOWN',
+                default => 'UNKNOWN',
             };
         }
 

@@ -14,15 +14,14 @@ class RejectTransferRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'reject_reason' => ['required', 'string'],
-            'confirmed_by_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'reason' => ['nullable', 'string', 'max:255'],
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'reject_reason' => '拒绝原因',
+            'reason' => '拒绝原因',
         ];
     }
 }

@@ -23,10 +23,10 @@ class CriticalCareService extends Service
         'occupied' => '占用',
     ];
 
-    /** 危重程度字典 */
+    /** 危重程度字典（§4.2） */
     private const SEVERITY_LABELS = [
         'critical' => '危重',
-        'acute' => '急症',
+        'acute' => '重症',
         'general' => '一般',
     ];
 
@@ -283,7 +283,7 @@ class CriticalCareService extends Service
      */
     public function patientVitals(string $id, array $filters): array
     {
-        $patient = Patient::query()->where('patient_code', $id)->first();
+        $patient = Patient::query()->where('patient_id', $id)->first();
 
         if (! $patient && ctype_digit($id)) {
             $patient = Patient::query()->find((int) $id);
@@ -312,7 +312,7 @@ class CriticalCareService extends Service
 
         return [
             'patientId' => $id,
-            'patientName' => $patient->real_name,
+            'patientName' => $patient->name,
             'series' => $series,
         ];
     }
@@ -366,7 +366,7 @@ class CriticalCareService extends Service
     }
 
     /**
-     * NEWS 评分标签（无数据按正常处理）
+     * NEWS 评分标签（§4.4：0–4 低风险 / 5–6 预警关注 / ≥7 高危）
      */
     private function newsLabel(?int $news): string
     {
@@ -374,13 +374,13 @@ class CriticalCareService extends Service
             return '正常';
         }
         if ($news >= 7) {
-            return '高危预警';
+            return '高危';
         }
         if ($news >= 5) {
             return '预警关注';
         }
 
-        return '正常';
+        return '低风险';
     }
 
     /**

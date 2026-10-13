@@ -14,10 +14,17 @@ class PatientRegistrationService extends Service
     public function store(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $patient = Patient::create($this->buildPayload($data));
+            $patient = Patient::create([
+                'name' => $data['name'],
+                'gender' => $this->toGender($data['gender']),
+                'age' => isset($data['age']) ? (int) $data['age'] : null,
+                'phone' => $data['phone'] ?? null,
+                'chief_complaint' => $data['chiefComplaint'] ?? '',
+                'is_draft' => (int) ($data['isDraft'] ?? 0),
+            ]);
 
             return [
-                'patientId' => $patient->patient_code,
+                'patientId' => $patient->patient_id,
                 'isDraft' => (int) $patient->is_draft,
             ];
         });
@@ -40,63 +47,35 @@ class PatientRegistrationService extends Service
     public function preAdmission(array $data): array
     {
         return DB::transaction(function () use ($data) {
-            $patientCode = $this->generatePatientCode();
-
             $patient = Patient::create([
-                'patient_code' => $patientCode,
-                'real_name' => $data['name'],
+                'name' => $data['name'],
                 'gender' => $this->toGender($data['gender']),
                 'age' => isset($data['age']) ? (int) $data['age'] : null,
                 'phone' => $data['phone'] ?? null,
                 'prehospital' => $data['prehospital'],
-                'entry' => 'field',
                 'stage' => 'transfer-requested',
-                'source_record_id' => 'MOBILE-'.$patientCode,
+                'source' => '120',
                 'institution_id' => $data['institutionId'],
                 'department_id' => $data['departmentId'],
             ]);
 
+            $patient->source_record_id = 'MOBILE-'.$patient->patient_id;
+            $patient->save();
+
             return [
-                'patientId' => $patient->patient_code,
+                'patientId' => $patient->patient_id,
                 'sourceRecordId' => $patient->source_record_id,
                 'stage' => $patient->stage,
             ];
         });
     }
 
-    private function buildPayload(array $data): array
+    private function toGender(string $gender): int
     {
-        $payload = [
-            'patient_code' => $this->generatePatientCode(),
-            'real_name' => $data['name'],
-            'gender' => $this->toGender($data['gender']),
-            'age' => isset($data['age']) ? (int) $data['age'] : null,
-            'phone' => $data['phone'] ?? null,
-            'is_draft' => (int) ($data['isDraft'] ?? 0),
-        ];
-
-        if (! empty($data['chiefComplaint'])) {
-            $payload['prehospital'] = ['complaint' => $data['chiefComplaint']];
-        }
-
-        return $payload;
-    }
-
-    private function toGender(string $gender): string
-    {
-        return strtoupper($gender) === 'FEMALE' ? 'GENDER_FEMALE' : 'GENDER_MALE';
-    }
-
-    private function generatePatientCode(): string
-    {
-        $prefix = 'PAT-'.now()->format('Ymd').'-';
-        $seq = (int) DB::table('patients')->where('patient_code', 'like', $prefix.'%')->count();
-
-        do {
-            $seq++;
-            $code = $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
-        } while (DB::table('patients')->where('patient_code', $code)->exists());
-
-        return $code;
+        return match (strtoupper($gender)) {
+            'MALE' => 0,
+            'FEMALE' => 1,
+            default => 2,
+        };
     }
 }

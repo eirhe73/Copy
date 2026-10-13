@@ -18,13 +18,13 @@ class ConsultationController extends Controller
     /** 会诊队列 */
     public function index(Request $request): array
     {
-        return Result::success('获取成功', $this->service->queue($request->query()));
+        return Result::success('获取成功', $this->service->index($request->query()));
     }
 
     /** 发起会诊 */
     public function store(StoreConsultationRequest $request): array
     {
-        return Result::success('获取成功', $this->service->create($request->validated()));
+        return Result::success('获取成功', $this->service->store($request->validated()));
     }
 
     /** 入院会诊会话 */
@@ -36,7 +36,7 @@ class ConsultationController extends Controller
     /** 会诊详情 */
     public function show(string $sessionId): array
     {
-        return Result::success('获取成功', $this->service->detail($sessionId));
+        return Result::success('获取成功', $this->service->show($sessionId));
     }
 
     /** 可选接诊医生 */

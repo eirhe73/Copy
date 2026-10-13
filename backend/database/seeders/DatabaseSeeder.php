@@ -37,13 +37,8 @@ class DatabaseSeeder extends Seeder
             SlaSeeder::class,
             MessageSeeder::class,
 
-            // 本轮新增：机构成员 → 整改 → 协同 → 系统设置 → 基层医声 → 质量指标
-            OrganizationMemberSeeder::class,
-            RectifySeeder::class,
-            CoordinationSeeder::class,
-            SettingSeeder::class,
+            // 基层医声（04-会诊协同）：基层反馈 / 问题上报 + 协作消息
             DrSeeder::class,
-            QualityMetricSeeder::class,
         ]);
     }
 }

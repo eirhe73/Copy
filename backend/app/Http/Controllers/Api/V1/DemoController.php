@@ -3,16 +3,16 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use Illuminate\Http\JsonResponse;
+use App\Support\Result;
 
 class DemoController extends Controller
 {
     /**
-     * 基层转诊演示流程（配置类，对齐 grassroots-demo.json 三步链）
+     * 基层转诊演示流程（§3.1，配置类，对齐 grassroots-demo.json 三步链）
      */
-    public function transferSteps(): JsonResponse
+    public function transferSteps(): array
     {
-        return response()->json([
+        return Result::success('获取成功', [
             'title' => '演示场景：威远 → 上级协同',
             'notice' => 'Mock 流程演示',
             'transferDemo' => ['patientName' => '王秀兰', 'badge' => '演示 · 县域上转待接收'],
