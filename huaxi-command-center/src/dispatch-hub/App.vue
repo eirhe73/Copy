@@ -73,8 +73,5 @@ const Current = computed(() => {
     <main class="dh-main">
       <component :is="Current" />
     </main>
-    <footer class="dh-footer">
-      演示数据 · 非实时 HIS / 120 · 非临床统计（Mock），正式环境对接院方接口。
-    </footer>
   </div>
 </template>
