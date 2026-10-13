@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 浅色主题 — 覆盖默认深蓝大屏样式（加载于 index-BRuArrdm.css 之后）
  */
 :root {
@@ -4619,47 +4619,6 @@ footer.system-footer {
   background: #cbd5e1 !important;
 }
 
-/* B 站嵌入：铺满左侧播放区（含原控制条高度） */
-.dr-stage:has(.dr-player-panel--bili) {
-  align-items: stretch !important;
-}
-
-.dr-player-panel.dr-player-panel--bili {
-  display: flex !important;
-  flex-direction: column !important;
-  align-self: stretch !important;
-  min-height: 100% !important;
-}
-
-.dr-player-panel.dr-player-panel--bili > .dr-controls {
-  display: none !important;
-}
-
-.dr-player.dr-player--bili {
-  flex: 1 1 auto !important;
-  width: 100% !important;
-  aspect-ratio: unset !important;
-  min-height: clamp(360px, 62vh, 860px) !important;
-  height: auto !important;
-}
-
-.dr-player.dr-player--bili .dr-bilibili-embed {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  border: 0 !important;
-  background: #0f172a !important;
-}
-
-.dr-player.dr-player--bili .dr-center-play,
-.dr-player.dr-player--bili .dr-caption-shade,
-.dr-player.dr-player--bili .dr-caption,
-.dr-player.dr-player--bili .dr-topic {
-  display: none !important;
-}
-
 /* 未播放 / 封面态：顶部话题、底部副标题提高对比度 */
 .dr-caption-shade {
   height: 48% !important;
@@ -6569,8 +6528,245 @@ main.meeting .video-state {
   font-weight: 600;
   color: #0369a1;
 }
+/* ========== 瀵煎浘琛ラ」 路 IA 鏌ヨ瑙嗗浘 ========== */
+.hx-ia-view-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 12px;
+  margin: 0 0 12px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
 
-/* 板块 3 / 4 / 5 后端 API 面板 */
+.hx-ia-view-head strong {
+  color: #0f172a;
+  font-size: 15px;
+}
+
+.hx-ia-view-head span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hx-ia-view-foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+}
+
+.hx-sub-hospital-monitor,
+.hx-grassroots-remote {
+  margin: 0 0 16px;
+}
+
+.hx-sh-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.hx-sh-block {
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.hx-sh-block header {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.hx-sh-table {
+  width: 100%;
+  font-size: 13px;
+  border-collapse: collapse;
+}
+
+.hx-sh-table th,
+.hx-sh-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #f1f5f9;
+  text-align: left;
+}
+
+.hx-sh-status--绱у紶 {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.hx-sh-status--鍏虫敞 {
+  color: #b45309;
+}
+
+.hx-gr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.hx-gr-card {
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.hx-gr-card h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.hx-gr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hx-gr-btn {
+  display: inline-block;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: #0284c7;
+  border-radius: 8px;
+  text-decoration: none;
+}
+
+.hx-gr-btn.ghost {
+  color: #0369a1;
+  background: #e0f2fe;
+}
+
+.hx-ia-scope-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #0c4a6e;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 10px;
+}
+
+.hx-ia-scope-banner a {
+  font-weight: 600;
+  color: #0369a1;
+}
+
+/* 鈥斺€?鍗忎綔鏈烘瀯 /organizations 路 鍏紑绉戝娴呰壊 鈥斺€?*/
+main.workspace .workspace-heading h1 {
+  color: #0f172a !important;
+}
+
+main.workspace .workspace-heading > div > span {
+  color: #64748b !important;
+}
+
+.organization-head h2 {
+  color: #0f172a !important;
+}
+
+.organization-head > div > span {
+  color: #64748b !important;
+}
+
+.organization-head > svg {
+  color: #0284c7 !important;
+}
+
+main.workspace .tab-row {
+  border-bottom-color: #e2e8f0 !important;
+}
+
+main.workspace .tab-row button {
+  color: #64748b !important;
+  background: transparent !important;
+}
+
+main.workspace .tab-row button.active {
+  color: #0284c7 !important;
+  border-bottom: 2px solid #0284c7 !important;
+}
+
+.department-directory {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+  gap: 12px !important;
+  padding-top: 16px !important;
+}
+
+.department-directory section {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  padding: 14px 16px !important;
+  color: #334155 !important;
+  box-shadow: none !important;
+}
+
+.department-directory section:hover {
+  border-color: #bae6fd !important;
+  background: #f8fafc !important;
+}
+
+.department-directory h3 {
+  color: #0f172a !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.department-directory section > svg {
+  color: #0284c7 !important;
+  flex-shrink: 0;
+}
+
+.expert-directory article {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+  color: #334155 !important;
+}
+
+.expert-directory h3 {
+  color: #0f172a !important;
+}
+
+.expert-directory p {
+  color: #64748b !important;
+}
+
+.expert-directory a {
+  color: #0369a1 !important;
+}
+
+.expert-avatar {
+  background: #e0f2fe !important;
+  color: #0284c7 !important;
+}
+
+.source-list a {
+  border-bottom-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+.source-list time {
+  color: #64748b !important;
+}
+
+
+
+/* 鏉垮潡 3 / 4 / 5 鍚庣 API 闈㈡澘 */
 .hx-plate-api-wrap {
   margin: 0 0 1.25rem;
 }
