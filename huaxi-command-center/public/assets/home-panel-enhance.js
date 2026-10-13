@@ -141,8 +141,6 @@
     }
 
     bar.innerHTML = `
-      <span class="hx-demo-disclaimer">演示数据 · 非实时 HIS · 非临床统计（Mock）</span>
-      <span class="hx-panel-toggles-sep" aria-hidden="true"></span>
       <span class="hx-panel-toggles-label">面板</span>
       ${Object.keys(LABELS)
         .map(

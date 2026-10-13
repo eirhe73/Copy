@@ -46,8 +46,5 @@ const Current = computed(() => views[page.value] ?? PortalHome)
       <a href="/gis-command.html" class="muted">GIS 大屏</a>
     </header>
     <component :is="Current" />
-    <footer class="meeting-demo-foot">
-      演示数据 · 非实时 HIS / 120 · 非临床统计（Mock），正式环境对接院方接口。
-    </footer>
   </div>
 </template>

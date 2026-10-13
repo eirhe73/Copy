@@ -12,11 +12,16 @@ class Transfer extends BaseModel
         'transfer_status', 'confirm_status', 'confirmed_at', 'confirmed_by_user_id',
         'reject_reason', 'review_note', 'vehicle_id', 'driver_name', 'eta',
         'latest_vitals', 'resource_prep', 'handover_status', 'initiator_user_id',
+        'from_institution_id', 'to_institution_id', 'doctor_id', 'nurse_id',
+        'started_at', 'arrived_at', 'handover_at',
     ];
 
     protected $casts = [
         'confirmed_at' => 'datetime',
         'eta' => 'datetime',
+        'started_at' => 'datetime',
+        'arrived_at' => 'datetime',
+        'handover_at' => 'datetime',
         'latest_vitals' => 'array',
         'resource_prep' => 'array',
         'is_deleted' => 'boolean',

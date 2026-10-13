@@ -29,6 +29,11 @@
     if (!isOldDispatch && !isWrongHtmlHash) return
 
     const q = hashQuery()
+    const hub = q.get('hub')
+    if (hub === 'ambulances') {
+      location.replace('/dispatch.html#ambulances')
+      return
+    }
     const qs = q.toString()
     location.replace(qs ? `/dispatch.html#live?${qs}` : '/dispatch.html#live')
   }

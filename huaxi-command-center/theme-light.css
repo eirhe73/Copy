@@ -3533,6 +3533,47 @@ aside.nav-rail,
   background: #cbd5e1 !important;
 }
 
+/* B 站嵌入：铺满左侧播放区（含原控制条高度） */
+.dr-stage:has(.dr-player-panel--bili) {
+  align-items: stretch !important;
+}
+
+.dr-player-panel.dr-player-panel--bili {
+  display: flex !important;
+  flex-direction: column !important;
+  align-self: stretch !important;
+  min-height: 100% !important;
+}
+
+.dr-player-panel.dr-player-panel--bili > .dr-controls {
+  display: none !important;
+}
+
+.dr-player.dr-player--bili {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  aspect-ratio: unset !important;
+  min-height: clamp(360px, 62vh, 860px) !important;
+  height: auto !important;
+}
+
+.dr-player.dr-player--bili .dr-bilibili-embed {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  background: #0f172a !important;
+}
+
+.dr-player.dr-player--bili .dr-center-play,
+.dr-player.dr-player--bili .dr-caption-shade,
+.dr-player.dr-player--bili .dr-caption,
+.dr-player.dr-player--bili .dr-topic {
+  display: none !important;
+}
+
 /* 未播放 / 封面态：顶部话题、底部副标题提高对比度 */
 .dr-caption-shade {
   height: 48% !important;
