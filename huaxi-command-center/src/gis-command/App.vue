@@ -140,7 +140,7 @@ watch(region, () => {
       <header class="gis-header">
         <div class="gis-header-left">
           <h1>县域医疗协同 GIS 指挥大屏</h1>
-          <p class="gis-sub">16:9 浅色 · 协作节点与转诊连线 · 演示数据非实时 HIS</p>
+          <p class="gis-sub">16:9 浅色 · 协作节点与转诊连线</p>
           <p class="gis-region-hint">{{ REGION_HINT[region] }}</p>
         </div>
         <nav class="gis-tabs" aria-label="区域切换">
@@ -251,9 +251,6 @@ watch(region, () => {
           </div>
         </section>
       </main>
-      <footer class="gis-footer">
-        演示数据 · 非实时 HIS / 120 · 非临床统计（Mock），节点 / 连线 / 车辆位置来自 Mock JSON，正式环境对接院方接口。
-      </footer>
     </div>
   </div>
 </template>
