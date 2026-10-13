@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QcIssueController extends Controller
 {
@@ -122,6 +123,78 @@ class QcIssueController extends Controller
         $qcIssue->load('owner');
 
         return new QcIssueResource($qcIssue);
+    }
+
+    /**
+     * 质控报表统计（/medical-quality/reports：级别分布 / 状态分布 / 机构统计）
+     */
+    public function report(): JsonResponse
+    {
+        $base = QcIssue::query();
+
+        $bySeverity = (clone $base)->selectRaw('severity, COUNT(*) as total')
+            ->groupBy('severity')->pluck('total', 'severity');
+
+        $byStatus = (clone $base)->selectRaw('qc_status, COUNT(*) as total')
+            ->groupBy('qc_status')->pluck('total', 'qc_status');
+
+        // 机构统计：按督查对象分组，含按期完成率
+        $byOrg = (clone $base)->whereNotNull('supervise_target')
+            ->selectRaw("supervise_target, COUNT(*) as total,
+                SUM(CASE WHEN qc_status = 'QC_CLOSED' THEN 1 ELSE 0 END) as closed,
+                SUM(CASE WHEN is_on_time_completed THEN 1 ELSE 0 END) as on_time,
+                SUM(CASE WHEN qc_status != 'QC_CLOSED' AND due_at < NOW() THEN 1 ELSE 0 END) as overdue")
+            ->groupBy('supervise_target')
+            ->orderByDesc('total')
+            ->get()
+            ->map(fn ($row) => [
+                'supervise_target' => $row->supervise_target,
+                'total' => (int) $row->total,
+                'closed' => (int) $row->closed,
+                'overdue' => (int) $row->overdue,
+                'on_time_rate' => $row->closed > 0 ? round($row->on_time / $row->closed, 4) : null,
+            ]);
+
+        return response()->json([
+            'updatedAt' => now()->toIso8601String(),
+            'total' => (clone $base)->count(),
+            'by_severity' => $bySeverity,
+            'by_status' => $byStatus,
+            'by_org' => $byOrg,
+        ]);
+    }
+
+    /**
+     * 整改台账导出 CSV
+     */
+    public function export(): StreamedResponse
+    {
+        $headers = ['质控编号', '问题标题', '严重程度', '督查对象', '质控状态', '整改期限', '是否按期完成', '检查结果', '发现日期'];
+
+        return response()->streamDownload(function () use ($headers) {
+            $out = fopen('php://output', 'w');
+            // UTF-8 BOM，避免 Excel 打开乱码
+            fwrite($out, "\xEF\xBB\xBF");
+            fputcsv($out, $headers);
+
+            QcIssue::query()->with('owner')->orderByDesc('created_at')->chunk(200, function ($issues) use ($out) {
+                foreach ($issues as $issue) {
+                    fputcsv($out, [
+                        $issue->qc_code,
+                        $issue->issue_title,
+                        $issue->severity,
+                        $issue->supervise_target,
+                        $issue->qc_status,
+                        $issue->due_at?->toDateTimeString(),
+                        $issue->is_on_time_completed === null ? '' : ($issue->is_on_time_completed ? '是' : '否'),
+                        $issue->check_result,
+                        $issue->discovered_at?->toDateString(),
+                    ]);
+                }
+            });
+
+            fclose($out);
+        }, 'qc-issues-'.now()->format('YmdHis').'.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**

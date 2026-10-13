@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\V1\ClinicalRecordController;
+use App\Http\Controllers\Api\V1\DepartmentController;
 use App\Http\Controllers\Api\V1\DoctorController;
 use App\Http\Controllers\Api\V1\EmergencyEventController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\PatientController;
 use App\Http\Controllers\Api\V1\QcIssueController;
 use App\Http\Controllers\Api\V1\QcStandardController;
+use App\Http\Controllers\Api\V1\SlaRecordController;
 use App\Http\Controllers\Api\V1\TransferController;
 use App\Http\Controllers\Api\V1\VehicleController;
 use Illuminate\Http\Request;
@@ -48,8 +50,10 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('patients', PatientController::class);
 
     // 急救事件（实时出警 / 急救事件 / 患者登记）
+    Route::get('dispatch-live', [EmergencyEventController::class, 'dispatchLive']);
     Route::apiResource('emergency-events', EmergencyEventController::class);
     Route::post('emergency-events/{emergency_event}/close', [EmergencyEventController::class, 'close']);
+    Route::post('emergency-events/{emergency_event}/timelines', [EmergencyEventController::class, 'storeTimeline']);
 
     // 基层调度链：转诊单
     Route::apiResource('transfers', TransferController::class);
@@ -65,9 +69,17 @@ Route::prefix('v1')->group(function () {
     Route::get('qc-standards/summary', [QcStandardController::class, 'summary']);
     Route::apiResource('qc-standards', QcStandardController::class);
 
-    // 医院质控：整改单
+    // 医院质控：整改单（report/export 需在 apiResource 之前注册）
+    Route::get('qc-issues-report', [QcIssueController::class, 'report']);
+    Route::get('qc-issues-export', [QcIssueController::class, 'export']);
     Route::apiResource('qc-issues', QcIssueController::class);
     Route::post('qc-issues/{qc_issue}/close', [QcIssueController::class, 'close']);
+
+    // 医院质控：环节时限 SLA 台账
+    Route::apiResource('sla-records', SlaRecordController::class);
+
+    // 科室（机构管理页「科室结构」模块）
+    Route::apiResource('departments', DepartmentController::class)->only(['index', 'show']);
 
     // 基层医生 Dr：医生管理 + 诊疗记录
     Route::apiResource('doctors', DoctorController::class);
