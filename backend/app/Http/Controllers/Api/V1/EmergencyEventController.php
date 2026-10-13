@@ -4,8 +4,10 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreEmergencyEventRequest;
+use App\Http\Requests\StoreEventTimelineRequest;
 use App\Http\Requests\UpdateEmergencyEventRequest;
 use App\Http\Resources\EmergencyEventResource;
+use App\Http\Resources\EventTimelineResource;
 use App\Models\EmergencyEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -102,6 +104,57 @@ class EmergencyEventController extends Controller
         ]);
 
         return new EmergencyEventResource($emergencyEvent);
+    }
+
+    /**
+     * 实时出警聚合（对齐前端 dispatch-live.json 契约）
+     */
+    public function dispatchLive(): JsonResponse
+    {
+        $events = EmergencyEvent::query()
+            ->where('event_status', 'EVENT_ACTIVE')
+            ->with(['acceptOrg', 'transfers.vehicle'])
+            ->orderByDesc('occurred_at')
+            ->get()
+            ->map(function (EmergencyEvent $event) {
+                // 取最近一张已派车的转诊单获取车辆
+                $transfer = $event->transfers->whereNotNull('vehicle_id')->sortByDesc('created_at')->first();
+
+                return [
+                    'id' => $event->event_code,
+                    'task120Id' => $event->event_code,
+                    'level' => $event->risk_level ?? $event->triage_level,
+                    'chiefComplaint' => $event->chief,
+                    'pickupAddress' => $event->scene_address,
+                    'destination' => $event->target_dept_name ?? $event->acceptOrg?->org_name,
+                    'vehicleId' => $transfer?->vehicle_id,
+                    'vehiclePlate' => $transfer?->vehicle?->plate_number,
+                    'status' => $event->event_stage,
+                    'startedAt' => $event->occurred_at?->toIso8601String(),
+                    'etaHospitalMinutes' => $event->eta ? (int) now()->diffInMinutes($event->eta, false) : null,
+                    'etaPatientMinutes' => null,
+                    'scorePlan' => $event->channel_type,
+                    'treatPlan' => $event->provisional_dx,
+                ];
+            });
+
+        return response()->json([
+            'updatedAt' => now()->toIso8601String(),
+            'activeCount' => $events->count(),
+            'events' => $events->values(),
+        ]);
+    }
+
+    /**
+     * 追加事件时间线节点（阶段推进记录）
+     */
+    public function storeTimeline(StoreEventTimelineRequest $request, EmergencyEvent $emergencyEvent): JsonResponse
+    {
+        $timeline = $emergencyEvent->timelines()->create($request->validated());
+
+        return (new EventTimelineResource($timeline))
+            ->response()
+            ->setStatusCode(201);
     }
 
     /**
