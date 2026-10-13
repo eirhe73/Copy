@@ -46,29 +46,7 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-<<<<<<< HEAD
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-// 健康检查：访问 GET /api/health 验证后端可达
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-=======
 // 健康检查：免鉴权，供网关/负载均衡存活探测
->>>>>>> main
 Route::get('/health', function () {
     return response()->json([
         'status' => 'ok',
