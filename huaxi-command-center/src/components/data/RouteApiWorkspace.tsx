@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { ApiSourceNotice } from '../ApiSourceNotice'
+import { useAuth } from '../../context/AuthContext'
 import { useRouteApi } from '../../hooks/useRouteApi'
 import { labelForApiPath } from '../../lib/extractRows'
 import type { AppRouteMeta } from '../../routes/meta'
@@ -24,10 +26,12 @@ export function RouteApiWorkspace({
   subNav = true,
   className = 'workspace',
 }: Props) {
-  const { results, loading } = useRouteApi(bindings, params)
+  const { ready } = useAuth()
+  const { results, loading } = useRouteApi(bindings, params, { enabled: ready })
 
   return (
     <main className={className}>
+      <ApiSourceNotice compact />
       <header className="workspace-heading">
         <div>
           <h2>{meta.title}</h2>
@@ -41,7 +45,8 @@ export function RouteApiWorkspace({
         </div>
       ) : null}
 
-      {loading ? <p className="api-muted">正在加载…</p> : null}
+      {!ready ? <p className="api-muted">正在连接后端…</p> : null}
+      {ready && loading ? <p className="api-muted">正在加载…</p> : null}
 
       <div className="panel-grid">
         {results.map((r) => (

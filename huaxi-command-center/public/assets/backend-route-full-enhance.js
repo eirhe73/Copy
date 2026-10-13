@@ -192,10 +192,6 @@
   async function render() {
     if (!window.hxBackend?.enabled?.() || !window.HX_ROUTE_BINDINGS) return
     const route = routeKey()
-    if (route.key === '/' && !window.hxFullBackend?.()) {
-      document.getElementById('hx-api-route-dock')?.remove()
-      return
-    }
     const bindings = window.HX_ROUTE_BINDINGS[route.key]
     if (!bindings?.length) {
       document.getElementById('hx-api-route-dock')?.remove()

@@ -1,10 +1,7 @@
 import { useEffect } from 'react'
 
-const SCRIPTS = [
-  '/assets/map-light-3d-enhance.js',
-  '/assets/map-medical-overlay.js',
-  '/assets/home-panel-enhance.js',
-] as const
+/** 不加载 map-medical-overlay.js：该脚本内嵌静态演示节点，与 API 冲突 */
+const SCRIPTS = ['/assets/map-light-3d-enhance.js', '/assets/home-panel-enhance.js'] as const
 
 function loadScript(src: string): Promise<void> {
   if (document.querySelector(`script[data-hx-enhance="${src}"]`)) return Promise.resolve()

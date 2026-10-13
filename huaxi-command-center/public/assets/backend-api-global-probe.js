@@ -20,17 +20,22 @@
     await window.hxEnsureApiSamples?.()
     const gets = window.HX_API_CATALOG.filter((x) => x.method === 'GET' && !SKIP.has(x.path.split('?')[0]))
     const out = []
+    const includeGaps = localStorage.getItem('huaxi-api-probe-strict') === '1'
     for (const item of gets) {
       const path = window.hxResolveApiPath
         ? window.hxResolveApiPath(item.path, {})
         : item.path.replace(/\{[^}]+\}/g, '1')
+      if (window.hxApiProbeSkipPath?.(path, { includeRemoteGaps: includeGaps })) {
+        out.push({ path, ok: false, skipped: 'remote-gap' })
+        continue
+      }
       try {
         await window.hxBackend.request('GET', path.startsWith('/') ? path : `/${path}`)
         out.push({ path, ok: true })
       } catch (e) {
         out.push({ path, ok: false, error: String(e.message || e) })
       }
-      await new Promise((r) => setTimeout(r, 200))
+      await new Promise((r) => setTimeout(r, 350))
     }
     window.__HX_API_PROBE__ = out
     const bad = out.filter((x) => !x.ok).length

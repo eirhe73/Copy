@@ -4,12 +4,18 @@ export type ApiBinding = { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: stri
 
 export const ROUTE_API_BINDINGS: Record<string, ApiBinding[]> = {
   '/': [
+    { method: 'GET', path: '/auth/me' },
     { method: 'GET', path: '/dispatch-live' },
     { method: 'GET', path: '/ambulances' },
     { method: 'GET', path: '/vehicles/gps' },
     { method: 'GET', path: '/beds/overview' },
-    { method: 'GET', path: '/warnings?pageNum=1&pageSize=12' },
+    { method: 'GET', path: '/warnings/summary' },
+    { method: 'GET', path: '/warnings?pageNum=1&pageSize=15' },
     { method: 'GET', path: '/critical/alerts' },
+    { method: 'GET', path: '/critical/vitals?pageNum=1&pageSize=15' },
+    { method: 'GET', path: '/emergency-events?per_page=15' },
+    { method: 'GET', path: '/patients?per_page=20' },
+    { method: 'GET', path: '/centers' },
   ],
   '/dispatch': [
     { method: 'GET', path: '/dispatch/events' },
@@ -82,6 +88,7 @@ export const ROUTE_API_BINDINGS: Record<string, ApiBinding[]> = {
   '/messages': [
     { method: 'GET', path: '/messages' },
     { method: 'GET', path: '/messages/notifications' },
+    { method: 'GET', path: '/messages/todos' },
   ],
   '/coordination': [
     { method: 'GET', path: '/coordination/todos' },

@@ -294,18 +294,19 @@
       return
     }
     clearPanels()
-    await Promise.all([
-      renderDispatch(),
-      renderMonitoring(),
-      renderMessages(),
-      renderCoordination(),
-      renderCenters(),
-      renderBeds(),
-      renderQuality(),
-      renderSettings(),
-      renderConsultations(),
-      renderCritical(),
-    ])
+    const p = path()
+    const jobs = []
+    if (p === '/dispatch') jobs.push(renderDispatch())
+    if (p === '/monitoring') jobs.push(renderMonitoring())
+    if (p === '/messages') jobs.push(renderMessages())
+    if (p === '/coordination') jobs.push(renderCoordination())
+    if (p === '/centers') jobs.push(renderCenters())
+    if (p === '/beds') jobs.push(renderBeds())
+    if (p === '/quality') jobs.push(renderQuality())
+    if (p === '/settings') jobs.push(renderSettings())
+    if (p === '/consultations') jobs.push(renderConsultations())
+    if (p === '/critical') jobs.push(renderCritical())
+    for (const j of jobs) await j
   }
 
   async function initAuthMe() {
@@ -412,7 +413,7 @@
   )
 
   window.hxBackend?.ensureAuth(false).then((ok) => {
-    if (ok && window.hxFullBackend?.()) initAuthMe()
+    if (ok) initAuthMe()
   })
 
   window.addEventListener('hashchange', () => setTimeout(renderPage, 350))

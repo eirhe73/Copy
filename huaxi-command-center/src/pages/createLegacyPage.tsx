@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useParams } from 'react-router-dom'
 import { RouteApiWorkspace } from '../components/data/RouteApiWorkspace'
+/** 所有非独立业务页均走 RouteApiWorkspace（直连 API，无 scenario） */
 import type { AppRouteMeta } from '../routes/meta'
 import { ROUTE_API_BINDINGS } from '../routes/apiBindings'
 import { ROUTE_WRITE_ACTIONS } from '../routes/apiWrites'

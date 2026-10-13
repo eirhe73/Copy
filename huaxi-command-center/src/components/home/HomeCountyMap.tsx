@@ -1,8 +1,11 @@
 import { Activity } from 'lucide-react'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
+import { useAuth } from '../../context/AuthContext'
 import { useHomeRegion } from '../../context/HomeRegionContext'
 import { useHomeMapEnhancers } from '../../hooks/useHomeMapEnhancers'
+import { useRouteApi } from '../../hooks/useRouteApi'
 import { CenterMetricsBar } from './CenterMetricsBar'
+import { MapCollabPanel } from './MapCollabPanel'
 import { MapLegend, MapTools } from './MapChrome'
 
 const MapScene = lazy(() => import('../../smart-city/MapScene').then((m) => ({ default: m.MapScene })))
@@ -11,10 +14,34 @@ type Props = {
   kpiEmergency?: string
   kpiClosed?: string
   bedsOverview?: unknown
+  onCountyMap?: (payload: { erToday?: number }) => void
 }
 
-export function HomeCountyMap({ kpiEmergency = '—', kpiClosed = '—', bedsOverview }: Props) {
+export function HomeCountyMap({
+  kpiEmergency = '—',
+  kpiClosed = '—',
+  bedsOverview,
+  onCountyMap,
+}: Props) {
   const { region, setRegion } = useHomeRegion()
+  const { ready } = useAuth()
+  const { results, loading: countyLoading } = useRouteApi(
+    [{ method: 'GET', path: `/dashboard/county-map?region=${region}` }],
+    {},
+    { enabled: ready },
+  )
+  const countyResult = results[0]
+  const county = countyResult?.ok ? countyResult.data : undefined
+  const countyError = countyResult && !countyResult.ok ? countyResult.error : undefined
+
+  useEffect(() => {
+    if (!county || typeof county !== 'object') return
+    const erToday = (county as Record<string, unknown>).erToday
+    onCountyMap?.({
+      erToday: erToday != null && !Number.isNaN(Number(erToday)) ? Number(erToday) : undefined,
+    })
+  }, [county, onCountyMap])
+
   useHomeMapEnhancers(true)
 
   return (
@@ -32,6 +59,7 @@ export function HomeCountyMap({ kpiEmergency = '—', kpiClosed = '—', bedsOve
         <MapLegend />
         <MapTools />
         <div className="county-map">
+          <MapCollabPanel loading={ready && countyLoading} error={countyError} payload={county} />
           <Suspense fallback={<p className="api-muted">地图加载中…</p>}>
             <MapScene themeId="light" region={region} variant="command" />
           </Suspense>

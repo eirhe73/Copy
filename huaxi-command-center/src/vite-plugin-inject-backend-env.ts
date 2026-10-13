@@ -22,6 +22,7 @@ function buildEnvScript(mode: string): string {
   if (fullBackend === '0') stmts.push(`localStorage.setItem('huaxi-full-backend','0')`)
   if (mode === 'development' && fullBackend !== '1') {
     stmts.push(`if(localStorage.getItem('huaxi-full-backend')!=='1')localStorage.setItem('huaxi-full-backend','0')`)
+    stmts.push(`if(localStorage.getItem('huaxi-backend-live')!=='0')localStorage.setItem('huaxi-backend-live','1')`)
   }
 
   if (!stmts.length) return MARKER

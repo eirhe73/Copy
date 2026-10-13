@@ -8,6 +8,8 @@
     { method: 'POST', path: '/auth/login', tag: 'auth-public' },
     { method: 'POST', path: '/auth/logout', tag: 'auth' },
     { method: 'GET', path: '/auth/me', tag: 'auth' },
+    { method: 'GET', path: '/user', tag: 'auth' },
+    { method: 'GET', path: '/health', tag: 'auth-public' },
     { method: 'POST', path: '/auth/refresh-token', tag: 'auth' },
     { method: 'GET', path: '/dispatch/events', tag: 'dispatch' },
     { method: 'POST', path: '/dispatch/events', tag: 'dispatch' },
@@ -89,6 +91,7 @@
     { method: 'PUT', path: '/emergency-events/{id}', tag: 'dispatch' },
     { method: 'POST', path: '/emergency-events/{id}/close', tag: 'dispatch' },
     { method: 'POST', path: '/emergency-events/{id}/timelines', tag: 'dispatch' },
+    { method: 'DELETE', path: '/emergency-events/{id}', tag: 'dispatch' },
     { method: 'GET', path: '/transfers', tag: 'transfer' },
     { method: 'POST', path: '/transfers', tag: 'transfer' },
     { method: 'GET', path: '/transfers/{id}', tag: 'transfer' },
@@ -150,7 +153,21 @@
    * 前端 Hash 路由 → 应调用的接口（path 可含 {param}，由 enhance 解析）
    */
   window.HX_ROUTE_BINDINGS = {
-    '/': [{ method: 'GET', path: '/dispatch-live' }],
+    '/': [
+      { method: 'GET', path: '/auth/me' },
+      { method: 'GET', path: '/dispatch-live' },
+      { method: 'GET', path: '/ambulances' },
+      { method: 'GET', path: '/vehicles/gps' },
+      { method: 'GET', path: '/beds/overview' },
+      { method: 'GET', path: '/dashboard/county-map?region=dafang' },
+      { method: 'GET', path: '/warnings/summary' },
+      { method: 'GET', path: '/warnings?pageNum=1&pageSize=15' },
+      { method: 'GET', path: '/critical/alerts' },
+      { method: 'GET', path: '/critical/vitals?pageNum=1&pageSize=15' },
+      { method: 'GET', path: '/emergency-events?per_page=15' },
+      { method: 'GET', path: '/patients?per_page=20' },
+      { method: 'GET', path: '/centers' },
+    ],
     '/dispatch': [
       { method: 'GET', path: '/dispatch/events' },
       { method: 'GET', path: '/dispatch/case-push' },
@@ -224,6 +241,7 @@
     '/messages': [
       { method: 'GET', path: '/messages' },
       { method: 'GET', path: '/messages/notifications' },
+      { method: 'GET', path: '/messages/todos' },
     ],
     '/coordination': [
       { method: 'GET', path: '/coordination/todos' },

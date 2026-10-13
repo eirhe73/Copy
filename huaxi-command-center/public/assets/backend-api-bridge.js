@@ -256,7 +256,8 @@
   }
 
   async function adaptGisCollab() {
-    if (!window.hxFullBackend?.()) {
+    const preferStatic = !window.hxFullBackend?.() && !window.hxLiveMergeEnabled?.()
+    if (preferStatic) {
       try {
         return await loadStaticGisCollab()
       } catch {
@@ -401,6 +402,14 @@
     const base = await nativeFetch('/scenario.json', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { state: {} }))
       .catch(() => ({ schemaVersion: 2, state: {} }))
+    if (window.hxLiveMergeEnabled?.() && window.hxMergeScenarioFromApis) {
+      try {
+        return await window.hxMergeScenarioFromApis(base)
+      } catch (e) {
+        console.warn('[hx-api-bridge] scenario live merge', e)
+        return base
+      }
+    }
     if (!window.hxFullBackend?.() || !window.hxBackend?.strict?.()) return base
     if (window.hxBuildScenarioFromBackend) {
       try {
@@ -524,9 +533,18 @@
       return getJson(path, { per_page: 50, ...query }).then(asList)
     },
     health() {
-      return nativeFetch(`${apiBase()}/health`, { headers: { Accept: 'application/json' } })
-        .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-        .catch(() => null)
+      const tryUrls = [`${apiV1()}/health`, `${apiBase()}/health`, `${apiBase()}/v1/health`]
+      return (async () => {
+        for (const url of tryUrls) {
+          try {
+            const r = await nativeFetch(url, { headers: { Accept: 'application/json' } })
+            if (r.ok) return r.json()
+          } catch {
+            /* next */
+          }
+        }
+        return null
+      })()
     },
   }
 

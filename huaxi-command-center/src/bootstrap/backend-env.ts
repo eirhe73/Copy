@@ -21,4 +21,17 @@ function applyViteBackendEnv(): void {
   }
 }
 
+function clearLegacyDemoSnapshot(): void {
+  try {
+    const params = new URLSearchParams(location.search)
+    if (params.get('demo') === '1' || params.get('keep-demo') === '1') return
+    if (!/src-shell\.html/i.test(location.pathname)) return
+    localStorage.removeItem('huaxi-final-demo-v1')
+    localStorage.removeItem('huaxi-api-mock')
+  } catch {
+    /* ignore */
+  }
+}
+
 applyViteBackendEnv()
+clearLegacyDemoSnapshot()

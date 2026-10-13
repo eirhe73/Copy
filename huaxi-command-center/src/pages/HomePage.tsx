@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom'
+import { useCallback, useState } from 'react'
+import { ApiSourceNotice } from '../components/ApiSourceNotice'
 import { useAuth } from '../context/AuthContext'
 import { HomeCountyMap } from '../components/home/HomeCountyMap'
 import { HomeCurrentPanel } from '../components/home/HomeCurrentPanel'
@@ -15,6 +17,10 @@ const VEHICLE_BUCKETS = ['出警中', '空闲中', '不能调用'] as const
 
 function HomeDashboard() {
   const { ready } = useAuth()
+  const [countyErToday, setCountyErToday] = useState<number | undefined>()
+  const onCountyMap = useCallback((p: { erToday?: number }) => {
+    setCountyErToday(p.erToday)
+  }, [])
   const { results } = useRouteApi(bindings, undefined, { enabled: ready })
 
   const ambulances = results.find((r) => r.path.includes('/ambulances'))
@@ -27,18 +33,24 @@ function HomeDashboard() {
 
   const liveObj =
     live?.ok && live.data && typeof live.data === 'object' ? (live.data as Record<string, unknown>) : null
-  const kpiEmergency = String(liveObj?.activeCount ?? liveObj?.emergencyToday ?? '—')
+  const kpiEmergency = String(
+    countyErToday ?? liveObj?.activeCount ?? liveObj?.emergencyToday ?? '—',
+  )
   const kpiClosed = String(liveObj?.closedToday ?? liveObj?.closedCount ?? '—')
 
   const bedsObj =
     beds?.ok && beds.data && typeof beds.data === 'object' ? (beds.data as Record<string, unknown>) : null
 
+  const bedNum = (key: string) => {
+    const v = bedsObj?.[key]
+    if (typeof v === 'number' && !Number.isNaN(v)) return v
+    if (typeof v === 'string' && v !== '' && !Number.isNaN(Number(v))) return Number(v)
+    return undefined
+  }
+
   return (
     <>
-      <p className="api-muted" style={{ margin: '8px 12px 0', gridColumn: '1 / -1' }}>
-        当前为 <strong>src-shell</strong> 迁移版，与线上首页不完全一致。验收请打开{' '}
-        <a href="/">index.html（/#/）</a>。
-      </p>
+      <ApiSourceNotice />
       <main className="dashboard screen">
       <div className="dashboard-left">
         <DashboardPanel
@@ -82,17 +94,22 @@ function HomeDashboard() {
           </div>
         </DashboardPanel>
         <HomeCurrentPanel
-          erPatients={Number(bedsObj?.erPatients ?? 17)}
-          erBedsTotal={Number(bedsObj?.erBedsTotal ?? 28)}
-          erBedsFree={Number(bedsObj?.erBedsFree ?? 18)}
-          icuPatients={Number(bedsObj?.icuPatients ?? 18)}
-          icuBedsTotal={Number(bedsObj?.icuBedsTotal ?? 26)}
-          icuBedsFree={Number(bedsObj?.icuBedsFree ?? 8)}
+          erPatients={bedNum('erPatients')}
+          erBedsTotal={bedNum('erBedsTotal')}
+          erBedsFree={bedNum('erBedsFree')}
+          icuPatients={bedNum('icuPatients')}
+          icuBedsTotal={bedNum('icuBedsTotal')}
+          icuBedsFree={bedNum('icuBedsFree')}
         />
       </div>
 
       <div className="dashboard-center">
-        <HomeCountyMap kpiEmergency={kpiEmergency} kpiClosed={kpiClosed} bedsOverview={beds?.ok ? beds.data : undefined} />
+        <HomeCountyMap
+          kpiEmergency={kpiEmergency}
+          kpiClosed={kpiClosed}
+          bedsOverview={beds?.ok ? beds.data : undefined}
+          onCountyMap={onCountyMap}
+        />
       </div>
 
       <div className="dashboard-right">

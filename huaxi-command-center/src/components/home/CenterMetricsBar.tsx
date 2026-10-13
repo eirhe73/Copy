@@ -6,22 +6,22 @@ type Props = {
   bedsOverview?: unknown
 }
 
-const FALLBACK: Record<HomeRegion, [string, string | number][]> = {
+const REGION_LABELS: Record<HomeRegion, [string, string | number][]> = {
   dafang: [
-    ['示范区院', 15],
-    ['住院病人数', 828],
-    ['医生护士数', 1195],
-    ['剩余床位数', 60],
-    ['床位总数', 888],
-    ['床位使用率', '93%'],
+    ['示范区院', '—'],
+    ['住院病人数', '—'],
+    ['医生护士数', '—'],
+    ['剩余床位数', '—'],
+    ['床位总数', '—'],
+    ['床位使用率', '—'],
   ],
   weiyuan: [
-    ['协作机构', 12],
-    ['住院病人数', 426],
-    ['医生护士数', 680],
-    ['剩余床位数', 38],
-    ['床位总数', 520],
-    ['床位使用率', '88%'],
+    ['协作机构', '—'],
+    ['住院病人数', '—'],
+    ['医生护士数', '—'],
+    ['剩余床位数', '—'],
+    ['床位总数', '—'],
+    ['床位使用率', '—'],
   ],
 }
 
@@ -37,19 +37,21 @@ function num(obj: Record<string, unknown>, keys: string[]): number | undefined {
 }
 
 export function CenterMetricsBar({ region, bedsOverview }: Props) {
-  let rows = FALLBACK[region]
+  let rows = REGION_LABELS[region].map(([label, value]) => [label, value] as [string, string | number])
   if (bedsOverview && typeof bedsOverview === 'object') {
     const o = bedsOverview as Record<string, unknown>
     const total = num(o, ['totalBeds', 'total', 'bedTotal'])
     const free = num(o, ['freeBeds', 'available', 'remaining'])
-    const used = num(o, ['usedBeds', 'occupied'])
+    const used = num(o, ['usedBeds', 'occupiedBeds', 'occupied'])
+    const hospitals = Array.isArray(o.hospitals) ? o.hospitals.length : undefined
     if (total != null) {
-      const rate = used != null && total ? `${Math.round((used / total) * 100)}%` : rows[5][1]
+      const rate =
+        used != null && total ? `${Math.round((used / total) * 100)}%` : typeof o.occupancyRate === 'string' ? o.occupancyRate : '—'
       rows = [
-        rows[0],
+        [rows[0][0], hospitals ?? '—'],
         rows[1],
         rows[2],
-        [rows[3][0], free ?? rows[3][1]],
+        [rows[3][0], free ?? '—'],
         ['床位总数', total],
         ['床位使用率', rate],
       ]
