@@ -256,40 +256,23 @@
   }
 
   async function adaptGisCollab() {
-    const preferStatic = !window.hxFullBackend?.() && !window.hxLiveMergeEnabled?.()
-    if (preferStatic) {
-      try {
-        return await loadStaticGisCollab()
-      } catch {
-        /* 混合模式优先静态地图，失败再试后端 */
-      }
-    }
     try {
-      const wyRaw = await backendGet('/dashboard/county-map?region=weiyuan')
-      const wy = unwrapEnvelope(wyRaw)
-      let df = { erToday: 0, nodes: [], links: [] }
-      try {
-        const dfRaw = await backendGet('/dashboard/county-map?region=dafang')
-        df = unwrapEnvelope(dfRaw) || df
-      } catch {
-        /* 限流时只拉威远 */
+      // 后端 county-map 不按 region 过滤，直接拉取全量节点，统一挂到 weiyuan 下
+      const raw = await backendGet('/dashboard/county-map')
+      const data = unwrapEnvelope(raw)
+      const pack = {
+        erToday: data?.erToday ?? 0,
+        nodes: data?.nodes ?? [],
+        links: data?.links ?? [],
       }
       return {
-        updatedAt: wy?.updatedAt || df?.updatedAt || new Date().toISOString(),
-        weiyuan: {
-          erToday: wy?.erToday ?? 0,
-          nodes: wy?.nodes ?? [],
-          links: wy?.links ?? [],
-        },
-        dafang: {
-          erToday: df?.erToday ?? 0,
-          nodes: df?.nodes ?? [],
-          links: df?.links ?? [],
-        },
+        updatedAt: data?.updatedAt || new Date().toISOString(),
+        weiyuan: pack,
+        dafang: { erToday: 0, nodes: [], links: [] },
       }
     } catch (e) {
-      console.warn('[hx-api-bridge] county-map 失败，使用 /api/gis-collab.json', e)
-      return loadStaticGisCollab()
+      console.warn('[hx-api-bridge] county-map 失败', e)
+      throw e
     }
   }
 
@@ -360,7 +343,7 @@
     '/api/vehicles-gps.json': () => backendGet('/vehicles/gps').then(adaptVehiclesGps),
     '/api/warning-demo.json': () => backendGet('/warnings/summary').then(unwrapEnvelope),
     '/api/consultation-admission.json': () => backendGet('/consultations/admission').then(unwrapEnvelope),
-    '/api/beds-by-dept.json': () => backendGet('/beds/by-dept?hospitalId=weiyuan').then(unwrapEnvelope),
+    '/api/beds-by-dept.json': () => backendGet('/beds/by-dept').then(unwrapEnvelope),
     '/api/care-bindings.json': () => backendGet('/care-bindings').then(unwrapEnvelope),
     '/api/device-bindings.json': () => backendGet('/devices').then(unwrapEnvelope),
     '/api/gis-collab.json': adaptGisCollab,

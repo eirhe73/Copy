@@ -6,6 +6,9 @@ export type CollabNode = {
   tier: 0 | 1 | 2
   lng: number
   lat: number
+  er: number
+  bedsFree: number
+  tight: boolean
 }
 
 export type CollabLink = { from: string; to: string; flow?: number }
@@ -23,8 +26,9 @@ function tier(n: unknown): 0 | 1 | 2 {
   return 0
 }
 
-export async function fetchCountyMapCollab(region: string): Promise<CountyMapCollab> {
-  const raw = await apiGet<Record<string, unknown>>(`/dashboard/county-map?region=${encodeURIComponent(region)}`)
+export async function fetchCountyMapCollab(_region?: string): Promise<CountyMapCollab> {
+  // 后端 county-map 不按 region 过滤（机构表无 weiyuan/dafang 标识），直接拉取全量节点
+  const raw = await apiGet<Record<string, unknown>>('/dashboard/county-map')
   const nodesRaw = Array.isArray(raw.nodes) ? raw.nodes : []
   const linksRaw = Array.isArray(raw.links) ? raw.links : []
   const nodes: CollabNode[] = nodesRaw
@@ -40,6 +44,9 @@ export async function fetchCountyMapCollab(region: string): Promise<CountyMapCol
         tier: tier(o.tier),
         lng,
         lat,
+        er: Number(o.er ?? 0) || 0,
+        bedsFree: Number(o.bedsFree ?? o.beds_free ?? 0) || 0,
+        tight: Boolean(o.tight),
       }
     })
     .filter((n): n is CollabNode => n !== null && n.id !== '')

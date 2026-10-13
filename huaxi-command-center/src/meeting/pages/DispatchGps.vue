@@ -84,8 +84,8 @@ onUnmounted(() => {
 
 <template>
   <div class="page">
-    <h2>120 车辆 GPS + 预计到达（Mock）</h2>
-    <p class="lead">每 5s 拉取 <code>/api/vehicles-gps.json</code>；地图为 2D 圆点沿 route 插值移动。接生产时替换为 WebSocket。</p>
+    <h2>120 车辆 GPS + 预计到达</h2>
+    <p class="lead">每 5s 拉取后端 <code>/vehicles/gps</code>；地图为 2D 圆点沿 route 插值移动。接生产时替换为 WebSocket。</p>
     <div class="split">
       <div ref="root" class="map-box" />
       <ul class="veh-list">
