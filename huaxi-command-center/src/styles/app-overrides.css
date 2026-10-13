@@ -1,0 +1,165 @@
+/* 源码模式：仅补全 bundle 未覆盖的最小样式，主视觉依赖 index-BRuArrdm.css + theme-light.css */
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+.app-shell {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-shell > .dashboard.screen,
+.app-shell > .workspace {
+  flex: 1;
+  padding-bottom: 48px;
+}
+
+.api-muted {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.api-error {
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.btn-primary,
+.btn-ghost {
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 6px 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #1e293b;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: #0284c7;
+  border-color: #0284c7;
+  color: #fff;
+}
+
+.panel-grid {
+  display: grid;
+  gap: 16px;
+  padding: 0 16px 16px;
+}
+
+main.dashboard.screen .county-map .command-map-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 280px;
+}
+
+main.dashboard.screen .county-map {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.hx-command-map-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid #94a3b8;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  font-size: 12px;
+  color: #1e3a4c;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.hx-command-map-pin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #0ea5e9, #0369a1);
+  position: relative;
+  flex-shrink: 0;
+}
+
+.hx-command-map-pin::before,
+.hx-command-map-pin::after {
+  content: '';
+  position: absolute;
+  background: #fff;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.hx-command-map-pin::before {
+  width: 2px;
+  height: 10px;
+}
+
+.hx-command-map-pin::after {
+  width: 10px;
+  height: 2px;
+}
+
+main.dashboard.screen .event-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+main.dashboard.screen .event-feed-item {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  color: #334155;
+  text-decoration: none;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+main.dashboard.screen .event-feed-item time {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+}
+
+.login-card {
+  background: #fff;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  width: min(400px, 92vw);
+  display: grid;
+  gap: 12px;
+}
+
+.login-card .field {
+  display: grid;
+  gap: 4px;
+}
+
+.login-card input {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+}

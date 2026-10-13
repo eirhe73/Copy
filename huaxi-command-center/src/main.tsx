@@ -1,13 +1,17 @@
-import { StrictMode } from 'react'
+import './bootstrap/backend-env'
 import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 import App from './App.tsx'
-import './styles/global.css'
+import { AuthProvider } from './context/AuthContext.tsx'
+import { HomeRegionProvider } from './context/HomeRegionContext.tsx'
+import './styles/app-overrides.css'
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
-  </StrictMode>,
+  <HashRouter>
+    <AuthProvider>
+      <HomeRegionProvider>
+        <App />
+      </HomeRegionProvider>
+    </AuthProvider>
+  </HashRouter>,
 )

@@ -412,7 +412,7 @@
   )
 
   window.hxBackend?.ensureAuth(false).then((ok) => {
-    if (ok) initAuthMe()
+    if (ok && window.hxFullBackend?.()) initAuthMe()
   })
 
   window.addEventListener('hashchange', () => setTimeout(renderPage, 350))

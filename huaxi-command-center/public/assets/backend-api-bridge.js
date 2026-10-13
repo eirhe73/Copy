@@ -121,22 +121,89 @@
     return loginPromise
   }
 
+  function sleep(ms) {
+    return new Promise((r) => setTimeout(r, ms))
+  }
+
+  const GET_CACHE_TTL_MS = 8000
+  /** @type {Map<string, { at: number, data: unknown }>} */
+  const getCache = new Map()
+  /** @type {Map<string, Promise<unknown>>} */
+  const getInflight = new Map()
+  let queueTail = Promise.resolve()
+  let lastRequestAt = 0
+  const MIN_GAP_MS = 120
+
+  function cacheKey(method, apiPath) {
+    return `${method}:${apiPath}`
+  }
+
+  async function throttleGap() {
+    const now = Date.now()
+    const wait = Math.max(0, MIN_GAP_MS - (now - lastRequestAt))
+    if (wait) await sleep(wait)
+    lastRequestAt = Date.now()
+  }
+
   async function backendRequest(apiPath, init) {
-    await ensureAuth(false)
-    const headers = {
-      Accept: 'application/json',
-      ...(init?.headers || {}),
+    const method = String(init?.method || 'GET').toUpperCase()
+    const key = cacheKey(method, apiPath)
+
+    if (method === 'GET' && !init?._skipCache) {
+      const hit = getCache.get(key)
+      if (hit && Date.now() - hit.at < GET_CACHE_TTL_MS) return hit.data
+      const inflight = getInflight.get(key)
+      if (inflight) return inflight
     }
-    if (token) headers.Authorization = `Bearer ${token}`
-    const res = await nativeFetch(`${apiV1()}${apiPath}`, { ...init, headers })
-    if (res.status === 401 && !init?._retried) {
-      await ensureAuth(true)
-      return backendRequest(apiPath, { ...init, _retried: true })
+
+    const run = async () => {
+      await ensureAuth(false)
+      await throttleGap()
+      const headers = {
+        Accept: 'application/json',
+        ...(init?.headers || {}),
+      }
+      if (token) headers.Authorization = `Bearer ${token}`
+      let res = await nativeFetch(`${apiV1()}${apiPath}`, { ...init, headers })
+      if (res.status === 401 && !init?._retried) {
+        await ensureAuth(true)
+        return backendRequest(apiPath, { ...init, _retried: true, _skipCache: init?._skipCache })
+      }
+      let attempt = 0
+      while (res.status === 429 && attempt < 3) {
+        attempt += 1
+        const wait = Number(res.headers.get('Retry-After') || attempt) * 1000
+        await sleep(Math.min(8000, Math.max(800, wait)))
+        res = await nativeFetch(`${apiV1()}${apiPath}`, {
+          ...init,
+          headers: { ...headers, Authorization: token ? `Bearer ${token}` : headers.Authorization },
+        })
+      }
+      if (!res.ok) throw new Error(`HTTP ${res.status} ${apiPath}`)
+      const ct = res.headers.get('content-type') || ''
+      const body = ct.includes('application/json') ? await res.json() : await res.text()
+      if (method === 'GET' && !init?._skipCache) {
+        getCache.set(key, { at: Date.now(), data: body })
+      }
+      return body
     }
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${apiPath}`)
-    const ct = res.headers.get('content-type') || ''
-    if (ct.includes('application/json')) return res.json()
-    return res.text()
+
+    const task =
+      method === 'GET' && !init?._skipCache
+        ? (() => {
+            const p = queueTail.then(run)
+            queueTail = p.catch(() => {})
+            getInflight.set(key, p)
+            return p.finally(() => {
+              getInflight.delete(key)
+            })
+          })()
+        : queueTail.then(run).then((v) => {
+            queueTail = Promise.resolve()
+            return v
+          })
+
+    return task
   }
 
   async function backendGet(apiPath) {
@@ -182,25 +249,46 @@
     }
   }
 
+  async function loadStaticGisCollab() {
+    const r = await nativeFetch('/api/gis-collab.json', { cache: 'no-store' })
+    if (!r.ok) throw new Error('static gis-collab missing')
+    return r.json()
+  }
+
   async function adaptGisCollab() {
-    const [wyRaw, dfRaw] = await Promise.all([
-      backendGet('/dashboard/county-map?region=weiyuan'),
-      backendGet('/dashboard/county-map?region=dafang'),
-    ])
-    const wy = unwrapEnvelope(wyRaw)
-    const df = unwrapEnvelope(dfRaw)
-    return {
-      updatedAt: wy?.updatedAt || df?.updatedAt || new Date().toISOString(),
-      weiyuan: {
-        erToday: wy?.erToday ?? 0,
-        nodes: wy?.nodes ?? [],
-        links: wy?.links ?? [],
-      },
-      dafang: {
-        erToday: df?.erToday ?? 0,
-        nodes: df?.nodes ?? [],
-        links: df?.links ?? [],
-      },
+    if (!window.hxFullBackend?.()) {
+      try {
+        return await loadStaticGisCollab()
+      } catch {
+        /* 混合模式优先静态地图，失败再试后端 */
+      }
+    }
+    try {
+      const wyRaw = await backendGet('/dashboard/county-map?region=weiyuan')
+      const wy = unwrapEnvelope(wyRaw)
+      let df = { erToday: 0, nodes: [], links: [] }
+      try {
+        const dfRaw = await backendGet('/dashboard/county-map?region=dafang')
+        df = unwrapEnvelope(dfRaw) || df
+      } catch {
+        /* 限流时只拉威远 */
+      }
+      return {
+        updatedAt: wy?.updatedAt || df?.updatedAt || new Date().toISOString(),
+        weiyuan: {
+          erToday: wy?.erToday ?? 0,
+          nodes: wy?.nodes ?? [],
+          links: wy?.links ?? [],
+        },
+        dafang: {
+          erToday: df?.erToday ?? 0,
+          nodes: df?.nodes ?? [],
+          links: df?.links ?? [],
+        },
+      }
+    } catch (e) {
+      console.warn('[hx-api-bridge] county-map 失败，使用 /api/gis-collab.json', e)
+      return loadStaticGisCollab()
     }
   }
 
@@ -303,17 +391,17 @@
         await ensureAuth(false)
         return await window.hxBuildScenarioFromBackend()
       } catch (e) {
-        console.error('[hx-api-bridge] 全后端 scenario 失败', e)
-        if (mockAllowed()) {
-          return nativeFetch('/scenario.json', { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {}))
-        }
+        console.error('[hx-api-bridge] 全后端 scenario 失败，回退 scenario.json', e)
+        const r = await nativeFetch('/scenario.json', { cache: 'no-store' })
+        if (r.ok) return r.json()
+        if (mockAllowed()) return {}
         throw e
       }
     }
     const base = await nativeFetch('/scenario.json', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : { state: {} }))
       .catch(() => ({ schemaVersion: 2, state: {} }))
-    if (!window.hxBackend?.strict?.()) return base
+    if (!window.hxFullBackend?.() || !window.hxBackend?.strict?.()) return base
     if (window.hxBuildScenarioFromBackend) {
       try {
         await ensureAuth(false)
@@ -350,11 +438,18 @@
       return Promise.resolve()
         .then(() => (typeof fn === 'function' ? fn() : backendGet(fn).then(unwrapEnvelope)))
         .then((body) => jsonResponse(body))
-        .catch((err) => {
-          console.error('[hx-api-bridge] 后端请求失败:', path, err)
-          if (mockAllowed()) {
-            console.warn('[hx-api-bridge] 回退 mock:', path)
-            return nativeFetch(input, init)
+        .catch(async (err) => {
+          console.warn('[hx-api-bridge] 后端请求失败:', path, err)
+          if (path === '/scenario.json' || mockAllowed()) {
+            const r = await nativeFetch(path === '/scenario.json' ? '/scenario.json' : input, init)
+            if (r.ok) return r
+          }
+          if (path === '/api/gis-collab.json') {
+            try {
+              return jsonResponse(await loadStaticGisCollab())
+            } catch {
+              /* fall through */
+            }
           }
           return jsonResponse(
             { error: 'backend_unavailable', path, message: String(err.message || err) },
@@ -439,7 +534,7 @@
     ensureAuth(false).then((ok) => {
       if (ok) {
         console.info('[hx-api-bridge] 已登录 JWT，严格模式=', window.hxBackend.strict(), '全后端=', window.hxFullBackend?.())
-        window.hxSyncQualityTasks?.()
+        if (window.hxFullBackend?.()) window.hxSyncQualityTasks?.()
       } else console.warn('[hx-api-bridge] 未登录；请检查 HX_API_CONFIG / 后端服务与账号')
     })
   }

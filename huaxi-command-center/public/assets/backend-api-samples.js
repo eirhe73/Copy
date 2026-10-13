@@ -125,16 +125,17 @@
   window.hxEnsureApiSamples = async function hxEnsureApiSamples(force) {
     if (cache && !force) return cache
     if (loading) return loading
-    loading = buildSamples()
-      .then((s) => {
-        cache = s
-        window.__HX_API_SAMPLES__ = s
-        return s
-      })
-      .finally(() => {
-        loading = null
-      })
-    return loading
+    loading = (async () => {
+      const s = await buildSamples()
+      cache = s
+      window.__HX_API_SAMPLES__ = s
+      return s
+    })()
+    try {
+      return await loading
+    } finally {
+      loading = null
+    }
   }
 
   /** 将 catalog 路径中的 {param} 替换为样本值 */
@@ -162,9 +163,4 @@
     })
   }
 
-  if (window.hxBackend?.enabled?.()) {
-    window.hxBackend.ensureAuth(false).then((ok) => {
-      if (ok) window.hxEnsureApiSamples(false)
-    })
-  }
 })()

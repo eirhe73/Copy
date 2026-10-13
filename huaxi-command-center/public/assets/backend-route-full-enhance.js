@@ -168,7 +168,7 @@
           `<button type="button" class="hx-api-write-btn" data-idx="${i}">${esc(a.label)}</button>`,
       )
       .join('')
-    box.innerHTML = `<details class="hx-api-route-dock" open>
+    box.innerHTML = `<details class="hx-api-route-dock">
       <summary>后端 API · ${esc(route.raw)} · 已调用 ${ok}/${results.length}</summary>
       <div class="hx-api-write-row">${act || '<span class="muted">本页无预置写操作</span>'}</div>
       <div class="hx-api-route-scroll"><table><thead><tr><th>接口</th><th>状态</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -192,13 +192,21 @@
   async function render() {
     if (!window.hxBackend?.enabled?.() || !window.HX_ROUTE_BINDINGS) return
     const route = routeKey()
+    if (route.key === '/' && !window.hxFullBackend?.()) {
+      document.getElementById('hx-api-route-dock')?.remove()
+      return
+    }
     const bindings = window.HX_ROUTE_BINDINGS[route.key]
     if (!bindings?.length) {
       document.getElementById('hx-api-route-dock')?.remove()
       return
     }
     const params = await enrichParams(route, { ...route.params })
-    const results = await Promise.all(bindings.map((b) => runBinding(b, params, route)))
+    const results = []
+    for (const b of bindings) {
+      results.push(await runBinding(b, params, route))
+      if (bindings.length > 1) await new Promise((r) => setTimeout(r, 400))
+    }
     renderDock(route, results, writeActions(route.raw, route.params))
   }
 

@@ -150,10 +150,7 @@
    * 前端 Hash 路由 → 应调用的接口（path 可含 {param}，由 enhance 解析）
    */
   window.HX_ROUTE_BINDINGS = {
-    '/': [
-      { method: 'GET', path: '/dashboard/county-map?region=weiyuan' },
-      { method: 'GET', path: '/messages/todos' },
-    ],
+    '/': [{ method: 'GET', path: '/dispatch-live' }],
     '/dispatch': [
       { method: 'GET', path: '/dispatch/events' },
       { method: 'GET', path: '/dispatch/case-push' },

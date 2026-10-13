@@ -32,8 +32,10 @@
   const viteDev = port === '5173' || port === '4173'
   const useProxy = viteDev && !location.search.includes('apiOrigin=')
 
-  let fullBackend = true
+  /** 默认混合模式：scenario.json + 能通的 API；仅 huaxi-full-backend=1 时纯后端 */
+  let fullBackend = false
   try {
+    if (localStorage.getItem('huaxi-full-backend') === '1') fullBackend = true
     if (new URLSearchParams(location.search).get('api') === 'mock') fullBackend = false
     if (localStorage.getItem('huaxi-api-mock') === '1') fullBackend = false
     if (localStorage.getItem('huaxi-full-backend') === '0') fullBackend = false

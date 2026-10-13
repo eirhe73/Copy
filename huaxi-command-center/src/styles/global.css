@@ -71,6 +71,72 @@ textarea {
   font-size: 12px;
 }
 
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.api-muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.api-error {
+  color: #f87171;
+  font-size: 12px;
+}
+
+.api-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.api-panel.fail {
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.api-panel-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.api-json {
+  margin: 0;
+  max-height: 280px;
+  overflow: auto;
+  font-size: 11px;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  margin-top: 8px;
+  border: none;
+  border-radius: 8px;
+  background: var(--cyan);
+  color: #041018;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-ghost {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
 .app-sidebar {
   grid-area: sidebar;
   overflow: auto;

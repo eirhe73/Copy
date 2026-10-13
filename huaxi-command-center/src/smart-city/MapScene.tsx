@@ -48,7 +48,14 @@ const INITIAL_VIEW = {
   mapScale: 1.06,
 } as const
 
-export function MapScene({ themeId }: { themeId: MapThemeId }) {
+export type MapSceneProps = {
+  themeId: MapThemeId
+  region?: 'weiyuan' | 'dafang'
+  /** 指挥首页：机构名 + 十字锚点标签（与线上一致） */
+  variant?: 'default' | 'command'
+}
+
+export function MapScene({ themeId, region = 'weiyuan', variant = 'default' }: MapSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -64,17 +71,21 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
 
     async function init() {
       const [geoRes, collabRes] = await Promise.all([
-        fetch('/maps/weiyuan.json'),
+        fetch(`/maps/${region}.json`),
         fetch('/api/gis-collab.json', { cache: 'no-store' }),
       ])
       if (!geoRes.ok) throw new Error('地图数据加载失败')
       if (!collabRes.ok) throw new Error('协同数据加载失败')
       const geo = (await geoRes.json()) as GeoJson
-      const collab = (await collabRes.json()) as { weiyuan: { nodes: CollabNode[]; links: CollabLink[] } }
+      const collab = (await collabRes.json()) as Record<
+        string,
+        { nodes: CollabNode[]; links: CollabLink[] }
+      >
       if (disposed) return
 
-      const nodes = collab.weiyuan.nodes
-      const links = collab.weiyuan.links
+      const pack = collab[region] ?? collab.weiyuan
+      const nodes = pack.nodes
+      const links = pack.links
 
       const ring = getRings(geo)[0]
       const bounds = ringBounds(ring)
@@ -214,10 +225,15 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
         g.add(diamond)
 
         const labelEl = document.createElement('div')
-        labelEl.className = 'sc-map-label'
-        labelEl.textContent = node.name
-        labelEl.style.color = t.labelCss
-        labelEl.style.borderColor = theme.accentCss
+        if (variant === 'command') {
+          labelEl.className = 'hx-command-map-label'
+          labelEl.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${node.name}</span>`
+        } else {
+          labelEl.className = 'sc-map-label'
+          labelEl.textContent = node.name
+          labelEl.style.color = t.labelCss
+          labelEl.style.borderColor = theme.accentCss
+        }
         const label = new CSS2DObject(labelEl)
         label.position.set(0.14, 0.05, h + 0.08)
         g.add(label)
@@ -302,7 +318,13 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
       disposed = true
       cleanups.forEach((fn) => fn())
     }
-  }, [themeId])
+  }, [themeId, region, variant])
 
-  return <div className="sc-map-canvas" ref={mountRef} aria-label="3D 态势地图" />
+  return (
+    <div
+      className={variant === 'command' ? 'command-map-canvas map-stage' : 'sc-map-canvas'}
+      ref={mountRef}
+      aria-label="3D 态势地图"
+    />
+  )
 }

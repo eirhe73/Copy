@@ -4,8 +4,18 @@
 ;(function () {
   const SKIP = new Set(['/auth/login'])
 
+  function probeEnabled() {
+    try {
+      if (localStorage.getItem('huaxi-api-probe') === '1') return true
+      if (new URLSearchParams(location.search).get('apiProbe') === '1') return true
+    } catch {
+      /* ignore */
+    }
+    return false
+  }
+
   async function probeAll() {
-    if (!window.hxBackend?.strict?.() || !window.HX_API_CATALOG) return
+    if (!probeEnabled() || !window.hxBackend?.strict?.() || !window.HX_API_CATALOG) return
     await window.hxBackend.ensureAuth()
     await window.hxEnsureApiSamples?.()
     const gets = window.HX_API_CATALOG.filter((x) => x.method === 'GET' && !SKIP.has(x.path.split('?')[0]))
@@ -20,6 +30,7 @@
       } catch (e) {
         out.push({ path, ok: false, error: String(e.message || e) })
       }
+      await new Promise((r) => setTimeout(r, 200))
     }
     window.__HX_API_PROBE__ = out
     const bad = out.filter((x) => !x.ok).length
