@@ -21,8 +21,19 @@
     }
   }
 
+  function integratedSpa() {
+    return window.hxIntegratedNav?.integratedSpa?.() === true
+  }
+
   function redirectToHub() {
     if (legacyMode()) return
+    if (integratedSpa()) {
+      const q = hashQuery()
+      if (path() === '/dispatch' && q.get('hub') === 'ambulances') {
+        location.replace(`${location.pathname}${location.search}#/ambulances`)
+      }
+      return
+    }
     const p = path()
     const isOldDispatch = p === '/dispatch'
     const isWrongHtmlHash = p === '/dispatch.html'

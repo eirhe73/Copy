@@ -24,7 +24,9 @@
   }
 
   function findDeptHost() {
-    return document.querySelector('main.department-overview.screen')
+    const main = document.querySelector('main.department-overview.screen')
+    if (!main) return null
+    return main.querySelector('section') || main
   }
 
   function mount(host, id, html) {
@@ -146,7 +148,7 @@
           <p><span class="muted">患者</span> ${esc(s.patient)}</p>
           <p><span class="muted">体征</span> ${esc(s.vitals)}</p>
           <div class="hx-gr-actions">
-            <a class="hx-gr-btn" href="${esc(s.videoHref)}">视频监控</a>
+            <a class="hx-gr-btn" href="${esc(s.videoHref)}">重症监护</a>
             <a class="hx-gr-btn ghost" href="${esc(s.bedHref)}">床位 / ICU</a>
           </div>
         </article>`,
