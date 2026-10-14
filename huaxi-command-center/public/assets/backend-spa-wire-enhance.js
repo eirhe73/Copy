@@ -29,8 +29,13 @@
     return window.hxBackend?.strict?.() && (await window.hxBackend.ensureAuth())
   }
 
+  function isCommandDashboard() {
+    return !!document.querySelector('main.dashboard.screen')
+  }
+
   function mountPanel(id, html) {
-    const host = document.querySelector('main.workspace') || document.querySelector('main')
+    if (isCommandDashboard()) return
+    const host = document.querySelector('main.workspace')
     if (!host) return
     let box = document.getElementById(id)
     if (!box) {
@@ -72,6 +77,7 @@
       window.hxBackend.list('/dispatch/events', { per_page: 10 }),
       window.hxBackend.list('/ambulances', {}),
     ])
+    if (path() !== '/dispatch') return
     mountPanel(
       'hx-wire-dispatch',
       `<section class="hx-plate-api"><header><strong>院前调度 · 后端</strong>
@@ -294,6 +300,7 @@
       return
     }
     clearPanels()
+    if (isCommandDashboard()) return
     const p = path()
     const jobs = []
     if (p === '/dispatch') jobs.push(renderDispatch())
@@ -417,5 +424,5 @@
   })
 
   window.addEventListener('hashchange', () => setTimeout(renderPage, 350))
-  window.hxEnhance(renderPage, { wait: 700, observeRoot: true, afterNav: 200 })
+  window.hxEnhance(renderPage, { wait: 700, observeRoot: false, afterNav: 200 })
 })()
