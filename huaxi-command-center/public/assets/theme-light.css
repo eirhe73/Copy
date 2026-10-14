@@ -7130,3 +7130,23 @@ html.hx-full-backend .hx-device-bind-hint {
   box-shadow: none !important;
   font-weight: 700 !important;
 }
+
+/* ========== 修复 /critical 床位卡片被裁剪：页面自适应高度 + 完整显示 ========== */
+.critical-screen.screen {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+.critical-grid {
+  grid-template-rows: repeat(2, auto) !important;
+  overflow: visible !important;
+  flex: none !important;
+  min-height: 0 !important;
+  padding-bottom: 20px !important;
+}
+.critical-bed {
+  height: auto !important;
+  min-height: 268px !important;
+}
+
