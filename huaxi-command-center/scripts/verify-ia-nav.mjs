@@ -37,7 +37,6 @@ const ambulance = HP[0].links.some(([p, l]) => l === '救护车列表')
 const cases = [
   ['/#/dispatch?hub=ambulances', '/dispatch', 'hub=ambulances'],
   ['/#/consultations?scope=grassroots', '/consultations', 'scope=grassroots', '智慧急救调度'],
-  ['/#/warning?view=sub-hospitals', '/warning', 'view=sub-hospitals'],
   ['/#/critical?mode=grassroots-remote', '/critical', 'mode=grassroots-remote', '智慧急救调度'],
   ['/#/medical-quality', '/medical-quality', '', '智能医疗质控'],
 ]

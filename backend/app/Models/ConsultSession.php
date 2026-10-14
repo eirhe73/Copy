@@ -13,7 +13,7 @@ class ConsultSession extends Model
         'patient_id', 'patient_name', 'patient_gender', 'patient_age', 'chief_complaint',
         'task120_id', 'source_hospital', 'source_department', 'hospital', 'department',
         'nominated_doctor_id', 'accepted_by', 'accepted_by_name',
-        'accepted_at', 'opened_at', 'closed_at', 'note', 'status',
+        'accepted_at', 'opened_at', 'closed_at', 'note', 'status', 'scheduled_at',
     ];
 
     protected $casts = [
@@ -21,6 +21,7 @@ class ConsultSession extends Model
         'accepted_at' => 'datetime',
         'opened_at' => 'datetime',
         'closed_at' => 'datetime',
+        'scheduled_at' => 'datetime',
     ];
 
     public function room(): HasOne

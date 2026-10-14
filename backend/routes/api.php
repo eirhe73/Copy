@@ -104,6 +104,7 @@ Route::prefix('v1')->group(function () {
         Route::post('consultations', [ConsultationController::class, 'store']);
         Route::get('consultations/{sessionId}', [ConsultationController::class, 'show']);
         Route::post('consultations/{sessionId}/accept', [ConsultationController::class, 'accept']);
+        Route::get('consultations/{sessionId}/join-link', [ConsultationController::class, 'joinLink']);
 
         Route::get('rooms/{token}/materials', [ConsultRoomController::class, 'materials']);
         Route::post('rooms/{token}/opinions', [ConsultRoomController::class, 'opinions']);

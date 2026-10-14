@@ -24,6 +24,9 @@ lerna-debug.log*
 .DS_Store
 Thumbs.db
 
+# 临时调试目录（无头浏览器 profile 等）
+.tmp-probe/
+
 # Editors
 .idea/
 .vscode/*
