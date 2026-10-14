@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\ResponseCode;
 use App\Models\Bed;
 use App\Models\EmergencyEvent;
 use App\Models\Organization;
@@ -25,26 +24,46 @@ class CountyMapService extends Service
         3 => 'RETURNING',
     ];
 
+    /** 前端演示 region 与库内 county_name 的对应（避免 dafang/weiyuan 直传导致 404） */
+    private function regionKeyword(?string $region): ?string
+    {
+        if ($region === null || $region === '') {
+            return null;
+        }
+        $key = strtolower(trim($region));
+        $aliases = [
+            'dafang' => '大方',
+            'weiyuan' => '威远',
+        ];
+
+        return $aliases[$key] ?? $region;
+    }
+
     public function index(array $filters): array
     {
         $region = $filters['region'] ?? null;
         $withVehicles = (bool) ($filters['withVehicles'] ?? true);
+        $requestedRegion = is_string($region) && $region !== '' ? $region : null;
+        $keyword = $this->regionKeyword($requestedRegion);
 
-        $nodeQuery = Organization::query()
+        $baseQuery = Organization::query()
             ->whereNotNull('lng')
             ->whereNotNull('lat');
 
-        if ($region !== null && $region !== '') {
-            $nodeQuery->where(function ($q) use ($region) {
-                $q->where('org_code', $region)
-                    ->orWhere('county_name', 'like', "%{$region}%");
+        $nodeQuery = clone $baseQuery;
+
+        if ($keyword !== null) {
+            $nodeQuery->where(function ($q) use ($keyword, $requestedRegion) {
+                $q->where('org_code', $requestedRegion)
+                    ->orWhere('county_name', 'like', "%{$keyword}%");
             });
         }
 
         $orgs = $nodeQuery->orderBy('tier')->orderBy('org_code')->get();
 
-        if ($region !== null && $region !== '') {
-            $this->assert($orgs->isNotEmpty(), ResponseCode::NOT_FOUND, 'region 参数不合法');
+        // 大方等演示 region 库内暂无机构时：返回全量节点，避免大屏 404 打断
+        if ($orgs->isEmpty() && $keyword !== null) {
+            $orgs = $baseQuery->orderBy('tier')->orderBy('org_code')->get();
         }
 
         // 今日急诊数（按受理机构聚合）
@@ -84,7 +103,8 @@ class CountyMapService extends Service
 
         return [
             'updatedAt' => now()->toIso8601String(),
-            'region' => $region !== null && $region !== '' ? $region : 'weiyuan',
+            'region' => $requestedRegion ?? 'weiyuan',
+            'regionMatched' => $keyword !== null && $orgs->isNotEmpty(),
             'erToday' => EmergencyEvent::query()->whereDate('occurred_at', now()->toDateString())->count(),
             'nodes' => $nodes,
             'links' => $links,

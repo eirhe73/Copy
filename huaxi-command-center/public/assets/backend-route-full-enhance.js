@@ -147,14 +147,27 @@
     return actions
   }
 
+  function apiDockEnabled() {
+    try {
+      if (localStorage.getItem('huaxi-api-route-dock') === '1') return true
+      if (new URLSearchParams(location.search).get('apiDock') === '1') return true
+    } catch {
+      /* ignore */
+    }
+    return false
+  }
+
+  function isCommandDashboard() {
+    return !!document.querySelector('main.dashboard.screen')
+  }
+
   function renderDock(route, results, actions) {
     const ok = results.filter((r) => r.ok).length
-    const host = document.querySelector('main') || document.body
     let box = document.getElementById('hx-api-route-dock')
     if (!box) {
       box = document.createElement('div')
       box.id = 'hx-api-route-dock'
-      host.insertBefore(box, host.firstChild)
+      document.body.appendChild(box)
     }
     const rows = results
       .map(
@@ -197,18 +210,27 @@
       document.getElementById('hx-api-route-dock')?.remove()
       return
     }
+    const onDashboard = isCommandDashboard()
+    const showDock = apiDockEnabled()
+    if (onDashboard && !showDock) {
+      document.getElementById('hx-api-route-dock')?.remove()
+      return
+    }
     const params = await enrichParams(route, { ...route.params })
     const results = []
+    const gapMs = onDashboard ? 0 : bindings.length > 8 ? 400 : 120
     for (const b of bindings) {
       results.push(await runBinding(b, params, route))
-      if (bindings.length > 1) await new Promise((r) => setTimeout(r, 400))
+      if (bindings.length > 1 && gapMs) await new Promise((r) => setTimeout(r, gapMs))
     }
-    renderDock(route, results, writeActions(route.raw, route.params))
+    if (showDock || !onDashboard) {
+      renderDock(route, results, writeActions(route.raw, route.params))
+    }
   }
 
   window.addEventListener('hashchange', () => {
     document.getElementById('hx-api-route-dock')?.remove()
   })
 
-  window.hxEnhance(render, { wait: 600, observeRoot: true, afterNav: 150 })
+  window.hxEnhance(render, { wait: 600, observeRoot: false, afterNav: 150 })
 })()

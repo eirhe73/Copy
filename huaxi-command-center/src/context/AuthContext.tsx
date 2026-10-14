@@ -7,12 +7,15 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { apiGet, login as apiLogin } from '../lib/apiClient'
+import { apiGet, clearAuthTokens, login as apiLogin } from '../lib/apiClient'
 
 type AuthUser = Record<string, unknown> | null
 
 type AuthContextValue = {
+  /** 已完成一次登录尝试（成功或失败） */
   ready: boolean
+  /** 已持有有效 JWT 且 /auth/me 成功 */
+  authenticated: boolean
   user: AuthUser
   error: string | null
   login: (username: string, password: string) => Promise<void>
@@ -24,22 +27,20 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
+  const [authenticated, setAuthenticated] = useState(false)
   const [user, setUser] = useState<AuthUser>(null)
   const [error, setError] = useState<string | null>(null)
 
   const refreshMe = useCallback(async () => {
-    try {
-      const me = await apiGet<AuthUser>('/auth/me')
-      setUser(me)
-      setError(null)
-    } catch (e) {
-      setUser(null)
-      setError(String(e instanceof Error ? e.message : e))
-    }
+    const me = await apiGet<AuthUser>('/auth/me')
+    setUser(me)
+    setError(null)
+    setAuthenticated(true)
   }, [])
 
   const login = useCallback(
     async (username: string, password: string) => {
+      clearAuthTokens()
       await apiLogin(username, password)
       await refreshMe()
     },
@@ -47,31 +48,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const logout = useCallback(() => {
-    try {
-      sessionStorage.removeItem('huaxi-jwt-token')
-      localStorage.removeItem('huaxi-jwt-token')
-    } catch {
-      /* ignore */
-    }
+    clearAuthTokens()
     setUser(null)
+    setAuthenticated(false)
+    setError(null)
   }, [])
 
   useEffect(() => {
+    let cancelled = false
     ;(async () => {
       try {
         await apiLogin()
+        if (cancelled) return
         await refreshMe()
       } catch (e) {
-        setError(String(e instanceof Error ? e.message : e))
+        if (!cancelled) {
+          clearAuthTokens()
+          setUser(null)
+          setAuthenticated(false)
+          setError(String(e instanceof Error ? e.message : e))
+        }
       } finally {
-        setReady(true)
+        if (!cancelled) setReady(true)
       }
     })()
+    return () => {
+      cancelled = true
+    }
   }, [refreshMe])
 
   const value = useMemo(
-    () => ({ ready, user, error, login, logout, refreshMe }),
-    [ready, user, error, login, logout, refreshMe],
+    () => ({ ready, authenticated, user, error, login, logout, refreshMe }),
+    [ready, authenticated, user, error, login, logout, refreshMe],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

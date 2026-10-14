@@ -6928,10 +6928,21 @@ main.workspace .tab-row button.active {
   line-height: 1.45;
 }
 
-/* 全路由 API 对接面板 */
+/* 全路由 API 对接面板（挂 body，勿插入 dashboard grid） */
 #hx-api-route-dock {
-  margin: 0 0 12px;
-  padding: 0 12px;
+  position: fixed;
+  left: 12px;
+  bottom: 48px;
+  z-index: 8500;
+  margin: 0;
+  padding: 0;
+  max-width: min(420px, calc(100vw - 24px));
+  pointer-events: auto;
+}
+
+main.dashboard.screen ~ #hx-api-route-dock,
+body:has(main.dashboard.screen) #hx-api-route-dock:not(:empty) {
+  opacity: 0.92;
 }
 
 details.hx-api-route-dock {

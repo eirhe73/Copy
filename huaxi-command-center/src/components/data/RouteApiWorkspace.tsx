@@ -26,8 +26,8 @@ export function RouteApiWorkspace({
   subNav = true,
   className = 'workspace',
 }: Props) {
-  const { ready } = useAuth()
-  const { results, loading } = useRouteApi(bindings, params, { enabled: ready })
+  const { ready, authenticated, error: authError } = useAuth()
+  const { results, loading } = useRouteApi(bindings, params, { enabled: ready && authenticated })
 
   return (
     <main className={className}>
@@ -46,7 +46,13 @@ export function RouteApiWorkspace({
       ) : null}
 
       {!ready ? <p className="api-muted">正在连接后端…</p> : null}
-      {ready && loading ? <p className="api-muted">正在加载…</p> : null}
+      {ready && !authenticated ? (
+        <p className="api-muted">
+          未登录或 JWT 无效：{authError ?? '请检查 API 地址与账号'} ·{' '}
+          <Link to="/login">前往登录</Link>
+        </p>
+      ) : null}
+      {ready && authenticated && loading ? <p className="api-muted">正在加载…</p> : null}
 
       <div className="panel-grid">
         {results.map((r) => (

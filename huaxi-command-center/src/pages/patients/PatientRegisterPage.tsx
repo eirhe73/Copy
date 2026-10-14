@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ApiSourceNotice } from '../../components/ApiSourceNotice'
 import { DashboardPanel } from '../../components/home/DashboardPanel'
+import { useAuth } from '../../context/AuthContext'
 import { apiPost } from '../../lib/apiClient'
 import type { DispatchPatientForm } from '../../types/patient'
 
@@ -18,6 +19,7 @@ const emptyForm = (): DispatchPatientForm => ({
 })
 
 export function PatientRegisterPage() {
+  const { ready, authenticated, error: authError } = useAuth()
   const [searchParams] = useSearchParams()
   const [form, setForm] = useState<DispatchPatientForm>(() => ({
     ...emptyForm(),
@@ -87,6 +89,12 @@ export function PatientRegisterPage() {
       </header>
 
       <DashboardPanel title="登记信息">
+        {ready && !authenticated ? (
+          <p className="api-muted">
+            请先登录后再登记。{authError ? `（${authError}）` : ''}{' '}
+            <Link to="/login">去登录</Link>
+          </p>
+        ) : null}
         <form className="form-grid" onSubmit={(e) => void onSubmit(e, false)}>
           <label className="field">
             <span>姓名 *</span>

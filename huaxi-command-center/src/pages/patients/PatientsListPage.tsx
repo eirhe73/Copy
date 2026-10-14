@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ApiSourceNotice } from '../../components/ApiSourceNotice'
 import { DashboardPanel } from '../../components/home/DashboardPanel'
+import { useAuth } from '../../context/AuthContext'
 import { apiGet } from '../../lib/apiClient'
 import {
   formatPatientTime,
@@ -13,6 +14,7 @@ import {
 import type { PatientRecord } from '../../types/patient'
 
 export function PatientsListPage() {
+  const { ready, authenticated } = useAuth()
   const navigate = useNavigate()
   const [keyword, setKeyword] = useState('')
   const [page, setPage] = useState(1)
@@ -44,8 +46,9 @@ export function PatientsListPage() {
   }, [keyword, page])
 
   useEffect(() => {
+    if (!ready || !authenticated) return
     void load()
-  }, [load])
+  }, [load, ready, authenticated])
 
   function onSearch(e: FormEvent) {
     e.preventDefault()
