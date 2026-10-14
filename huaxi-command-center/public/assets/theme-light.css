@@ -137,6 +137,33 @@ body,
   font-size: 14px !important;
 }
 
+.command-header .hx-logout-btn {
+  color: #475569 !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.command-header .hx-logout-btn:hover {
+  color: #b91c1c !important;
+  border-color: #fecaca !important;
+  background: #fef2f2 !important;
+}
+
+.app-shell:not(:has(main.dashboard.screen)) .command-header.compact-header .hx-logout-btn {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+}
+
 .header-right .identity {
   font-size: 14px !important;
   max-width: 260px !important;

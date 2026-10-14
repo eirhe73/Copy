@@ -1,12 +1,8 @@
 /**
- * index.html：点击登录时用原生 fetch POST /v1/auth/login（Network 可见 auth/login）
+ * index.html：仅提交表单时 POST /v1/auth/login（走 bridge 原生 fetch，避免被劫持）
  */
 ;(function () {
-  function apiLoginUrl() {
-    if (window.hxBackend?.loginUrl) return window.hxBackend.loginUrl()
-    const base = window.HX_API_CONFIG?.base || '/backend-api'
-    return String(base).replace(/\/$/, '') + '/v1/auth/login'
-  }
+  const FRESH_TOKEN_KEY = 'huaxi-jwt-just-logged-in'
 
   function nextUrl() {
     try {
@@ -44,42 +40,18 @@
   }
 
   async function postLogin(username, password) {
-    const url = apiLoginUrl()
-    setStatus('正在请求 ' + url)
-    console.info('[hx-login] POST', url, { username })
-
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    })
-
-    let json = null
+    if (!window.hxBackend?.loginWithPassword) {
+      throw new Error('登录模块未加载，请刷新页面')
+    }
+    setStatus('正在登录…')
+    console.info('[hx-login] POST auth/login', { username })
+    await window.hxBackend.loginWithPassword(username, password)
     try {
-      json = await res.json()
+      sessionStorage.setItem(FRESH_TOKEN_KEY, '1')
     } catch {
       /* ignore */
     }
-
-    const msg = json?.message || json?.msg || ''
-    if (!res.ok) {
-      throw new Error(msg || 'HTTP ' + res.status)
-    }
-
-    let data = json
-    if (json && typeof json === 'object' && json.code === 200 && json.data) data = json.data
-    const token = data?.token
-    if (!token) throw new Error('响应无 token')
-
-    if (window.hxBackend?.saveTokenFromLogin) {
-      window.hxBackend.saveTokenFromLogin(token)
-    } else {
-      sessionStorage.setItem('huaxi-jwt-token', token)
-      localStorage.setItem('huaxi-jwt-token', token)
-    }
-
-    setStatus('登录成功')
-    return token
+    setStatus('')
   }
 
   function bindForm() {
@@ -89,17 +61,6 @@
 
     const userInput = form.querySelector('[name="username"]')
     if (userInput) userInput.value = savedUsername()
-
-    const apiHint = document.getElementById('hx-login-api-hint')
-    if (apiHint) apiHint.textContent = '接口：POST ' + apiLoginUrl()
-
-    document.getElementById('hx-login-demo-link')?.addEventListener('click', () => {
-      try {
-        localStorage.setItem('huaxi-demo-only', '1')
-      } catch {
-        /* ignore */
-      }
-    })
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
@@ -126,7 +87,7 @@
         location.replace(nextUrl())
       } catch (err) {
         console.error('[hx-login]', err)
-        showError(String(err.message || err))
+        showError(String(err.message || err).replace(/^Error:\s*/, '') || '登录失败')
         setStatus('')
         btn.disabled = false
       }

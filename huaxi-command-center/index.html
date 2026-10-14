@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="/assets/theme-light.css" />
     <!-- INJECT_BACKEND_ENV -->
     <script src="/assets/backend-api-config.js"></script>
-    <script src="/assets/backend-api-bridge.js?v=9"></script>
+    <script src="/assets/backend-api-bridge.js?v=11"></script>
   </head>
   <body class="hx-login-page-body">
     <div class="hx-login-shell">
@@ -31,7 +31,7 @@
           <ul class="hx-login-brand__features">
             <li>全县一张网调度</li>
             <li>基层上转与会诊</li>
-            <li>数据与演示可切换</li>
+            <li>多院协同质控</li>
           </ul>
         </div>
         <div class="hx-login-brand__glow" aria-hidden="true"></div>
@@ -70,19 +70,13 @@
             </label>
             <p id="hx-login-status" class="hx-login-status" aria-live="polite"></p>
             <p id="hx-login-error" class="hx-auth-login-error" hidden></p>
-            <button type="submit" class="hx-auth-login-btn primary hx-login-page-submit">
-              登录系统
-            </button>
+            <button type="submit" class="hx-auth-login-btn primary hx-login-page-submit">登录系统</button>
           </form>
-          <footer class="hx-login-page-footer">
-            <a href="/app.html?demo=1" class="hx-login-demo-btn" id="hx-login-demo-link">演示模式</a>
-            <p id="hx-login-api-hint" class="hx-login-api-hint"></p>
-          </footer>
         </section>
         <p class="hx-login-panel__copy">© 县域急危重症救治一体化指挥平台</p>
       </main>
     </div>
-    <script src="/assets/login-page.js?v=4"></script>
+    <script src="/assets/login-page.js?v=5"></script>
   </body>
 </html>
 

@@ -62,6 +62,7 @@
   let tokenVerified = false
   const AUTH_COOLDOWN_MS = 90_000
   const ME_URL = () => `${apiV1()}/auth/me`
+  const FRESH_TOKEN_KEY = 'huaxi-jwt-just-logged-in'
 
   function loadToken() {
     try {
@@ -164,6 +165,16 @@
     if (!token) return false
 
     if (tokenVerified && !force) return true
+
+    try {
+      if (!force && sessionStorage.getItem(FRESH_TOKEN_KEY) === '1') {
+        sessionStorage.removeItem(FRESH_TOKEN_KEY)
+        tokenVerified = true
+        return true
+      }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const me = await nativeFetch(ME_URL(), {
@@ -592,14 +603,42 @@
       saveToken(t)
       tokenVerified = true
       authBlockedUntil = 0
+      try {
+        sessionStorage.setItem(FRESH_TOKEN_KEY, '1')
+      } catch {
+        /* ignore */
+      }
     },
-    logout() {
+    /** 登录页专用：必定 POST /auth/login（nativeFetch，Network 里名为 login） */
+    loginWithPassword(username, password) {
+      return postLogin({
+        username: String(username || '').trim(),
+        password: String(password || ''),
+      })
+    },
+    async logout() {
+      loadToken()
+      try {
+        if (token && !bridgeOff()) {
+          await nativeFetch(`${apiV1()}/auth/logout`, {
+            method: 'POST',
+            headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+          })
+        }
+      } catch (e) {
+        console.warn('[hx-api-bridge] logout API', e)
+      }
       clearToken()
-      redirectToLoginPage()
+      try {
+        localStorage.removeItem('huaxi-demo-only')
+      } catch {
+        /* ignore */
+      }
+      loginRedirectScheduled = true
+      location.replace('/index.html')
     },
     goLoginPage() {
-      clearToken()
-      redirectToLoginPage()
+      return window.hxBackend.logout()
     },
     base: apiV1(),
     apiRoot: apiBase,
