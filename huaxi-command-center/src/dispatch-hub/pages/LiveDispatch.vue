@@ -5,9 +5,13 @@ import VehicleDesk from '../components/VehicleDesk.vue'
 import {
   buildHash,
   contextFromHash,
+  etaText,
   formatClock,
+  levelLabel,
   loadEvents,
+  statusLabel,
   statusTone,
+  vehicleLabel,
   type DispatchEvent,
   type PatientForm,
 } from '../context'
@@ -108,16 +112,16 @@ watch(events, () => {
           >
             <button type="button" class="dh-card-hit" @click="select(ev)">
               <header>
-                <span class="dh-badge">{{ ev.level }}</span>
+                <span class="dh-badge">{{ levelLabel(ev.level) }}</span>
                 <strong>{{ ev.task120Id }}</strong>
-                <span class="dh-status" :class="statusTone(ev.status)">{{ ev.status }}</span>
+                <span class="dh-status" :class="statusTone(statusLabel(ev.status))">{{ statusLabel(ev.status) }}</span>
               </header>
               <p class="complaint">{{ ev.chiefComplaint }}</p>
               <dl>
                 <div><dt>接车地址</dt><dd>{{ ev.pickupAddress }}</dd></div>
                 <div><dt>目标医院</dt><dd>{{ ev.destination }}</dd></div>
-                <div><dt>车辆</dt><dd>{{ ev.vehiclePlate }}</dd></div>
-                <div><dt>到患者 / 到院</dt><dd>{{ ev.etaPatientMinutes ?? '—' }} / {{ ev.etaHospitalMinutes }} 分钟</dd></div>
+                <div><dt>车辆</dt><dd>{{ vehicleLabel(ev.vehiclePlate) }}</dd></div>
+                <div><dt>到患者 / 到院</dt><dd>{{ etaText(ev.etaPatientMinutes) }} / {{ etaText(ev.etaHospitalMinutes) }}</dd></div>
               </dl>
             </button>
           </li>

@@ -1,5 +1,5 @@
 /**
- * 导图补项：下级医院科室监控、基层远程监护、基层 scope 提示
+ * 导图补项：下级医院科室监控、基层远程监护
  */
 ;(function () {
   function pathAndQuery() {
@@ -16,32 +16,60 @@
       .replace(/>/g, '&gt;')
   }
 
+  function cleanNotice(s) {
+    return String(s || '')
+      .replace(/演示\s*Mock[^·]*·?\s*/gi, '')
+      .replace(/非实时\s*HIS/gi, '')
+      .trim()
+  }
+
+  function findHost() {
+    return (
+      document.querySelector('main.department-overview.screen') ||
+      document.querySelector('main.warning-screen.screen') ||
+      document.querySelector('main.warning-screen') ||
+      document.querySelector('.warning-screen') ||
+      document.querySelector('main.workspace')
+    )
+  }
+
   function mountBanner(host, id, html) {
-    if (!host) return
+    if (!host) return false
     let box = document.getElementById(id)
     if (!box) {
       box = document.createElement('div')
       box.id = id
       host.insertBefore(box, host.firstChild)
     }
-    if (box.dataset.html === html) return
+    if (box.dataset.html === html) return true
     box.dataset.html = html
     box.innerHTML = html
+    return true
   }
 
   function remove(id) {
     document.getElementById(id)?.remove()
   }
 
+  function syncViewMode() {
+    const { p, q } = pathAndQuery()
+    const sub = p === '/warning' && q.get('view') === 'sub-hospitals'
+    const dept = p === '/warning' && q.get('view') === 'departments'
+    document.body.classList.toggle('hx-ia-sub-hospitals-view', sub)
+    document.body.classList.toggle('hx-ia-departments-view', dept)
+  }
+
   function renderSubHospitals(data) {
     const { p, q } = pathAndQuery()
+    syncViewMode()
     if (p !== '/warning' || q.get('view') !== 'sub-hospitals') {
       remove('hx-sub-hospital-monitor')
       return
     }
-    const host = document.querySelector('main.warning-screen, .warning-screen, main.workspace')
-    if (!host || !data) return
-    const rows = (data.hospitals || [])
+    const host = findHost()
+    if (!host) return
+    const hospitals = data?.hospitals || []
+    const rows = hospitals
       .map((h) => {
         const deptRows = (h.departments || [])
           .map(
@@ -55,14 +83,14 @@
           .join('')
         return `<section class="hx-sh-block">
           <header><strong>${esc(h.name)}</strong><span class="muted">${esc(h.tier)}</span></header>
-          <table class="hx-sh-table"><thead><tr><th>科室</th><th>床位</th><th>预警</th><th>状态</th></tr></thead><tbody>${deptRows}</tbody></table>
+          <table class="hx-sh-table"><thead><tr><th>科室</th><th>床位</th><th>预警</th><th>状态</th></tr></thead><tbody>${deptRows || '<tr><td colspan="4">暂无科室数据</td></tr>'}</tbody></table>
         </section>`
       })
       .join('')
-    const html = `<section class="hx-sub-hospital-monitor" aria-label="${esc(data.title)}">
-      <header class="hx-ia-view-head"><strong>${esc(data.title)}</strong><span>${esc(data.notice || '')}</span></header>
-      <div class="hx-sh-grid">${rows}</div>
-      <p class="hx-ia-view-foot muted">完整预警处置仍见下方「高危预警处置闭环」。</p>
+    const notice = cleanNotice(data?.notice)
+    const html = `<section class="hx-sub-hospital-monitor" aria-label="${esc(data?.title || '下级医院科室监控')}">
+      <header class="hx-ia-view-head"><strong>${esc(data?.title || '下级医院科室监控')}</strong>${notice ? `<span>${esc(notice)}</span>` : ''}</header>
+      <div class="hx-sh-grid">${rows || '<p class="hx-ia-view-empty">暂无机构数据，请检查后端 organizations / beds/by-dept 或刷新页面。</p>'}</div>
     </section>`
     mountBanner(host, 'hx-sub-hospital-monitor', html)
   }
@@ -73,7 +101,7 @@
       remove('hx-grassroots-remote')
       return
     }
-    const host = document.querySelector('main.workspace, main.critical-workspace, .critical-board, main')
+    const host = findHost()
     if (!host || !data) return
     const cards = (data.sites || [])
       .map(
@@ -88,31 +116,16 @@
         </article>`,
       )
       .join('')
+    const notice = cleanNotice(data.notice)
     const html = `<section class="hx-grassroots-remote" aria-label="${esc(data.title)}">
-      <header class="hx-ia-view-head"><strong>${esc(data.title)}</strong><span>${esc(data.notice || '')}</span></header>
-      <div class="hx-gr-grid">${cards}</div>
-      <p class="hx-ia-view-foot muted">下方为县域 ICU 总览；本页侧重基层上转远程监护演示。</p>
+      <header class="hx-ia-view-head"><strong>${esc(data.title)}</strong>${notice ? `<span>${esc(notice)}</span>` : ''}</header>
+      <div class="hx-gr-grid">${cards || '<p class="hx-ia-view-empty">暂无监护点数据</p>'}</div>
     </section>`
     mountBanner(host, 'hx-grassroots-remote', html)
   }
 
   function renderScopeBanners() {
-    const { p, q } = pathAndQuery()
     remove('hx-ia-scope-banner')
-    let text = ''
-    if (p === '/consultations' && q.get('scope') === 'grassroots') {
-      text = '智慧急救调度 · 基层会诊（演示筛：基层来源）'
-    } else if (p === '/transfers' && q.get('scope') === 'grassroots') {
-      text = '智慧急救调度 · 医院转诊（演示筛：上转 / 基层机构）'
-    }
-    if (!text) return
-    const host = document.querySelector('main.workspace') || document.querySelector('main')
-    if (!host) return
-    mountBanner(
-      host,
-      'hx-ia-scope-banner',
-      `<div class="hx-ia-scope-banner"><span>${esc(text)}</span><a href="/#/consultations?scope=grassroots">演示链</a></div>`,
-    )
   }
 
   let subData = null
@@ -134,11 +147,24 @@
   const subCache = { value: null, promise: null }
   const remoteCache = { value: null, promise: null }
 
+  function resetCaches() {
+    subCache.value = null
+    subCache.promise = null
+    remoteCache.value = null
+    remoteCache.promise = null
+  }
+
   function render() {
+    syncViewMode()
     renderScopeBanners()
     loadJson('/api/sub-hospital-monitor.json', subCache).then(renderSubHospitals)
     loadJson('/api/grassroots-remote-monitor.json', remoteCache).then(renderGrassrootsRemote)
   }
+
+  window.addEventListener('hashchange', () => {
+    resetCaches()
+    syncViewMode()
+  })
 
   window.hxEnhance(render, { wait: 400, observeRoot: true, afterNav: 100 })
 })()
