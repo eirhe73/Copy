@@ -27,7 +27,7 @@ export default function App() {
   const onPick = useCallback((id: string) => setSelectedId(id), [])
 
   return (
-    <div className="hx-map-3d-dark">
+    <div className="hx-map-3d-light">
       <header className="hx-map-3d-header">
         <div>
           <h1>{payload?.summary.title ?? '县域 3D 医院地图'}</h1>

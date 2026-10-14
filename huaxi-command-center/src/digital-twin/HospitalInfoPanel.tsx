@@ -8,16 +8,6 @@ type Props = {
   onClear: () => void
 }
 
-declare global {
-  interface Window {
-    hxBackend?: {
-      enabled?: () => boolean
-      ensureAuth?: (force?: boolean) => Promise<boolean>
-      get?: (path: string) => Promise<unknown>
-    }
-  }
-}
-
 export function HospitalInfoPanel({ payload, selected, onPick, onClear }: Props) {
   const [remoteNote, setRemoteNote] = useState<string | null>(null)
 

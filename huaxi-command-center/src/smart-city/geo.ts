@@ -56,6 +56,45 @@ export function projectLngLat(
   }
 }
 
+/** 射线法：节点是否落在县界多边形内（仅外环） */
+export function pointInLngLatRing(lng: number, lat: number, ring: number[][]) {
+  let inside = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i]
+    const [xj, yj] = ring[j]
+    const intersect = yi > lat !== yj > lat && lng < ((xj - xi) * (lat - yi)) / (yj - yi) + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+/** 不在县界内时，拉到边界内侧一点，避免院区“漂在地图外” */
+export function snapLngLatToRing(lng: number, lat: number, ring: number[][], inset = 0.012) {
+  if (pointInLngLatRing(lng, lat, ring)) return { lng, lat }
+
+  const cx = ring.reduce((s, p) => s + p[0], 0) / ring.length
+  const cy = ring.reduce((s, p) => s + p[1], 0) / ring.length
+
+  let lo = 0
+  let hi = 1
+  let best = { lng, lat }
+  for (let k = 0; k < 24; k++) {
+    const t = (lo + hi) / 2
+    const tlng = lng + (cx - lng) * t
+    const tlat = lat + (cy - lat) * t
+    if (pointInLngLatRing(tlng, tlat, ring)) {
+      best = { lng: tlng, lat: tlat }
+      lo = t
+    } else {
+      hi = t
+    }
+  }
+  return {
+    lng: best.lng + (cx - best.lng) * inset,
+    lat: best.lat + (cy - best.lat) * inset,
+  }
+}
+
 export function buildShapeFromPoints(
   points: { x: number; y: number }[],
   THREE: typeof import('three'),

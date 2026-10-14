@@ -2,7 +2,8 @@
 
 ## 入口
 
-- 开发：`npm run dev` → [http://localhost:5173/digital-twin-map.html](http://localhost:5173/digital-twin-map.html)
+- 开发：`npm run dev` → [http://localhost:5173/digital-twin-map.html](http://localhost:5173/digital-twin-map.html)（独立页）
+- 指挥台首页 `app.html#/` 已通过 `src/legacy/appHomeMapUpgrade.tsx` 叠加 GLB 院区（需 Vite 开发或构建含该模块）
 - 构建：`npm run build` 后访问 `/digital-twin-map.html`
 
 ## 组件结构
@@ -16,6 +17,8 @@ digital-twin-map.html
 ```
 
 数据：`public/hospitals-3d.json` + `public/maps/weiyuan.json`（或 `dafang.json`）。
+
+3D 院区：`public/models/hospitals/` 下四套 GLB（tier 0–3），由 `scripts/exports/*.glb` 同步；地图上用柔光 + 卡片锚点（小红书风）展示。
 
 ## 新增一家医院
 

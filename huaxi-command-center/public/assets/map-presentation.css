@@ -115,6 +115,35 @@ main.dashboard.screen .dashboard-center .map-stage {
   height: auto !important;
 }
 
+/* 源码叠加 GLB 院区（appHomeMapUpgrade.ts） */
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay {
+  z-index: 8 !important;
+  pointer-events: auto !important;
+}
+
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none;
+  filter: drop-shadow(0 12px 28px rgba(30, 75, 123, 0.12));
+}
+
+.hx-campus-map-label {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1e4b7b;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(30, 75, 123, 0.14);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -118%);
+}
+
 /* 进入首页时 3D 县界略放大，减少中央留白 */
 main.dashboard.screen .dashboard-center .main-map.hx-map-light-3d .map-stage canvas {
   transform: scale(1.14);

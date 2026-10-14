@@ -63,6 +63,7 @@ export default defineConfig(({ mode }) => {
           gisCommand: path.resolve(__dirname, 'gis-command.html'),
           meetingPortal: path.resolve(__dirname, 'meeting-portal.html'),
           dispatch: path.resolve(__dirname, 'dispatch.html'),
+          digitalTwinMap: path.resolve(__dirname, 'digital-twin-map.html'),
         },
       },
     },

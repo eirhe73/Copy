@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "verify:backend-api": "node scripts/verify-backend-api.mjs",
     "patch:map": "node scripts/patch-map-3d.mjs",
+    "build:map-glb": "vite build --config vite.glb-map.config.ts",
     "restore:original": "curl.exe -s -L http://106.53.9.56:7775/assets/index-BA_IO3dC.js -o public/assets/index-BA_IO3dC.js && curl.exe -s -L http://106.53.9.56:7775/assets/index-BRuArrdm.css -o public/assets/index-BRuArrdm.css"
   },
   "dependencies": {

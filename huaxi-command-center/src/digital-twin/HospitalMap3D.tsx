@@ -1,8 +1,17 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
-import { getMapTheme } from '../mapTheme'
+import { getMapTheme, hexToThree } from '../mapTheme'
+import {
+  cloneHospitalModel,
+  loadHospitalGlbTemplates,
+  tierBadgeLabel,
+} from './hospitalGlbAssets'
+import { applyHospitalSelectionVisual } from './hospitalMapMaterials'
 import type { GeoJson } from '../smart-city/geo'
 import {
   buildShapeFromPoints,
@@ -24,12 +33,11 @@ const INITIAL_VIEW = {
   mapScale: 1.06,
 } as const
 
-const TIER_COLOR = [
-  0x38bdf8, // 县级
-  0x22d3ee, // 乡镇
-  0x64748b, // 村室
-  0xa78bfa, // 协作上级
-] as const
+/** 与首页 MapScene（theme=light）节点 tier 色一致 */
+function tierAccent(t: ReturnType<typeof getMapTheme>['three'], tier: number) {
+  if (tier >= 3) return hexToThree('#1e4b7b')
+  return t.markerByTier[Math.min(2, Math.max(0, tier))] ?? t.markerByTier[0]
+}
 
 const TIER_BUILDING = [
   { floors: 3, scale: 1.15 },
@@ -37,6 +45,38 @@ const TIER_BUILDING = [
   { floors: 1, scale: 0.75 },
   { floors: 3, scale: 1.05 },
 ] as const
+
+function buildXhsLabelEl(h: Hospital3D) {
+  const el = document.createElement('div')
+  el.className = 'hx-xhs-pin'
+  el.dataset.hospitalId = h.id
+  const online = h.status !== 'offline'
+  el.innerHTML = `
+    <div class="hx-xhs-card">
+      <span class="hx-xhs-chip">${tierBadgeLabel(h.tier)}</span>
+      <strong class="hx-xhs-title">${h.shortName || h.name}</strong>
+      <span class="hx-xhs-meta">${h.level ?? '机构'} · ${online ? '在线' : '离线'}</span>
+    </div>
+    <span class="hx-xhs-tail" aria-hidden="true"></span>
+  `
+  return el
+}
+
+function tagPickables(root: THREE.Object3D, hospitalId: string, pickables: THREE.Object3D[]) {
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.Mesh)) return
+    obj.userData.kind = 'hospital'
+    obj.userData.hospitalId = hospitalId
+    const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+    for (const m of mats) {
+      if (typeof m.userData.baseEmissiveIntensity === 'number') {
+        obj.userData.baseEmissiveIntensity = m.userData.baseEmissiveIntensity
+        break
+      }
+    }
+    pickables.push(obj)
+  })
+}
 
 type HospitalMap3DProps = {
   region: 'weiyuan' | 'dafang'
@@ -65,7 +105,7 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
     const mountEl = mountRef.current
     if (!mountEl || !hospitals.length) return
 
-    const theme = getMapTheme('cyber')
+    const theme = getMapTheme('light')
     const t = theme.three
     let disposed = false
     let frame = 0
@@ -88,6 +128,8 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
       renderer.setSize(container.clientWidth, container.clientHeight)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.15
       container.appendChild(renderer.domElement)
 
       const labelRenderer = new CSS2DRenderer()
@@ -164,62 +206,117 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
       grid.position.z = -0.02
       mapGroup.add(grid)
 
+      const templates = await loadHospitalGlbTemplates()
+      if (disposed) return
+
       const hospitalGroups = new Map<string, THREE.Group>()
       const worldById = new Map<string, THREE.Vector3>()
       const pickables: THREE.Object3D[] = []
+      let placeIndex = 0
 
       for (const h of hospitals) {
         const tier = Math.min(3, Math.max(0, h.tier)) as 0 | 1 | 2 | 3
         const pt = projectLngLat(h.lng, h.lat, center, scale, cosLat)
-        const spec = TIER_BUILDING[tier]
-        const color = TIER_COLOR[tier]
         const g = new THREE.Group()
-        g.position.set(pt.x, pt.y, 0.58)
-        g.userData = { kind: 'hospital', hospitalId: h.id }
+        const baseZ = 0.58
+        g.position.set(pt.x, pt.y, baseZ)
+        g.userData = {
+          kind: 'hospital',
+          hospitalId: h.id,
+          baseZ,
+          floatPhase: placeIndex * 0.85,
+          enterDelay: placeIndex * 0.12,
+        }
+        placeIndex += 1
 
-        const baseRing = new THREE.Mesh(
-          new THREE.RingGeometry(0.06, 0.095, 32),
+        const shadow = new THREE.Mesh(
+          new THREE.CircleGeometry(0.11 + tier * 0.02, 40),
           new THREE.MeshBasicMaterial({
-            color: 0x38bdf8,
+            color: t.terrainSide,
             transparent: true,
-            opacity: 0.35,
-            side: THREE.DoubleSide,
+            opacity: 0.22,
+            depthWrite: false,
           }),
         )
-        g.add(baseRing)
+        shadow.position.z = 0.004
+        g.add(shadow)
 
-        const floorH = 0.12 * spec.scale
-        const baseW = 0.07 * spec.scale
-        for (let f = 0; f < spec.floors; f++) {
-          const box = new THREE.Mesh(
-            new THREE.BoxGeometry(baseW, baseW * 0.85, floorH),
-            new THREE.MeshPhongMaterial({
-              color,
-              emissive: color,
-              emissiveIntensity: 0.15,
-              shininess: 60,
+        for (let i = 0; i < 3; i++) {
+          const r0 = 0.042 + i * 0.026
+          const pulseRing = new THREE.Mesh(
+            new THREE.RingGeometry(r0, r0 + 0.014, 32),
+            new THREE.MeshBasicMaterial({
+              color: t.markerGlow,
+              transparent: true,
+              opacity: 0.2 - i * 0.045,
+              side: THREE.DoubleSide,
+              depthWrite: false,
             }),
           )
-          box.position.z = floorH * 0.5 + f * floorH * 0.92
-          box.userData = { kind: 'hospital', hospitalId: h.id }
-          g.add(box)
-          pickables.push(box)
+          g.add(pulseRing)
         }
 
-        const topZ = spec.floors * floorH * 0.92 + 0.08
-        const labelEl = document.createElement('div')
-        labelEl.className = 'hx-hospital-map-label'
-        labelEl.dataset.hospitalId = h.id
-        labelEl.textContent = h.shortName || h.name
-        const label = new CSS2DObject(labelEl)
-        label.position.set(0, 0, topZ)
+        let topZ = 0.28
+        const template = templates.get(tier)
+        if (template) {
+          const { model, height } = cloneHospitalModel(template, tier)
+          g.add(model)
+          tagPickables(model, h.id, pickables)
+          topZ = height + 0.06
+        } else {
+          const spec = TIER_BUILDING[tier]
+          const accent = tierAccent(t, tier)
+          const floorH = 0.12 * spec.scale
+          const baseW = 0.07 * spec.scale
+          const depth = baseW * 0.85
+          for (let f = 0; f < spec.floors; f++) {
+            const bodyIntensity = f === 0 ? 0.07 : 0.05
+            const box = new THREE.Mesh(
+              new THREE.BoxGeometry(baseW, depth, floorH),
+              new THREE.MeshPhongMaterial({
+                color: t.terrainTop,
+                emissive: t.terrainEmissiveTop,
+                emissiveIntensity: bodyIntensity,
+                shininess: 48,
+              }),
+            )
+            box.position.z = floorH * 0.5 + f * floorH * 0.92
+            box.userData = { kind: 'hospital', hospitalId: h.id, baseEmissiveIntensity: bodyIntensity }
+            g.add(box)
+            pickables.push(box)
+            const winBand = new THREE.Mesh(
+              new THREE.BoxGeometry(baseW * 0.92, depth * 0.08, floorH * 0.22),
+              new THREE.MeshPhongMaterial({
+                color: t.terrainSide,
+                emissive: accent,
+                emissiveIntensity: 0.2,
+                shininess: 64,
+              }),
+            )
+            winBand.position.set(0, depth * 0.42, box.position.z)
+            g.add(winBand)
+          }
+          topZ = spec.floors * floorH * 0.92 + 0.08
+        }
+
+        const label = new CSS2DObject(buildXhsLabelEl(h))
+        label.position.set(0, 0, topZ + 0.12)
         g.add(label)
 
         mapGroup.add(g)
         hospitalGroups.set(h.id, g)
-        const world = new THREE.Vector3(pt.x, pt.y, 0.58 + topZ)
-        worldById.set(h.id, world)
+        worldById.set(h.id, new THREE.Vector3(pt.x, pt.y, baseZ + topZ))
       }
+
+      const composer = new EffectComposer(renderer)
+      composer.addPass(new RenderPass(scene, camera))
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(container.clientWidth, container.clientHeight),
+        0.38,
+        0.62,
+        0.88,
+      )
+      composer.addPass(bloomPass)
 
       mapGroup.rotation.x = -Math.PI / 2
       mapGroup.position.z = 0.15
@@ -292,13 +389,19 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
         if (disposed) return
         frame = requestAnimationFrame(animate)
         const elapsed = (now - t0) / 1000
-        mapGroup.rotation.z = Math.sin(elapsed * 0.06) * 0.015
+        mapGroup.rotation.z = Math.sin(elapsed * 0.05) * 0.012
         for (const [id, grp] of hospitalGroups) {
-          const pulse = id === selectedRef.current ? 1 + Math.sin(elapsed * 4) * 0.04 : 1
-          grp.scale.setScalar(pulse)
+          const delay = (grp.userData.enterDelay as number) ?? 0
+          const enterT = Math.min(1, Math.max(0, (elapsed - delay) / 0.85))
+          const enterEase = 1 - (1 - enterT) ** 3
+          const pulse = id === selectedRef.current ? 1 + Math.sin(elapsed * 3.5) * 0.035 : 1
+          grp.scale.setScalar(enterEase * pulse)
+          const baseZ = (grp.userData.baseZ as number) ?? 0.58
+          const phase = (grp.userData.floatPhase as number) ?? 0
+          grp.position.z = baseZ + Math.sin(elapsed * 1.05 + phase) * 0.007
         }
         controls.update()
-        renderer.render(scene, camera)
+        composer.render()
         labelRenderer.render(scene, camera)
       }
       frame = requestAnimationFrame(animate)
@@ -310,11 +413,14 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
         camera.updateProjectionMatrix()
         renderer.setSize(w, h)
         labelRenderer.setSize(w, h)
+        composer.setSize(w, h)
+        bloomPass.resolution.set(w, h)
       }
       window.addEventListener('resize', onResize)
       cleanups.push(() => window.removeEventListener('resize', onResize))
       cleanups.push(() => {
         cancelAnimationFrame(frame)
+        composer.dispose()
         controls.dispose()
         renderer.dispose()
         extrude.dispose()
@@ -339,21 +445,13 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
     for (const [id, grp] of hospitalGroups) {
       const selected = id === selectedId
       const dimmed = selectedId != null && !selected
-      grp.traverse((obj) => {
-        if (!(obj instanceof THREE.Mesh) || !obj.material) return
-        const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
-        for (const m of mats) {
-          if (!(m instanceof THREE.MeshPhongMaterial)) continue
-          m.emissiveIntensity = selected ? 0.55 : dimmed ? 0.05 : 0.15
-          m.opacity = dimmed ? 0.45 : 1
-          m.transparent = dimmed
-        }
-      })
-      const label = grp.children.find(
-        (c) => c instanceof CSS2DObject,
-      ) as CSS2DObject | undefined
+      grp.traverse((obj) => applyHospitalSelectionVisual(obj, selected, dimmed))
+      const label = grp.children.find((c) => c instanceof CSS2DObject) as CSS2DObject | undefined
       const el = label?.element as HTMLElement | undefined
-      if (el) el.classList.toggle('selected', selected)
+      if (el) {
+        el.classList.toggle('selected', selected)
+        el.classList.toggle('dimmed', dimmed)
+      }
     }
 
     if (selectedId) {
@@ -379,9 +477,10 @@ export function HospitalMap3D({ region, hospitals, selectedId, onSelect }: Hospi
   }, [selectedId])
 
   return (
-    <div className="hx-map-3d-canvas-wrap">
+    <div className="hx-map-3d-canvas-wrap hx-map-3d-xhs-stage">
       <div className="hx-map-3d-canvas" ref={mountRef} aria-label="3D 医院地图" />
-      <div className="hx-map-3d-tooltip" ref={tooltipRef} />
+      <div className="hx-map-3d-xhs-vignette" aria-hidden="true" />
+      <div className="hx-map-3d-tooltip hx-map-3d-tooltip-xhs" ref={tooltipRef} />
     </div>
   )
 }
