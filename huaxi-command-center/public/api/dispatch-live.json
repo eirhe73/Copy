@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-12T14:28:00+08:00",
+  "updatedAt": "2026-10-14T14:28:00+08:00",
   "activeCount": 3,
   "events": [
     {
@@ -12,7 +12,7 @@
       "vehicleId": "AMB-1",
       "vehiclePlate": "演示001",
       "status": "出警中",
-      "startedAt": "2026-10-12T14:05:00+08:00",
+      "startedAt": "2026-10-14T14:05:00+08:00",
       "etaHospitalMinutes": 8,
       "etaPatientMinutes": 4,
       "scorePlan": "胸痛绿色通道 · NEWS 关注",
@@ -28,7 +28,7 @@
       "vehicleId": "AMB-2",
       "vehiclePlate": "演示002",
       "status": "现场处置",
-      "startedAt": "2026-10-12T13:58:00+08:00",
+      "startedAt": "2026-10-14T13:58:00+08:00",
       "etaHospitalMinutes": 14,
       "etaPatientMinutes": 6,
       "scorePlan": "多发伤救治方案 · 气道优先",
@@ -44,7 +44,7 @@
       "vehicleId": "AMB-3",
       "vehiclePlate": "演示003",
       "status": "返院途中",
-      "startedAt": "2026-10-12T13:40:00+08:00",
+      "startedAt": "2026-10-14T13:40:00+08:00",
       "etaHospitalMinutes": 5,
       "etaPatientMinutes": null,
       "scorePlan": "卒中绿色通道 · FAST 阳性",

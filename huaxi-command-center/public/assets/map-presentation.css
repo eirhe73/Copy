@@ -548,3 +548,10 @@ main.dashboard.screen .dashboard-center .map-kpi.left {
 .dashboard-center .main-map.hx-net-well #tm-hud {
   display: none !important;
 }
+
+/* 去掉地图角标/demo 说明（大方 DataV、参考截图快照等） */
+.dashboard-center .map-caption,
+.dashboard-center .center-caption,
+.dashboard .map-tools .map-caption {
+  display: none !important;
+}

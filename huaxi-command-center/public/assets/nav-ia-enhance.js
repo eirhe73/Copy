@@ -4,11 +4,11 @@
 ;(function () {
   const DISPATCH_KEEP = [
     '实时出警',
+    '出警列表',
     '急救事件',
     '救护车列表',
     '患者登记',
     '远程会诊',
-    '基层会诊',
     '医院转诊',
     '基层远程监护',
   ]
@@ -141,6 +141,7 @@
   document.addEventListener(
     'click',
     (event) => {
+      if (window.hxIntegratedNav?.integratedSpa?.()) return
       const node = event.target
       if (!(node instanceof Element)) return
       const a = node.closest('nav.subnav > a')

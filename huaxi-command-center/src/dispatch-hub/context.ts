@@ -143,22 +143,86 @@ export function consultHref(
   return s ? `/app.html#/consultations?${s}` : '/app.html#/consultations'
 }
 
+/** 本地日历日 YYYY-MM-DD（按 startedAt / updatedAt 的本地时区） */
+export function eventLocalDate(iso: string): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export function formatDateLabel(ymd: string) {
+  if (!ymd) return '当日'
+  const d = new Date(`${ymd}T12:00:00`)
+  if (Number.isNaN(d.getTime())) return ymd
+  return d.toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' })
+}
+
+function mergeEventPlates(events: DispatchEvent[], amb: { ambulances?: Array<{ currentEventId?: string; plate?: string }> } | null) {
+  const plates = new Map<string, string>()
+  for (const a of amb?.ambulances ?? []) {
+    if (a?.currentEventId && a?.plate) plates.set(a.currentEventId, a.plate)
+  }
+  return events.map((ev) => ({
+    ...ev,
+    vehiclePlate: ev.vehiclePlate || plates.get(ev.id) || '',
+  }))
+}
+
 export async function loadEvents(): Promise<{ updatedAt: string; activeCount: number; events: DispatchEvent[] }> {
-  const [live, amb] = await Promise.all([
+  const [live, history, amb] = await Promise.all([
     fetch('/api/dispatch-live.json', { cache: 'no-store' }).then((r) => r.json()),
+    fetch('/api/dispatch-events-history.json', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .catch(() => ({ events: [] })),
     fetch('/api/dispatch-ambulances.json', { cache: 'no-store' })
       .then((r) => r.json())
       .catch(() => null),
   ])
-  const plates = new Map<string, string>()
-  for (const a of (amb?.ambulances ?? []) as Array<{ currentEventId?: string; plate?: string }>) {
-    if (a?.currentEventId && a?.plate) plates.set(a.currentEventId, a.plate)
+  const merged = [...((live.events ?? []) as DispatchEvent[]), ...((history.events ?? []) as DispatchEvent[])]
+  const byId = new Map<string, DispatchEvent>()
+  for (const ev of merged) {
+    if (ev?.id) byId.set(ev.id, ev)
   }
-  const events = ((live.events ?? []) as DispatchEvent[]).map((ev) => ({
-    ...ev,
-    vehiclePlate: ev.vehiclePlate || plates.get(ev.id) || '',
-  }))
+  const events = mergeEventPlates([...byId.values()], amb).sort(
+    (a, b) => (b.startedAt || '').localeCompare(a.startedAt || ''),
+  )
   return { updatedAt: live.updatedAt, activeCount: live.activeCount, events }
+}
+
+export function filterEventsByDate(events: DispatchEvent[], ymd: string) {
+  if (!ymd) return events
+  return events.filter((ev) => eventLocalDate(ev.startedAt) === ymd)
+}
+
+export function todayLocalDate() {
+  return eventLocalDate(new Date().toISOString())
+}
+
+/** 默认选浏览器「今天」；仅 URL 带 date= 时用指定日 */
+export function defaultListDate(_events: DispatchEvent[], _updatedAt: string, hashDate: string) {
+  if (hashDate && /^\d{4}-\d{2}-\d{2}$/.test(hashDate)) return hashDate
+  return todayLocalDate()
+}
+
+/** 演示数据里最近一条出警所在日（今天无数据时可点「最近有记录」） */
+export function latestEventDate(events: DispatchEvent[], updatedAt: string) {
+  const fromUpdate = eventLocalDate(updatedAt)
+  if (fromUpdate && events.some((ev) => eventLocalDate(ev.startedAt) === fromUpdate)) return fromUpdate
+  return eventLocalDate(events[0]?.startedAt) || todayLocalDate()
+}
+
+export function replaceHashQuery(patch: (q: URLSearchParams) => void) {
+  const tab = tabFromHash()
+  const id = tab === 'monitor' ? 'live' : tab
+  const q = hashQuery()
+  patch(q)
+  const s = q.toString()
+  const next = s ? `#${id}?${s}` : `#${id}`
+  if (location.hash !== next) history.replaceState(null, '', next)
 }
 
 export function formatClock(iso: string) {

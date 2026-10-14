@@ -39,12 +39,20 @@
     msgKind: '',
     schedule: null, // Date|null 定时开始时间
     qtab: 'wait',   // 队列状态 Tab：wait/incall/sched/done/all
+    dispatch: null, // {task,plate,complaint}|null 120 调度跳转带入的任务上下文
   }
 
   // ---------- 基础工具 ----------
 
   function path() {
     return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+  }
+
+  /** hash 里的查询参数（120 调度跳转带 task/plate/vehicle/complaint） */
+  function query() {
+    var raw = location.hash
+    var i = raw.indexOf('?')
+    return new URLSearchParams(i >= 0 ? raw.slice(i + 1) : '')
   }
 
   function esc(v) {
@@ -216,6 +224,8 @@
       P + '-tab.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}',
       P + '-tab .n{opacity:.7;margin-left:3px}',
       P + ' tr.' + HOST_ID + '-done td{opacity:.55}',
+      // ---------- 120 调度带入的任务上下文条 ----------
+      P + '-ctxstrip{display:flex;gap:8px;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:4px;padding:6px 10px;font-size:12px;margin-bottom:10px}',
       P + '-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-bottom:14px}',
       P + '-field{display:flex;flex-direction:column;gap:4px}',
       P + '-field label{font-size:12px;color:#64748b}',
@@ -304,6 +314,7 @@
       '<button type="button" class="' + HOST_ID + '-btn primary" data-act="toggle-form">发起会诊</button>' +
       '</div></div>' +
       '<div id="hx-cw-form-wrap" hidden>' + formHtml() + '</div>' +
+      '<div id="hx-cw-ctx"></div>' +
       '<div class="' + HOST_ID + '-msg" id="hx-cw-msg"></div>' +
       '</div>' +
       '<div class="' + HOST_ID + '-panel">' +
@@ -616,13 +627,37 @@
     )
   }
 
+  /** 同步 120 调度跳转带入的任务上下文（task/plate/complaint），变化才重绘 */
+  function syncDispatchFromQuery() {
+    var q = query()
+    var task = q.get('task') || ''
+    var plate = q.get('plate') || ''
+    var complaint = q.get('complaint') || ''
+    var next = (task || plate) ? { task: task, plate: plate, complaint: complaint } : null
+    var prev = state.dispatch
+    var changed = (!!prev !== !!next) ||
+      (prev && next && (prev.task !== next.task || prev.plate !== next.plate || prev.complaint !== next.complaint))
+    if (changed) {
+      state.dispatch = next
+      paint()
+    }
+  }
+
   function paint() {
     var q = $('hx-cw-queue')
     var d = $('hx-cw-doctors')
     var tb = $('hx-cw-tabs')
+    var ctx = $('hx-cw-ctx')
     if (q) q.innerHTML = queueHtml()
     if (d) d.innerHTML = doctorsHtml()
     if (tb) tb.innerHTML = tabsHtml()
+    if (ctx) {
+      var dd = state.dispatch
+      ctx.innerHTML = dd
+        ? '<div class="' + HOST_ID + '-ctxstrip">任务上下文：任务 ' + esc(dd.task || '—') +
+          ' · ' + esc(dd.plate || '—') + (dd.complaint ? ' · 主诉 ' + esc(dd.complaint) : '') + '</div>'
+        : ''
+    }
     syncForm()
   }
 
@@ -728,6 +763,16 @@
     wrap.hidden = !wrap.hidden
     if (!wrap.hidden) {
       syncForm()
+      // 120 调度带入的任务上下文预填：主诉、备注（不覆盖医生已输入的内容）
+      var dd = state.dispatch
+      if (dd) {
+        var c = $('hx-cw-f-complaint')
+        if (c && !c.value && dd.complaint) c.value = dd.complaint
+        var n = $('hx-cw-f-note')
+        if (n && !n.value && (dd.task || dd.plate)) {
+          n.value = ('任务 ' + (dd.task || '—') + ' · ' + dd.plate).replace(/^任务 — · $/, '').trim()
+        }
+      }
       setFormMsg('')
     }
     setHeadBtn(!wrap.hidden)
@@ -934,6 +979,7 @@
     }
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
+    syncDispatchFromQuery()
 
     var host = $(HOST_ID)
     if (!host) {

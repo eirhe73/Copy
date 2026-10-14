@@ -379,7 +379,7 @@
         name: item.bedLabel || item.bedId || '监护点',
         patient: item.patientName || item.patientId || '—',
         vitals: `HR ${item.heartRate ?? '—'} · SpO₂ ${item.spo2 ?? '—'}%`,
-        videoHref: '/#/monitoring',
+        videoHref: '/#/critical',
         bedHref: item.bedId ? `/#/bed/${item.bedId}` : '/#/critical',
       })),
     }
