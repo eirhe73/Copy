@@ -123,13 +123,19 @@
       const gpsList = gps?.vehicles || []
       const src = amb.length ? amb : gpsList
       if (!src.length) return 0
+      const STATUS_ZH = {
+        STANDBY: '站内待命',
+        DISPATCHING: '出警中',
+        ON_SCENE: '现场处置',
+        RETURNING: '返院途中',
+      }
       out.vehicles = src.map((v, i) => {
         const g = gpsList.find((x) => (x.vehicle_id || x.id) === (v.vehicle_id || v.id)) || v
         return {
           id: String(v.vehicle_id || v.id || v.plate || `V-${i}`),
           name: v.vehicle_name || v.plate || v.name || '车辆',
           plate: v.plate || '',
-          status: v.status || '待命',
+          status: STATUS_ZH[v.status] || v.status || '站内待命',
           institutionId: 'weiyuan',
           departmentId: 'emergency',
           position:
