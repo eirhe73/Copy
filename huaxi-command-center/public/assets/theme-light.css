@@ -4060,32 +4060,50 @@ footer.system-footer {
   mask-image: none !important;
 }
 
+/* 基层 Dr.：顶栏五模块选中态见 .main-nav a.active；勿把二级栏/页头整片做成亮蓝 */
+.app-shell:has(main.dr-page) nav.subnav > a[href*="medical-quality"],
+.app-shell:has(main.dr-page) nav.subnav > a:not(:first-child):not([href*="/dr"]) {
+  display: none !important;
+}
+
+/* Dr 页头：p2 白底 + 浅灰描边（覆盖 index 包内深色 dr-topbar / dr-gsearch） */
 .dr-topbar {
-  background: rgba(255, 255, 255, 0.92) !important;
+  background: #ffffff !important;
   border-bottom: 1px solid #e2e8f0 !important;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-  backdrop-filter: blur(8px);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.04) !important;
 }
 
 .dr-tb-title {
   color: #1e293b !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  text-shadow: none !important;
 }
 
 .dr-tb-logo .mk {
-  background: linear-gradient(135deg, #e0f2fe, #bae6fd) !important;
-  color: #0369a1 !important;
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9) !important;
+  color: #ffffff !important;
   box-shadow: none !important;
 }
 
 .dr-tb-role {
   background: #e0f2fe !important;
   color: #0369a1 !important;
-  font-weight: 600 !important;
+  border: 1px solid #bae6fd !important;
+}
+
+.dr-tb-right {
+  color: #64748b !important;
+}
+
+.dr-search-wrap svg {
+  stroke: #94a3b8 !important;
 }
 
 .dr-gsearch {
-  background: #fff !important;
+  background: #ffffff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
 }
@@ -4095,16 +4113,16 @@ footer.system-footer {
 }
 
 .dr-gsearch:focus {
+  outline: none !important;
   border-color: #38bdf8 !important;
-  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.15) !important;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.12) !important;
 }
 
-.dr-search-wrap svg {
-  stroke: #94a3b8 !important;
-}
-
-.dr-tb-right {
-  color: #64748b !important;
+.dr-mainnav {
+  background: #ffffff !important;
+  padding: 12px 26px 14px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  gap: 10px !important;
 }
 
 .dr-pl-head {
@@ -4216,10 +4234,11 @@ footer.system-footer {
 }
 
 .dr-mainnav button.active {
-  color: #fff !important;
-  background: #0284c7 !important;
-  border-color: #0284c7 !important;
-  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.25) !important;
+  color: #1e293b !important;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  font-weight: 700 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
   text-shadow: none !important;
 }
 
@@ -6670,6 +6689,92 @@ main.meeting .video-state {
   text-decoration: underline;
 }
 
+.hx-consult-pick-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  margin: 0 0 14px;
+  padding: 12px 16px;
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 8px;
+}
+
+.hx-consult-pick-bar p {
+  margin: 0;
+  font-size: 13px;
+  color: #1e3a5f;
+  line-height: 1.55;
+}
+
+.hx-consult-pick-bar p strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.hx-consult-pick-bar__back {
+  font-size: 13px;
+  font-weight: 500;
+  color: #0369a1;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hx-consult-pick-bar__back:hover {
+  text-decoration: underline;
+}
+
+body.hx-consult-pick-mode .business-table td:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+button.hx-consult-pick-btn {
+  padding: 6px 12px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+button.hx-consult-pick-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+body.hx-consult-pick-route .hx-consult-pick-host-hidden {
+  display: none !important;
+}
+
+main.workspace.hx-consult-pick-workspace {
+  max-width: none;
+}
+
+.hx-consult-pick-page .workspace-heading a.button {
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  color: #0f172a;
+  font-size: 14px;
+}
+
+.hx-consult-pick-filter {
+  margin-bottom: 12px;
+}
+
+.hx-consult-pick-empty {
+  text-align: center;
+  color: #64748b;
+  padding: 24px !important;
+}
+
 body.hx-consult-grassroots main.workspace .workspace-heading h1 {
   letter-spacing: 0.02em;
 }
@@ -6937,18 +7042,147 @@ body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > .hx-con
   overflow: auto !important;
 }
 
-/* 下级医院科室监控：只展示监控块，避免与预警总览叠在一起 */
-body.hx-ia-sub-hospitals-view:has(#hx-sub-hospital-monitor .hx-sh-block)
-  main.warning-screen.screen
-  > :not(#hx-sub-hospital-monitor) {
+/* 下级医院科室监控：独立页，不显示预警总览大屏 */
+body.hx-ia-sub-hospitals-view main.warning-screen.screen > :not(#hx-sub-hospital-monitor) {
   display: none !important;
 }
 
 body.hx-ia-sub-hospitals-view main.warning-screen.screen {
   display: block !important;
-  padding: 12px 14px 20px !important;
+  padding: 12px 14px 24px !important;
   overflow: auto !important;
-  min-height: 360px !important;
+  min-height: 420px !important;
+  background: #f1f5f9 !important;
+}
+
+.hx-sub-hospital-head strong {
+  font-size: 18px;
+  color: #0f172a;
+}
+
+.hx-sub-hospital-desc {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.hx-sh-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 16px;
+}
+
+.hx-sh-summary > div {
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.hx-sh-summary b {
+  display: block;
+  font-size: 20px;
+  color: #0f172a;
+}
+
+.hx-sh-summary span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hx-sh-tier {
+  font-size: 12px;
+  color: #0369a1;
+  background: #e0f2fe;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.hx-sub-hospital-foot {
+  margin: 16px 0 0;
+  font-size: 13px;
+}
+
+.hx-sub-hospital-foot a {
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.hx-sh-status--紧张,
+.hx-sh-status--关注 {
+  color: #c2410c;
+  font-weight: 600;
+}
+
+.hx-sh-status--正常 {
+  color: #15803d;
+  font-weight: 600;
+}
+
+/* 科室监控 · 内嵌科室床位 */
+.hx-dept-beds-panel {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.hx-dept-beds-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  margin-bottom: 12px;
+}
+
+.hx-dept-beds-head strong {
+  font-size: 16px;
+  color: #0f172a;
+}
+
+.hx-dept-beds-head span {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.hx-dept-beds-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.hx-dept-bed-card {
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.hx-dept-bed-card h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.hx-dept-bed-card ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+}
+
+.hx-dept-bed-card li span {
+  color: #64748b;
+  margin-right: 4px;
+}
+
+.hx-dept-bed-free {
+  color: #0369a1 !important;
 }
 
 .hx-sh-grid {
@@ -7409,31 +7643,36 @@ html.hx-full-backend .hx-device-bind-hint {
 
 
 
-/* ========== 基层医声 Dr · 板块导航 Tab 化（点击切换 + 操作技能视频置首） ========== */
+/* ========== 基层医声 Dr · 板块导航（p2：白底圆角按钮，选中加粗） ========== */
 .dr-mainnav {
   display: flex !important;
-  gap: 0 !important;
-  border-bottom: 2px solid #e2e8f0 !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 .dr-mainnav button {
-  border: none !important;
-  border-bottom: 3px solid transparent !important;
-  border-radius: 8px 8px 0 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  margin-bottom: -2px !important;
-  padding: 10px 22px !important;
+  transform: none !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 8px !important;
+  background: #ffffff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  margin-bottom: 0 !important;
+  padding: 8px 18px !important;
+  color: #475569 !important;
+}
+.dr-mainnav button > span {
+  transform: none !important;
 }
 .dr-mainnav button:hover {
-  background: #f1f5f9 !important;
-  border-color: transparent !important;
-  box-shadow: none !important;
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06) !important;
 }
 .dr-mainnav button.active {
-  background: transparent !important;
-  color: #0284c7 !important;
-  border-bottom-color: #0284c7 !important;
-  box-shadow: none !important;
+  background: #ffffff !important;
+  color: #1e293b !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
   font-weight: 700 !important;
 }
 
@@ -7887,5 +8126,67 @@ html.hx-full-backend .hx-device-bind-hint {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* ========== 主按钮 / 链接主按钮：统一深蓝底白字（避免亮蓝底+深色字看不清） ========== */
+a.button.primary,
+a.primary.button,
+.button.primary,
+main.workspace a.button.primary,
+.patient-detail a.button.primary,
+.workspace-heading a.button.primary,
+header a.button.primary {
+  background: #1e4b7b !important;
+  border: 1px solid #1e4b7b !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+
+a.button.primary:hover,
+a.primary.button:hover,
+.button.primary:hover,
+main.workspace a.button.primary:hover,
+.patient-detail a.button.primary:hover,
+.workspace-heading a.button.primary:hover,
+header a.button.primary:hover {
+  background: #163a60 !important;
+  border-color: #163a60 !important;
+  color: #ffffff !important;
+}
+
+a.button.primary svg,
+a.button.primary path,
+button.primary svg,
+button.primary path,
+.button.primary svg {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+}
+
+button.primary,
+.btn-primary {
+  background: #1e4b7b !important;
+  color: #ffffff !important;
+  border-color: #1e4b7b !important;
+}
+
+button.primary:hover,
+.btn-primary:hover {
+  background: #163a60 !important;
+  color: #ffffff !important;
+  border-color: #163a60 !important;
+}
+
+/* 机构页「公开科室」等徽标 */
+.department-directory .kt,
+.department-directory span[class*='badge'],
+.department-directory .badge,
+.expert-directory .kt,
+.expert-directory .badge {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1px solid #7dd3fc !important;
+  font-weight: 600 !important;
 }
 
