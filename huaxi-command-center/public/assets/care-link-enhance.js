@@ -235,7 +235,13 @@
     const onCare =
       p.startsWith('/bed/') || p.startsWith('/patient/') || p === '/devices' || p === '/beds' || p === '/critical' || p.startsWith('/critical')
     if (!onCare) {
-      document.querySelectorAll('.hx-care-dock').forEach((n) => n.remove())
+      // 只清理本脚本自己的 dock。
+      // 以前这里是 remove() 掉所有 .hx-care-dock，会把 consult-context-enhance 的
+      // #hx-consult-context 一起删掉；对方随即重建 → 又被删 → 配合 hxEnhance 的
+      // root 观察形成死循环（约每 350ms 一轮），页面持续闪动。
+      for (const id of ['hx-dock-bed', 'hx-dock-patient', 'hx-dock-devices', 'hx-dock-critical']) {
+        document.getElementById(id)?.remove()
+      }
       return
     }
 

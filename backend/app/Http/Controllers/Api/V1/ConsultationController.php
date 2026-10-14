@@ -50,4 +50,10 @@ class ConsultationController extends Controller
     {
         return Result::success('获取成功', $this->service->accept($sessionId, $request->validated()));
     }
+
+    /** 入会链接：跳转远程会诊系统的地址（未对接时返回本地占位会诊室） */
+    public function joinLink(Request $request, string $sessionId): array
+    {
+        return Result::success('获取成功', $this->service->joinLink($sessionId, $request->query()));
+    }
 }

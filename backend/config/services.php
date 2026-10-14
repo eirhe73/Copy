@@ -31,4 +31,26 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | 远程会诊系统（音视频能力）
+    |--------------------------------------------------------------------------
+    |
+    | base_url      会诊系统后端地址，服务端直连，不经过浏览器
+    | service_token 服务间静态令牌，双方一致，仅存环境变量
+    | join_base_url 会诊系统前端地址，用于拼装医生入会链接
+    | timeout       单次调用超时（秒），超时即降级，不阻断会诊业务
+    |
+    */
+
+    'consultation' => [
+        'base_url' => env('CONSULT_RTC_BASE_URL', ''),
+        'service_token' => env('CONSULT_RTC_SERVICE_TOKEN', ''),
+        'join_base_url' => env('CONSULT_RTC_JOIN_BASE_URL', ''),
+        'timeout' => (int) env('CONSULT_RTC_TIMEOUT', 3),
+        'enabled' => (bool) env('CONSULT_RTC_ENABLED', false),
+        // 患者姓名在会诊系统侧是否脱敏。false = 直接显示姓名（当前院方确认口径）
+        'name_masked' => (bool) env('CONSULT_RTC_NAME_MASKED', false),
+    ],
+
 ];

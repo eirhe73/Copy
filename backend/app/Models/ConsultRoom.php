@@ -14,13 +14,24 @@ class ConsultRoom extends Model
     protected $fillable = [
         'token', 'consult_code', 'session_id', 'patient_id', 'room_name',
         'media_mode', 'rtc_url', 'status', 'opened_at', 'closed_at',
+        'rtc_session_id', 'rtc_room_id', 'rtc_join_token', 'rtc_owner_token',
+        'rtc_sync_status', 'rtc_synced_at',
     ];
 
     protected $casts = [
         'status' => 'integer',
+        'rtc_room_id' => 'integer',
+        'rtc_sync_status' => 'integer',
         'opened_at' => 'datetime',
         'closed_at' => 'datetime',
+        'rtc_synced_at' => 'datetime',
     ];
+
+    /** 音视频已就绪（已同步到会诊系统且拿到会议 ID） */
+    public function rtcReady(): bool
+    {
+        return $this->media_mode === 'RTC' && ! empty($this->rtc_session_id);
+    }
 
     public function session(): BelongsTo
     {
