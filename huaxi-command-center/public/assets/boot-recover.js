@@ -31,7 +31,7 @@
   }, 8000)
 })()
 
-/** 增强脚本共用：防抖 + 可选 root 监听，避免 MutationObserver 打满 CPU */
+/** 增强脚本共用：仅在进入页 / 路由切换时跑一遍（不挂 MutationObserver / 定时器，避免部署后接口风暴） */
 ;(function () {
   function debounce(fn, wait) {
     var timer = null
@@ -53,10 +53,6 @@
     })
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run)
     else run()
-    if (opts.observeRoot) {
-      var root = document.getElementById('root')
-      if (root) new MutationObserver(run).observe(root, { childList: true, subtree: true })
-    }
     return run
   }
 })()

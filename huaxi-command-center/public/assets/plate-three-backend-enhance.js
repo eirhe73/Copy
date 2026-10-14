@@ -57,9 +57,8 @@
   cleanup()
   window.addEventListener('hashchange', cleanup)
   if (typeof window.hxEnhance === 'function') {
-    window.hxEnhance(cleanup, { wait: 450, observeRoot: true, afterNav: 100 })
+    window.hxEnhance(cleanup, { wait: 450, afterNav: 100 })
   } else {
     document.addEventListener('DOMContentLoaded', cleanup)
-    window.setInterval(cleanup, 1500)
   }
 })()

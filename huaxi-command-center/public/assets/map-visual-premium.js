@@ -52,6 +52,4 @@
   window.addEventListener('hashchange', () => setTimeout(tick, 80))
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick)
   else tick()
-  const poll = setInterval(tick, 1200)
-  window.addEventListener('pagehide', () => clearInterval(poll))
 })()

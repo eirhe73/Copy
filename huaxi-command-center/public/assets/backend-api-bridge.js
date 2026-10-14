@@ -470,7 +470,19 @@
     },
   }
 
-  async function hydrateScenario() {
+  let scenarioCache = null
+  let scenarioCacheAt = 0
+  let scenarioInflight = null
+  const SCENARIO_CACHE_MS = 90_000
+
+  function invalidateScenarioCache() {
+    scenarioCache = null
+    scenarioCacheAt = 0
+  }
+
+  window.addEventListener('hashchange', invalidateScenarioCache)
+
+  async function hydrateScenarioInner() {
     const useFull =
       window.hxFullBackend?.() && window.hxBackend?.strict?.() && window.hxBuildScenarioFromBackend
     if (useFull) {
@@ -511,6 +523,24 @@
       }
     }
     return base
+  }
+
+  async function hydrateScenario() {
+    const now = Date.now()
+    if (scenarioCache && now - scenarioCacheAt < SCENARIO_CACHE_MS) {
+      return scenarioCache
+    }
+    if (scenarioInflight) return scenarioInflight
+    scenarioInflight = hydrateScenarioInner()
+      .then((data) => {
+        scenarioCache = data
+        scenarioCacheAt = Date.now()
+        return data
+      })
+      .finally(() => {
+        scenarioInflight = null
+      })
+    return scenarioInflight
   }
 
   MOCK_ROUTES['/scenario.json'] = hydrateScenario

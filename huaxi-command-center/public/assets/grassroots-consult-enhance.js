@@ -424,19 +424,5 @@
     else render({ force: false })
   })
 
-  /** 不用 observeRoot：与 plate-three / React 同树 Mutations 会反复触发 render 并打接口 */
-  window.hxEnhance(render, { wait: 380, observeRoot: false, afterNav: 120 })
-
-  ;(function watchWorkspaceMount() {
-    const rootEl = document.getElementById('root')
-    if (!rootEl) return
-    let mountTimer = null
-    new MutationObserver(() => {
-      if (!isGrassrootsPage()) return
-      if (!document.querySelector('main.workspace')) return
-      if (document.getElementById('hx-grassroots-consult-root')) return
-      clearTimeout(mountTimer)
-      mountTimer = setTimeout(() => render({ force: false }), 360)
-    }).observe(rootEl, { childList: true, subtree: true })
-  })()
+  window.hxEnhance(render, { wait: 380, afterNav: 120 })
 })()

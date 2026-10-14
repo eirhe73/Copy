@@ -94,8 +94,6 @@
       mountedFor = ''
       setTimeout(tick, 120)
     })
-    const poll = setInterval(tick, 800)
-    window.addEventListener('pagehide', () => clearInterval(poll))
     tick()
   }
 
