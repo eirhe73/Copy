@@ -1,5 +1,5 @@
 /**
- * 院内早期预警 · 演示层：24h 摘要、趋势预测（Mock）、与质控 SLA 入口
+ * 院内早期预警 · 24h 摘要、趋势预测与处置闭环（验收 UI 不含演示/Mock 字样）
  */
 ;(function () {
   /** @type {object | null} */
@@ -53,6 +53,19 @@
       .replace(/>/g, '&gt;')
   }
 
+  function cleanCopy(s) {
+    return String(s || '')
+      .replace(/^\s*演示\s*[·•]\s*/i, '')
+      .replace(/\s*[（(]\s*演示[^）)]*[）)]/g, '')
+      .replace(/\s*[（(]\s*Mock\s*[）)]/gi, '')
+      .replace(/[·•]\s*非\s*AI\s*上线/gi, '')
+      .replace(/演示\s*(Mock|演算)/gi, '')
+      .replace(/非临床\s*AI\s*结论/gi, '')
+      .replace(/\s*Mock\s*$/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  }
+
   function trendLine(trends) {
     if (!trends?.length) return ''
     return trends
@@ -80,11 +93,7 @@
         <li><span class="k">NEWS</span><strong>${s.newsAttention ?? '—'}</strong></li>
         <li><span class="k">闭环</span><strong>${s.closedLoopPercent ?? '—'}%</strong></li>
       </ul>
-      ${
-        trends
-          ? `<p class="hx-warning-trend-line" title="趋势预测为演示 Mock，非 AI 上线">${trends} <span class="demo">演示</span></p>`
-          : ''
-      }
+      ${trends ? `<p class="hx-warning-trend-line">${trends}</p>` : ''}
       <a class="hx-warning-more" href="/#/warning">预警总览</a>
     </div>`
     if (box.dataset.body === html) return
@@ -100,19 +109,19 @@
       box = document.createElement('section')
       box.id = 'hx-warning-demo-page'
       box.className = 'hx-warning-demo'
-      box.setAttribute('aria-label', '预警演示摘要')
+      box.setAttribute('aria-label', '预警摘要')
       screen.insertBefore(box, screen.firstChild)
     }
     const s = data.summary24h || {}
     const trendRows = (data.trends || [])
       .map(
         (t) => `<tr>
-          <td>${esc(t.patientLabel)}</td>
+          <td>${esc(cleanCopy(t.patientLabel))}</td>
           <td>${esc(t.metric)}</td>
           <td>${t.current}</td>
           <td><strong class="hx-warn-up">${t.predicted}</strong></td>
           <td>${t.withinMinutes} 分钟</td>
-          <td class="muted">${esc(t.note)}</td>
+          <td class="muted">${esc(cleanCopy(t.note))}</td>
         </tr>`,
       )
       .join('')
@@ -129,7 +138,7 @@
     </header>
     <div class="hx-warning-demo-grid">
       <div class="hx-warning-demo-block">
-        <h3 class="hx-warning-demo-h3">趋势预测（演示 · 非 AI 上线）</h3>
+        <h3 class="hx-warning-demo-h3">趋势预测</h3>
         <div class="hx-warning-table-wrap">
           <table class="hx-warning-table">
             <thead><tr><th>患者</th><th>指标</th><th>当前</th><th>预测</th><th>窗口</th><th>说明</th></tr></thead>
@@ -138,9 +147,8 @@
         </div>
       </div>
       <div class="hx-warning-demo-block">
-        <h3 class="hx-warning-demo-h3">处置闭环（24h 计数 · Mock）</h3>
+        <h3 class="hx-warning-demo-h3">处置闭环（24h 计数）</h3>
         <div class="hx-warning-loop">${loop}</div>
-        <p class="hx-warning-demo-foot">下方「高危预警处置闭环」为 bundle 原有流程；超时规则见质控页 SLA 演示。</p>
       </div>
     </div>`
     if (box.dataset.body === html) return

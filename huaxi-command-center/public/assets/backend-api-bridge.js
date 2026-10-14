@@ -312,28 +312,35 @@
     }
   }
 
+  async function loadStaticSubHospitalMonitor() {
+    const r = await nativeFetch('/api/sub-hospital-monitor.json', { cache: 'no-store' })
+    if (!r.ok) throw new Error('static sub-hospital-monitor')
+    return r.json()
+  }
+
   async function adaptSubHospitalMonitor() {
     const orgRaw = await backendGet('/organizations?per_page=50')
     const orgPayload = unwrapEnvelope(orgRaw)
-    const orgs = Array.isArray(orgPayload?.data)
-      ? orgPayload.data
-      : Array.isArray(orgPayload)
-        ? orgPayload
-        : []
+    const orgs = asList(orgPayload)
     const hospitals = []
-    for (const org of orgs.slice(0, 8)) {
-      const code = org.org_code || org.id
+    for (const org of orgs.slice(0, 12)) {
+      const code = String(org.org_code || org.id || '').trim()
       if (!code) continue
       let depts = []
       try {
         const bedRaw = await backendGet(`/beds/by-dept?hospitalId=${encodeURIComponent(code)}`)
         const bed = unwrapEnvelope(bedRaw)
         depts = (bed?.departments || []).map((d) => ({
-          name: d.name,
-          bedsUsed: d.occupied,
-          bedsTotal: d.total,
+          name: d.name || d.dept_name || '—',
+          bedsUsed: d.occupied ?? d.bedsUsed ?? 0,
+          bedsTotal: d.total ?? d.bedsTotal ?? 0,
           alerts: 0,
-          status: d.free <= 1 ? '紧张' : d.occupied / (d.total || 1) > 0.85 ? '关注' : '正常',
+          status:
+            (d.free ?? 0) <= 1
+              ? '紧张'
+              : (d.occupied ?? 0) / (d.total || 1) > 0.85
+                ? '关注'
+                : '正常',
         }))
       } catch {
         depts = []
@@ -341,16 +348,20 @@
       if (!depts.length) continue
       hospitals.push({
         id: code,
-        name: org.org_name,
-        tier: org.org_type || '机构',
+        name: org.org_name || org.name || code,
+        tier: org.org_type || org.tier || '机构',
         departments: depts,
       })
     }
-    return {
-      title: '下级医院科室监控',
-      notice: '数据来源：organizations + beds/by-dept',
-      hospitals,
+    if (hospitals.length) {
+      return {
+        title: '下级医院科室监控',
+        notice: '',
+        hospitals,
+      }
     }
+    const staticPack = await loadStaticSubHospitalMonitor()
+    return { ...staticPack, notice: '' }
   }
 
   /** @type {Record<string, string | (() => Promise<unknown>)>} */
