@@ -21,6 +21,10 @@ class ConsultationService extends Service
     /** 状态码 → 展示文案 */
     private const STATUS_LABELS = [0 => '待接诊', 1 => '会诊中', 2 => '已结束'];
 
+    public function __construct(private readonly ConsultRtcService $rtc)
+    {
+    }
+
     /**
      * 会诊队列（§5.1，默认待接诊）
      */
@@ -104,7 +108,7 @@ class ConsultationService extends Service
             'status' => 0,
         ]);
 
-        ConsultRoom::create([
+        $room = ConsultRoom::create([
             'token' => $token,
             'consult_code' => $consultCode,
             'session_id' => $sessionId,
@@ -114,14 +118,138 @@ class ConsultationService extends Service
             'status' => 0,
         ]);
 
+        // 同步到远程会诊系统创建音视频房间。失败不阻断：仍返回本地占位会诊室链接，
+        // 房间标记 rtc_sync_status=2 由补偿任务重推。
+        $this->rtc->createRoom($session, $room, $this->operatorName());
+        $room->refresh();
+
         return [
             'sessionId' => $session->session_id,
             'token' => $token,
             'consultCode' => $consultCode,
-            'consultLink' => rtrim(request()->root(), '/').'/#/room/'.$token,
+            'consultLink' => $room->rtc_url ?: rtrim(request()->root(), '/').'/#/room/'.$token,
+            'mediaMode' => $room->media_mode,
+            'rtcReady' => $room->rtcReady(),
             'status' => self::STATUS_NAMES[0],
             'statusLabel' => self::STATUS_LABELS[0],
         ];
+    }
+
+    /**
+     * 入会链接：医生进入远程会诊系统的跳转地址
+     *
+     * 房主（接诊医生 / 指定医生 / 当前操作人）走一次性 ownerTicket；
+     * 受邀专家走 joinToken。会诊系统重启导致房间丢失时，按同一 consultId 自动重建。
+     */
+    public function joinLink(string $sessionId, array $params): array
+    {
+        $session = ConsultSession::with('room')->where('session_id', $sessionId)->first();
+        $this->assert($session !== null, ResponseCode::NOT_FOUND, '会诊会话不存在');
+
+        $room = $session->room;
+        $this->assert($room !== null, ResponseCode::NOT_FOUND, '会诊室不存在');
+
+        [$doctorId, $doctorName] = $this->resolveDoctor($params['doctorId'] ?? null);
+
+        // 房主判定：已接诊医生 → 指定医生 → 当前操作人
+        $ownerId = $session->accepted_by ?: ($session->nominated_doctor_id ?: $doctorId);
+        $isOwner = $ownerId === $doctorId;
+        $role = $isOwner ? 'OWNER' : 'EXPERT';
+
+        if (! $this->rtc->enabled()) {
+            return $this->localJoinLink($sessionId, $room, $role);
+        }
+
+        // 兜底会诊系统内存态丢失（重启/房间过期）
+        $this->rtc->ensureRoom($session, $room, $doctorName);
+        $room->refresh();
+
+        if (! $room->rtcReady()) {
+            return $this->localJoinLink($sessionId, $room, $role);
+        }
+
+        $joinUrl = '';
+        $expiresAt = null;
+
+        if ($isOwner) {
+            $ticket = $this->rtc->mintOwnerTicket($room);
+            if ($ticket === null) {
+                // 补签失败说明原会议已结束或被回收，重建后再签一次
+                $this->rtc->createRoom($session, $room, $doctorName);
+                $room->refresh();
+                $ticket = $this->rtc->mintOwnerTicket($room);
+            }
+            if ($ticket !== null) {
+                $joinUrl = $this->rtc->buildJoinUrl((string) $room->rtc_session_id, [
+                    'ownerTicket' => $ticket,
+                    'name' => $doctorName,
+                    // 带上主系统医生标识，房主入会后参会记录可用 userId 与主系统对齐，避免同名串记录
+                    'userId' => $doctorId,
+                ]);
+                $expiresAt = now()->addSeconds(60)->toIso8601String();
+            }
+        } else {
+            $joinUrl = $this->rtc->buildJoinUrl((string) $room->rtc_session_id, [
+                'token' => (string) $room->rtc_join_token,
+                'name' => $doctorName,
+                'userId' => $doctorId,
+            ]);
+        }
+
+        if ($joinUrl === '') {
+            return $this->localJoinLink($sessionId, $room, $role);
+        }
+
+        return [
+            'sessionId' => $sessionId,
+            'joinUrl' => $joinUrl,
+            'role' => $role,
+            'mediaMode' => $room->media_mode,
+            'rtcReady' => true,
+            'expiresAt' => $expiresAt,
+        ];
+    }
+
+    /**
+     * 本地占位会诊室链接（未对接或对接失败时使用）
+     */
+    private function localJoinLink(string $sessionId, ConsultRoom $room, string $role): array
+    {
+        return [
+            'sessionId' => $sessionId,
+            'joinUrl' => rtrim(request()->root(), '/').'/#/room/'.$room->token,
+            'role' => $role,
+            'mediaMode' => $room->media_mode,
+            'rtcReady' => false,
+            'expiresAt' => null,
+        ];
+    }
+
+    /**
+     * 解析医生标识：未传 doctorId 时取当前登录用户
+     *
+     * @return array{0:string, 1:string} [username, 姓名]
+     */
+    private function resolveDoctor(?string $doctorId): array
+    {
+        if (! empty($doctorId)) {
+            return [$doctorId, User::where('username', $doctorId)->value('real_name') ?: $doctorId];
+        }
+
+        $user = auth()->user();
+        $username = $user?->username ?? '';
+
+        return [$username, $user?->real_name ?: ($username ?: '医生')];
+    }
+
+    /**
+     * 当前操作人姓名（发起会诊时作为会议房主显示名）
+     */
+    private function operatorName(): string
+    {
+        $user = auth()->user();
+
+        return $user?->real_name ?: ($user?->username ?: '医生');
     }
 
     /**
