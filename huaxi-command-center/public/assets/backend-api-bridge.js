@@ -35,16 +35,6 @@
     return false
   }
 
-  function credentials() {
-    try {
-      const u = localStorage.getItem('huaxi-api-user') || 'admin'
-      const p = localStorage.getItem('huaxi-api-pass') || '123456'
-      return { username: u, password: p }
-    } catch {
-      return { username: 'admin', password: '123456' }
-    }
-  }
-
   function pathOf(input) {
     try {
       if (typeof input === 'string') {
@@ -67,6 +57,11 @@
   const nativeFetch = window.fetch.bind(window)
   let token = null
   let loginPromise = null
+  /** 登录失败或 token 无效后冷却，避免 live-merge 并发把 login 打爆 */
+  let authBlockedUntil = 0
+  let tokenVerified = false
+  const AUTH_COOLDOWN_MS = 90_000
+  const ME_URL = () => `${apiV1()}/auth/me`
 
   function loadToken() {
     try {
@@ -78,6 +73,7 @@
 
   function clearToken() {
     token = null
+    tokenVerified = false
     try {
       sessionStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(TOKEN_KEY)
@@ -103,32 +99,98 @@
     return body
   }
 
+  function authBlocked() {
+    return Date.now() < authBlockedUntil
+  }
+
+  async function postLogin(cred) {
+    if (bridgeOff()) throw new Error('后端桥接已关闭（localStorage huaxi-api-bridge=0）')
+    const url = AUTH_URL()
+    let res
+    try {
+      res = await nativeFetch(url, {
+        method: 'POST',
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: cred.username, password: cred.password }),
+      })
+    } catch (e) {
+      throw new Error(`无法连接 ${url}：${e.message || '网络错误或 CORS'}`)
+    }
+    let detail = ''
+    try {
+      const peek = await res.clone().json()
+      detail = peek?.message || ''
+    } catch {
+      /* ignore */
+    }
+    if (!res.ok) {
+      throw new Error(`login HTTP ${res.status}${detail ? `：${detail}` : ''}`)
+    }
+    const json = await res.json()
+    const data = unwrapEnvelope(json)
+    if (!data?.token) throw new Error('login 响应无 token')
+    saveToken(data.token)
+    tokenVerified = true
+    authBlockedUntil = 0
+    return true
+  }
+
+  let loginRedirectScheduled = false
+
+  function isLoginEntryPage() {
+    const p = location.pathname.replace(/\\/g, '/')
+    return p === '/' || /index\.html$/i.test(p) || /login\.html$/i.test(p)
+  }
+
+  function redirectToLoginPage() {
+    if (loginRedirectScheduled || isLoginEntryPage()) return
+    try {
+      if (localStorage.getItem('huaxi-demo-only') === '1') return
+      if (localStorage.getItem('huaxi-api-mock') === '1') return
+    } catch {
+      /* ignore */
+    }
+    loginRedirectScheduled = true
+    const next = location.pathname + location.search + location.hash
+    location.replace('/index.html?next=' + encodeURIComponent(next || '/app.html'))
+  }
+
+  /** 仅校验已有 JWT（不在此函数内 POST login） */
   async function ensureAuth(force) {
     if (bridgeOff()) return false
+    if (mockAllowed()) return false
+
     loadToken()
-    if (token && !force) return true
-    if (loginPromise) return loginPromise
-    loginPromise = (async () => {
-      try {
-        const res = await nativeFetch(AUTH_URL(), {
-          method: 'POST',
-          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
-          body: JSON.stringify(credentials()),
-        })
-        if (!res.ok) throw new Error(`login ${res.status}`)
-        const json = await res.json()
-        const data = unwrapEnvelope(json)
-        if (!data?.token) throw new Error('no token')
-        saveToken(data.token)
+    if (!token) return false
+
+    if (tokenVerified && !force) return true
+
+    try {
+      const me = await nativeFetch(ME_URL(), {
+        headers: { Accept: 'application/json', Authorization: `Bearer ${token}` },
+      })
+      if (me.ok) {
+        tokenVerified = true
+        authBlockedUntil = 0
         return true
-      } catch (e) {
-        console.error('[hx-api-bridge] JWT 登录失败', e)
-        clearToken()
-        return false
-      } finally {
-        loginPromise = null
       }
-    })()
+    } catch {
+      /* ignore */
+    }
+
+    clearToken()
+    redirectToLoginPage()
+    return false
+  }
+
+  async function login(username, password) {
+    if (loginPromise) return loginPromise
+    loginPromise = postLogin({
+      username: String(username || '').trim(),
+      password: String(password || ''),
+    }).finally(() => {
+      loginPromise = null
+    })
     return loginPromise
   }
 
@@ -168,7 +230,8 @@
     }
 
     const run = async () => {
-      await ensureAuth(false)
+      const authed = await ensureAuth(false)
+      if (!authed) throw new Error(`未登录，已跳过 ${apiPath}`)
       await throttleGap()
       const headers = {
         Accept: 'application/json',
@@ -176,11 +239,10 @@
       }
       if (token) headers.Authorization = `Bearer ${token}`
       let res = await nativeFetch(`${apiV1()}${apiPath}`, { ...init, headers })
-      if (res.status === 401 && !init?._retried) {
+      if (res.status === 401) {
         clearToken()
-        const ok = await ensureAuth(true)
-        if (!ok) throw new Error(`未授权 ${apiPath}`)
-        return backendRequest(apiPath, { ...init, _retried: true, _skipCache: true })
+        redirectToLoginPage()
+        throw new Error(`未授权 ${apiPath}`)
       }
       let attempt = 0
       while (res.status === 429 && attempt < 3) {
@@ -519,6 +581,26 @@
   window.hxBackend = {
     enabled: () => !bridgeOff(),
     strict: () => !bridgeOff() && !mockAllowed(),
+    authBlocked,
+    clearAuth: () => {
+      authBlockedUntil = 0
+      clearToken()
+    },
+    login,
+    loginUrl: AUTH_URL,
+    saveTokenFromLogin(t) {
+      saveToken(t)
+      tokenVerified = true
+      authBlockedUntil = 0
+    },
+    logout() {
+      clearToken()
+      redirectToLoginPage()
+    },
+    goLoginPage() {
+      clearToken()
+      redirectToLoginPage()
+    },
     base: apiV1(),
     apiRoot: apiBase,
     ensureAuth,
@@ -561,12 +643,4 @@
     },
   }
 
-  if (!bridgeOff()) {
-    ensureAuth(false).then((ok) => {
-      if (ok) {
-        console.info('[hx-api-bridge] 已登录 JWT，严格模式=', window.hxBackend.strict(), '全后端=', window.hxFullBackend?.())
-        if (window.hxFullBackend?.()) window.hxSyncQualityTasks?.()
-      } else console.warn('[hx-api-bridge] 未登录；请检查 HX_API_CONFIG / 后端服务与账号')
-    })
-  }
 })()

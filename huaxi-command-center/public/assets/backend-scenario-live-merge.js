@@ -19,7 +19,11 @@
     const out = base && typeof base === 'object' ? base : { schemaVersion: 2, state: {} }
     if (!out.state) out.state = {}
     if (!window.hxBackend?.enabled?.()) return out
-    await window.hxBackend.ensureAuth(false)
+    const authed = await window.hxBackend.ensureAuth(false)
+    if (!authed) {
+      console.warn('[hx-scenario-merge] 未登录，跳过 live 合并（仍使用 scenario.json）')
+      return out
+    }
 
     const get = (p) => window.hxBackend.get(p)
     const list = (p, q) => window.hxBackend.list(p, q)

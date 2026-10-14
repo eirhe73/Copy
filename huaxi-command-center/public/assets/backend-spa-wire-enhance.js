@@ -249,6 +249,13 @@
 
   async function renderConsultations() {
     if (path() !== '/consultations' || !(await apiReady())) return
+    try {
+      const q = location.hash.replace(/^#/, '')
+      const qs = q.includes('?') ? q.slice(q.indexOf('?') + 1) : ''
+      if (new URLSearchParams(qs).get('scope') === 'grassroots') return
+    } catch {
+      /* ignore */
+    }
     const listRaw = await window.hxBackend.get('/consultations', { pageNum: 1, pageSize: 20 })
     const list = listRaw?.list || listRaw?.data || []
     mountPanel(
