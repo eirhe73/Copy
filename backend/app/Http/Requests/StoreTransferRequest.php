@@ -14,31 +14,28 @@ class StoreTransferRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'event_id' => ['nullable', 'integer', 'exists:emergency_events,id'],
-            'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
-            'from_org_id' => ['required', 'integer', 'exists:organizations,id'],
-            'to_org_id' => ['nullable', 'integer', 'exists:organizations,id'],
-            'urgency_level' => ['nullable', 'string', 'in:URGENCY_LOW,URGENCY_MEDIUM,URGENCY_HIGH'],
-            'transfer_reason' => ['required', 'string'],
-            'diagnosis' => ['nullable', 'string', 'max:200'],
-            'trigger_source' => ['nullable', 'string', 'max:50'],
-            'vehicle_id' => ['nullable', 'integer', 'exists:vehicles,id'],
-            'driver_name' => ['nullable', 'string', 'max:100'],
-            'eta' => ['nullable', 'date'],
-            'latest_vitals' => ['nullable', 'array'],
-            'resource_prep' => ['nullable', 'array'],
-            'initiator_user_id' => ['required', 'integer', 'exists:users,id'],
+            'patientId' => ['required', 'string', 'exists:patients,patient_id'],
+            'direction' => ['required', 'string', 'in:UP,DOWN'],
+            'sourceInstitutionId' => ['required', 'string'],
+            'sourceDepartmentId' => ['nullable', 'string'],
+            'targetInstitutionId' => ['required', 'string'],
+            'targetDepartmentId' => ['nullable', 'string'],
+            'greenChannel' => ['nullable', 'boolean'],
+            'channelType' => ['nullable', 'string', 'in:chest_pain,stroke,trauma,critical_pregnant,neonatal'],
+            'reason' => ['nullable', 'string', 'max:255'],
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'from_org_id' => '转出机构',
-            'to_org_id' => '转入机构',
-            'transfer_reason' => '转诊原因',
-            'urgency_level' => '紧急程度',
-            'initiator_user_id' => '发起人',
+            'patientId' => '患者编号',
+            'direction' => '转诊方向',
+            'sourceInstitutionId' => '来源机构',
+            'targetInstitutionId' => '目标机构',
+            'greenChannel' => '绿色通道',
+            'channelType' => '通道类型',
+            'reason' => '转诊原因',
         ];
     }
 }

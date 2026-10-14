@@ -10,8 +10,8 @@ export function PageScaffold({ meta, children }: Props) {
     <main className="workspace page-scaffold">
       <h2>{meta.title}</h2>
       <div className="path-badge">#/{meta.path.replace(/^\//, '')}</div>
-      <p style={{ color: 'var(--muted)', margin: '0 0 8px' }}>
-        页面骨架已就绪，可按模块逐项复刻线上 UI 与交互。
+      <p className="api-muted" style={{ margin: '0 0 8px' }}>
+        模块：{meta.modules.join(' · ')}
       </p>
       <div className="panel-grid">
         <section className="panel">

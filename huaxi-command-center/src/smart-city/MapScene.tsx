@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { CSS2DObject, CSS2DRenderer } from 'three/examples/jsm/renderers/CSS2DRenderer.js'
 import type { MapThemeId } from '../mapTheme'
 import { getMapTheme } from '../mapTheme'
+import { fetchCountyMapCollab } from '../lib/countyMapCollab'
 import type { GeoJson } from './geo'
 import { buildShapeFromPoints, getRings, projectLngLat, projectRing, ringBounds } from './geo'
 
@@ -48,7 +49,14 @@ const INITIAL_VIEW = {
   mapScale: 1.06,
 } as const
 
-export function MapScene({ themeId }: { themeId: MapThemeId }) {
+export type MapSceneProps = {
+  themeId: MapThemeId
+  region?: 'weiyuan' | 'dafang'
+  /** 指挥首页：机构名 + 十字锚点标签（与线上一致） */
+  variant?: 'default' | 'command'
+}
+
+export function MapScene({ themeId, region = 'weiyuan', variant = 'default' }: MapSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -62,19 +70,30 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
     let frame = 0
     const cleanups: (() => void)[] = []
 
-    async function init() {
-      const [geoRes, collabRes] = await Promise.all([
-        fetch('/maps/weiyuan.json'),
-        fetch('/api/gis-collab.json', { cache: 'no-store' }),
-      ])
+    async function init(mount: HTMLDivElement) {
+      const geoRes = await fetch(`/maps/${region}.json`)
       if (!geoRes.ok) throw new Error('地图数据加载失败')
-      if (!collabRes.ok) throw new Error('协同数据加载失败')
       const geo = (await geoRes.json()) as GeoJson
-      const collab = (await collabRes.json()) as { weiyuan: { nodes: CollabNode[]; links: CollabLink[] } }
       if (disposed) return
 
-      const nodes = collab.weiyuan.nodes
-      const links = collab.weiyuan.links
+      let nodes: CollabNode[]
+      let links: CollabLink[]
+      if (variant === 'command') {
+        const live = await fetchCountyMapCollab(region)
+        if (disposed) return
+        nodes = live.nodes
+        links = live.links
+      } else {
+        const collabRes = await fetch('/api/gis-collab.json', { cache: 'no-store' })
+        if (!collabRes.ok) throw new Error('协同数据加载失败')
+        const collab = (await collabRes.json()) as Record<
+          string,
+          { nodes: CollabNode[]; links: CollabLink[] }
+        >
+        const pack = collab[region] ?? collab.weiyuan
+        nodes = pack.nodes
+        links = pack.links
+      }
 
       const ring = getRings(geo)[0]
       const bounds = ringBounds(ring)
@@ -214,10 +233,15 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
         g.add(diamond)
 
         const labelEl = document.createElement('div')
-        labelEl.className = 'sc-map-label'
-        labelEl.textContent = node.name
-        labelEl.style.color = t.labelCss
-        labelEl.style.borderColor = theme.accentCss
+        if (variant === 'command') {
+          labelEl.className = 'hx-command-map-label'
+          labelEl.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${node.name}</span>`
+        } else {
+          labelEl.className = 'sc-map-label'
+          labelEl.textContent = node.name
+          labelEl.style.color = t.labelCss
+          labelEl.style.borderColor = t.accentCss
+        }
         const label = new CSS2DObject(labelEl)
         label.position.set(0.14, 0.05, h + 0.08)
         g.add(label)
@@ -296,13 +320,19 @@ export function MapScene({ themeId }: { themeId: MapThemeId }) {
       })
     }
 
-    init().catch(console.error)
+    init(mount).catch(console.error)
 
     return () => {
       disposed = true
       cleanups.forEach((fn) => fn())
     }
-  }, [themeId])
+  }, [themeId, region, variant])
 
-  return <div className="sc-map-canvas" ref={mountRef} aria-label="3D 态势地图" />
+  return (
+    <div
+      className={variant === 'command' ? 'command-map-canvas map-stage' : 'sc-map-canvas'}
+      ref={mountRef}
+      aria-label="3D 态势地图"
+    />
+  )
 }

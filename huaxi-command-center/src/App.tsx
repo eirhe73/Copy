@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
-import { AppShell } from './components/AppShell'
+import { CommandHeader } from './layout/CommandHeader'
+import { CommandLayout } from './layout/CommandLayout'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { routeElements } from './pages/routePages'
@@ -9,7 +10,8 @@ function StandaloneFrame({ path }: { path: string }) {
   const Element = routeElements[path]
   if (!Element) return null
   return (
-    <div className="app-main standalone">
+    <div className="app-shell">
+      <CommandHeader />
       <Element />
     </div>
   )
@@ -24,22 +26,14 @@ export default function App() {
       <Route path="/login" element={<LoginPage />} />
 
       {standaloneRoutes.map((meta) => (
-        <Route
-          key={meta.path}
-          path={meta.path}
-          element={<StandaloneFrame path={meta.path} />}
-        />
+        <Route key={meta.path} path={meta.path} element={<StandaloneFrame path={meta.path} />} />
       ))}
 
-      <Route element={<AppShell />}>
+      <Route element={<CommandLayout />}>
         {shellRoutes.map((meta) => {
           if (meta.path === '/mobile') {
             return (
-              <Route
-                key={meta.path}
-                path={meta.path}
-                element={<Navigate to="/coordination" replace />}
-              />
+              <Route key={meta.path} path={meta.path} element={<Navigate to="/coordination" replace />} />
             )
           }
           const Element = routeElements[meta.path]

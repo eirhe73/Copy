@@ -3,7 +3,7 @@
  */
 ;(function () {
   const FOOT =
-    '演示数据 · 非实时 HIS / 120 · 非临床统计（Mock），正式环境对接院方接口。'
+    '数据来自 Laravel API（/backend-api/v1）· 非实时 HIS / 120 · 非临床统计，正式环境对接院方接口。'
 
   function path() {
     return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'

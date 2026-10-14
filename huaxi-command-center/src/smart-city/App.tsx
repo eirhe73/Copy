@@ -49,7 +49,7 @@ export default function App() {
       <header className="sc-header">
         <div>
           <p className="sc-kicker">SMART COUNTY · DIGITAL TWIN</p>
-          <h1>威远县 · 智慧城市 3D 态势演示</h1>
+          <h1>威远县 · 智慧城市 3D 态势</h1>
         </div>
         <div className="sc-header-meta">
           <div className="sc-theme-bar" role="group" aria-label="地图配色">
@@ -67,7 +67,7 @@ export default function App() {
             ))}
           </div>
           <span>
-            <Activity size={14} /> 实时演示
+            <Activity size={14} /> 实时
           </span>
           <a href={`/gis-command.html?region=weiyuan&theme=${themeId}`} className="sc-link-back">
             2D GIS（同配色）

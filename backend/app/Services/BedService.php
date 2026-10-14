@@ -136,7 +136,7 @@ class BedService extends Service
 
         $patient = null;
         if ($bed->patient_id !== null && $bed->patient_id !== '') {
-            $patient = Patient::query()->where('patient_code', $bed->patient_id)->first();
+            $patient = Patient::query()->where('patient_id', $bed->patient_id)->first();
         }
 
         $binding = CareBinding::query()->where('bed_id', $bed->bed_id)->orderBy('bound_at')->first();
@@ -152,8 +152,8 @@ class BedService extends Service
             'status' => self::STATUS_CODES[$bed->status] ?? 'unknown',
             'statusLabel' => self::STATUS_LABELS[$bed->status] ?? '',
             'patient' => $patient === null ? null : [
-                'patientId' => $patient->patient_code,
-                'name' => $patient->real_name,
+                'patientId' => $patient->patient_id,
+                'name' => $patient->name,
                 'gender' => $this->gender($patient->gender),
                 'genderLabel' => $this->genderLabel($patient->gender),
                 'age' => $patient->age === null ? null : (int) $patient->age,
@@ -343,14 +343,14 @@ class BedService extends Service
         return $total > 0 ? round($occupied / $total * 100, 1) : 0.0;
     }
 
-    private function gender(?string $gender): string
+    private function gender(?int $gender): string
     {
-        return $gender === 'GENDER_FEMALE' ? 'FEMALE' : 'MALE';
+        return $gender === 1 ? 'FEMALE' : 'MALE';
     }
 
-    private function genderLabel(?string $gender): string
+    private function genderLabel(?int $gender): string
     {
-        return $gender === 'GENDER_FEMALE' ? '女' : '男';
+        return $gender === 1 ? '女' : '男';
     }
 
     private function pageSize(array $filters): int

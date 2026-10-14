@@ -3,9 +3,11 @@ import react from '@vitejs/plugin-react'
 import vue from '@vitejs/plugin-vue'
 import { codeInspectorPlugin } from 'code-inspector-plugin'
 import { defineConfig } from 'vite'
+import { injectBackendEnvPlugin } from './src/vite-plugin-inject-backend-env.js'
 
 export default defineConfig(({ mode }) => ({
   plugins: [
+    injectBackendEnvPlugin(),
     vue(),
     react(),
     mode === 'development' &&
@@ -25,7 +27,7 @@ export default defineConfig(({ mode }) => ({
     strictPort: false,
     proxy: {
       '/backend-api': {
-        target: 'http://127.0.0.1:8000',
+        target: process.env.HX_API_PROXY_TARGET || 'http://62.234.128.72:7824',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/backend-api/, '/api'),
       },
@@ -33,12 +35,21 @@ export default defineConfig(({ mode }) => ({
   },
   preview: {
     port: 4173,
+    proxy: {
+      '/backend-api': {
+        target: process.env.HX_API_PROXY_TARGET || 'http://62.234.128.72:7824',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/backend-api/, '/api'),
+      },
+    },
   },
   build: {
     sourcemap: mode === 'development',
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
+        srcShell: path.resolve(__dirname, 'src-shell.html'),
+        devtools: path.resolve(__dirname, 'index.devtools.html'),
         smartCity: path.resolve(__dirname, 'smart-city.html'),
         gisCommand: path.resolve(__dirname, 'gis-command.html'),
         meetingPortal: path.resolve(__dirname, 'meeting-portal.html'),

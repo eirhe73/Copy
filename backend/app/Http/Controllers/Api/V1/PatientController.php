@@ -3,77 +3,50 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Http\Requests\StorePatientRequest;
 use App\Http\Requests\UpdatePatientRequest;
-use App\Http\Resources\PatientResource;
-use App\Models\Patient;
-use Illuminate\Http\JsonResponse;
+use App\Services\PatientService;
+use App\Support\Result;
 use Illuminate\Http\Request;
-use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 
 class PatientController extends Controller
 {
-    /**
-     * 患者列表
-     */
-    public function index(Request $request): AnonymousResourceCollection
+    public function __construct(private readonly PatientService $service)
     {
-        $query = Patient::query();
-
-        $query->when($request->input('keyword'), function ($q, $v) {
-            $q->where(function ($sub) use ($v) {
-                $sub->where('real_name', 'like', "%{$v}%")
-                    ->orWhere('patient_code', 'like', "%{$v}%")
-                    ->orWhere('id_card', 'like', "%{$v}%")
-                    ->orWhere('phone', 'like', "%{$v}%");
-            });
-        });
-
-        $patients = $query->orderByDesc('created_at')
-            ->paginate($request->integer('per_page', 15))
-            ->appends($request->query());
-
-        return PatientResource::collection($patients);
     }
 
     /**
-     * 患者建档
+     * 患者列表（§3.2）
      */
-    public function store(StorePatientRequest $request): JsonResponse
+    public function index(Request $request): array
     {
-        $patient = Patient::create($request->validated());
-        $patient->refresh();
+        $filters = $request->only(['stage', 'keyword', 'institutionId', 'departmentId', 'pageNum', 'pageSize']);
 
-        return (new PatientResource($patient))
-            ->response()
-            ->setStatusCode(201);
+        return Result::success('获取成功', $this->service->index($filters));
     }
 
     /**
-     * 患者详情
+     * 患者详情（§3.3）
      */
-    public function show(Patient $patient): PatientResource
+    public function show(string $patient): array
     {
-        return new PatientResource($patient);
+        return Result::success('获取成功', $this->service->show($patient));
     }
 
     /**
-     * 更新患者信息
+     * 更新患者信息（§3.7）
      */
-    public function update(UpdatePatientRequest $request, Patient $patient): PatientResource
+    public function update(UpdatePatientRequest $request, string $patient): array
     {
-        $patient->update($request->validated());
-
-        return new PatientResource($patient);
+        return Result::success('更新成功', $this->service->update($patient, $request->validated()));
     }
 
     /**
      * 删除患者（软删除）
      */
-    public function destroy(Patient $patient): Response
+    public function destroy(string $patient): Response
     {
-        $patient->delete();
+        $this->service->delete($patient);
 
         return response()->noContent();
     }

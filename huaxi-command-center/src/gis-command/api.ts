@@ -1,14 +1,31 @@
+import { fetchCountyMapCollab } from '../lib/countyMapCollab'
 import type { GisCollabResponse } from './types'
 
-const API = '/api/gis-collab.json'
-
-export async function fetchGisCollab(): Promise<GisCollabResponse> {
-  const res = await fetch(API, { cache: 'no-store' })
-  if (!res.ok) throw new Error('协同数据加载失败')
-  return res.json() as Promise<GisCollabResponse>
+function regionFromLocation(): string {
+  try {
+    const q = new URLSearchParams(location.search).get('region')
+    if (q === 'dafang' || q === 'weiyuan') return q
+  } catch {
+    /* ignore */
+  }
+  return 'weiyuan'
 }
 
-/** 预留：替换为真实后端 WebSocket / REST */
+/** 直连后端 county-map，不再回退静态 Mock */
+export async function fetchGisCollab(): Promise<GisCollabResponse> {
+  const region = regionFromLocation()
+  const live = await fetchCountyMapCollab(region)
+  return {
+    updatedAt: new Date().toISOString(),
+    [region]: {
+      erToday: live.erToday ?? 0,
+      nodes: live.nodes,
+      links: live.links,
+    },
+  } as GisCollabResponse
+}
+
+/** 轮询：直连 Laravel county-map */
 export function subscribeGisCollab(onData: (data: GisCollabResponse) => void, intervalMs = 15000) {
   let stopped = false
   const tick = async () => {

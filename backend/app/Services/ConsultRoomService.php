@@ -5,61 +5,64 @@ namespace App\Services;
 use App\Enums\ResponseCode;
 use App\Models\ConsultOpinion;
 use App\Models\ConsultParticipant;
-use App\Models\ConsultSession;
+use App\Models\ConsultRoom;
 
 /**
- * 会诊室：房间信息、临床资料、会诊意见、患者入会
+ * 会诊室：房间信息、临床资料、会诊意见、患者入会（按 consult_rooms.token 定位）
  */
 class ConsultRoomService extends Service
 {
+    /** 状态码 → 常量名 */
+    private const STATUS_NAMES = [0 => 'WAITING', 1 => 'IN_CALL', 2 => 'FINISHED'];
+
+    /** 状态码 → 展示文案 */
+    private const STATUS_LABELS = [0 => '待接诊', 1 => '会诊中', 2 => '已结束'];
+
     /**
-     * 会诊室信息
+     * 会诊室信息（§5.6）
      */
-    public function room(string $token): array
+    public function show(string $token): array
     {
-        $session = $this->findSession($token);
+        $room = $this->findRoom($token);
+        $session = $room->session;
 
         return [
-            'token' => $session->token,
-            'consultCode' => $session->consult_code,
-            'sessionId' => $session->session_id,
-            'roomName' => trim($session->patient_name.' · '.$session->hospital.' · '.$session->department, ' ·'),
+            'token' => $room->token,
+            'consultCode' => $room->consult_code,
+            'sessionId' => $room->session_id,
+            'roomName' => $room->room_name,
             'patient' => [
-                'patientId' => $session->patient_id,
+                'patientId' => $room->patient_id,
                 'name' => $session->patient_name,
-                'gender' => $session->patient_gender === 1 ? 'FEMALE' : 'MALE',
+                'gender' => $this->genderName($session->patient_gender),
                 'age' => (int) $session->patient_age,
                 'chiefComplaint' => $session->chief_complaint,
             ],
-            'participants' => $session->participants->map(fn ($p) => [
-                'role' => $p->role,
-                'name' => $p->name,
-                'online' => (bool) $p->online,
-            ])->values()->all(),
+            'participants' => $this->participantsOf($session),
             'media' => [
-                'mediaMode' => 'PLACEHOLDER',
-                'rtcUrl' => null,
+                'mediaMode' => $room->media_mode,
+                'rtcUrl' => $room->rtc_url,
                 'notice' => '演示环境 · 音视频为占位，非商用 RTC',
             ],
-            'status' => [0 => 'WAITING', 1 => 'IN_CALL', 2 => 'FINISHED'][$session->status] ?? 'UNKNOWN',
-            'statusLabel' => [0 => '待接诊', 1 => '会诊中', 2 => '已结束'][$session->status] ?? '',
-            'openedAt' => optional($session->opened_at)->toIso8601String(),
+            'status' => self::STATUS_NAMES[$room->status] ?? 'UNKNOWN',
+            'statusLabel' => self::STATUS_LABELS[$room->status] ?? '',
+            'openedAt' => optional($room->opened_at)->toIso8601String(),
         ];
     }
 
     /**
-     * 临床资料
+     * 临床资料（§5.7）
      */
     public function materials(string $token, ?string $kind): array
     {
-        $session = $this->findSession($token);
+        $room = $this->findRoom($token);
 
-        $materials = $session->materials()
+        $materials = $room->materials()
             ->when($kind, fn ($q, $v) => $q->where('kind', $v))
             ->orderBy('id')
             ->get()
             ->map(fn ($m) => [
-                'id' => $m->material_no,
+                'id' => (string) $m->id,
                 'kind' => $m->kind,
                 'title' => $m->title,
                 'content' => $m->content,
@@ -72,11 +75,12 @@ class ConsultRoomService extends Service
     }
 
     /**
-     * 提交会诊意见（提交后状态流转为已结束）
+     * 提交会诊意见（§5.8，提交后状态流转为已结束）
      */
-    public function submitOpinion(string $token, array $data): array
+    public function opinions(string $token, array $data): array
     {
-        $session = $this->findSession($token);
+        $room = $this->findRoom($token);
+        $session = $room->session;
 
         $content = trim($data['content'] ?? '');
         $this->assert($content !== '', ResponseCode::BAD_REQUEST, '会诊意见不能为空');
@@ -84,19 +88,20 @@ class ConsultRoomService extends Service
 
         $now = now();
         $opinion = ConsultOpinion::create([
-            'opinion_no' => $this->nextOpinionNo(),
-            'session_id' => $session->session_id,
-            'content' => $content,
+            'room_token' => $room->token,
+            'session_id' => $room->session_id,
             'doctor_id' => $session->accepted_by,
             'doctor_name' => $session->accepted_by_name ?? '',
+            'content' => $content,
             'submitted_at' => $now,
         ]);
 
         $session->update(['status' => 2, 'closed_at' => $now]);
+        $room->update(['status' => 2, 'closed_at' => $now]);
 
         return [
-            'opinionId' => $opinion->opinion_no,
-            'sessionId' => $session->session_id,
+            'opinionId' => (string) $opinion->id,
+            'sessionId' => $room->session_id,
             'doctorName' => $opinion->doctor_name,
             'status' => 'FINISHED',
             'statusLabel' => '已结束',
@@ -106,15 +111,15 @@ class ConsultRoomService extends Service
     }
 
     /**
-     * 患者 / 家属入会
+     * 患者 / 家属入会（§5.9）
      */
     public function join(string $token, array $data): array
     {
-        $session = $this->findSession($token);
+        $room = $this->findRoom($token);
 
         $now = now();
         $participant = ConsultParticipant::create([
-            'session_id' => $session->session_id,
+            'session_id' => $room->session_id,
             'role' => $data['role'],
             'name' => $data['name'],
             'online' => true,
@@ -125,30 +130,34 @@ class ConsultRoomService extends Service
 
         return [
             'joined' => true,
-            'participantId' => $participant->id,
-            'roomToken' => $token,
+            'participantId' => (string) $participant->id,
+            'roomToken' => $room->token,
             'joinedAt' => $now->toIso8601String(),
         ];
     }
 
     /**
-     * 按 token 取会诊会话
+     * 按 token 取会诊室（含会话）
      */
-    private function findSession(string $token): ConsultSession
+    private function findRoom(string $token): ConsultRoom
     {
-        $session = ConsultSession::with('participants')->where('token', $token)->first();
-        $this->assert($session !== null, ResponseCode::NOT_FOUND, '会诊室不存在或 token 无效');
+        $room = ConsultRoom::with('session.participants')->where('token', $token)->first();
+        $this->assert($room !== null && $room->session !== null, ResponseCode::NOT_FOUND, '会诊室不存在或 token 无效');
 
-        return $session;
+        return $room;
     }
 
-    /**
-     * 生成意见编号：OPI-{四位序号}
-     */
-    private function nextOpinionNo(): string
+    private function participantsOf($session): array
     {
-        $seq = 1000 + ConsultOpinion::count() + 1;
+        return $session->participants->map(fn ($p) => [
+            'role' => $p->role,
+            'name' => $p->name,
+            'online' => (bool) $p->online,
+        ])->values()->all();
+    }
 
-        return 'OPI-'.$seq;
+    private function genderName(int $gender): string
+    {
+        return $gender === 1 ? 'FEMALE' : 'MALE';
     }
 }

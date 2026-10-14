@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreOrganizationRequest;
+use App\Http\Requests\UpdateOrganizationRequest;
 use App\Http\Resources\OrganizationResource;
 use App\Models\Organization;
 use App\Services\OrganizationService;
@@ -50,5 +52,29 @@ class OrganizationController extends Controller
     public function permissions(string $id): array
     {
         return Result::success('获取成功', $this->service->permissions($id));
+    }
+
+    /**
+     * 新增机构（§3.2）
+     */
+    public function store(StoreOrganizationRequest $request): array
+    {
+        return Result::success('新增成功', $this->service->store($request->validated()));
+    }
+
+    /**
+     * 更新机构（§3.3）
+     */
+    public function update(UpdateOrganizationRequest $request, string $id): array
+    {
+        return Result::success('更新成功', $this->service->update($id, $request->validated()));
+    }
+
+    /**
+     * 机构成员（§3.6）
+     */
+    public function users(Request $request, string $id): array
+    {
+        return Result::success('获取成功', $this->service->members($id, $request->query()));
     }
 }

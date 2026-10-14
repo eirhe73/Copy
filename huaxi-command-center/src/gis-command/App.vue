@@ -8,8 +8,8 @@ import type { CollabNode, DispatchVehicleMarker, GisCollabResponse, RegionKey } 
 import { loadGisUiPrefs, saveGisUiPrefs, type GisUiPrefs } from './uiPrefs'
 
 const REGION_HINT: Record<RegionKey, string> = {
-  dafang: '县级牵头 · 乡镇 / 基层节点向上转诊（演示 Mock）',
-  weiyuan: '县级医院 + 乡镇 / 基层 · 叠加 120 演示车辆 GPS',
+  dafang: '县级牵头 · 乡镇 / 基层节点向上转诊',
+  weiyuan: '县级医院 + 乡镇 / 基层 · 叠加 120 在途车辆 GPS',
 }
 
 const region = ref<RegionKey>('weiyuan')
@@ -152,7 +152,7 @@ watch(region, () => {
           </button>
         </nav>
         <div class="gis-header-actions">
-          <span class="gis-demo-tag">演示 Mock</span>
+          <span class="gis-demo-tag">实时数据</span>
           <button type="button" class="gis-pref primary" @click="applyReportLayout">汇报布局</button>
           <button type="button" class="gis-pref" @click="resetLayout">恢复布局</button>
           <button type="button" class="gis-pref" @click="toggleUi('leftPanel')">
@@ -173,7 +173,7 @@ watch(region, () => {
 
       <main class="gis-body" :class="{ noPanel: !ui.leftPanel }">
         <aside v-show="ui.leftPanel" class="gis-panel" aria-label="协作节点列表">
-          <p class="gis-panel-tip">点击节点与地图联动；连线表示转诊 / 协作流量（演示）。</p>
+          <p class="gis-panel-tip">点击节点与地图联动；连线表示转诊 / 协作流量。</p>
           <p v-if="loadError" class="gis-error">{{ loadError }}</p>
           <ul v-else class="gis-list">
             <li v-for="node in nodes" :key="node.id">
@@ -246,7 +246,7 @@ watch(region, () => {
             <span class="value">{{ erToday }}</span>
           </div>
           <div v-if="region === 'weiyuan' && mapVehicles.length" class="gis-veh-chip">
-            院前 {{ mapVehicles.length }} 车 · GPS 演示
+            院前 {{ mapVehicles.length }} 车 · GPS 实时
             <span v-if="updatedAt" class="muted">更新 {{ updatedAt.slice(11, 16) }}</span>
           </div>
         </section>

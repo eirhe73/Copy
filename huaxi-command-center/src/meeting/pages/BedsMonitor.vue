@@ -32,7 +32,7 @@ onUnmounted(() => stop?.())
 
 <template>
   <div class="page">
-    <h2>重症 / 科室床位监控（Mock 实时）</h2>
+    <h2>重症 / 科室床位监控（后端实时）</h2>
     <p class="lead">8s 轮询 · 更新于 {{ updated }} · 生产改为 WebSocket 推送 ADT 事件</p>
     <table class="table">
       <thead>

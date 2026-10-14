@@ -178,6 +178,20 @@ class WarningService extends Service
         $stage = (string) $data['stage'];
         $this->assert(in_array($stage, self::STAGES, true), ResponseCode::BAD_REQUEST, '非法的处置阶段');
 
+        // §5 闭环阶段单向推进：允许跳过、不允许回退；同一阶段重复上报按 400 处理（幂等）
+        $latestIndex = $warning->disposeRecords()
+            ->pluck('stage')
+            ->map(fn (string $s) => array_search($s, self::STAGES, true))
+            ->reject(fn ($i) => $i === false)
+            ->max();
+        $stageIndex = array_search($stage, self::STAGES, true);
+
+        $this->assert(
+            $latestIndex === null || $stageIndex > $latestIndex,
+            ResponseCode::BAD_REQUEST,
+            '处置阶段不允许回退或重复上报'
+        );
+
         $status = $data['nextStatus'] ?? self::STAGE_STATUS[$stage];
         $actedAt = now();
 
@@ -372,10 +386,10 @@ class WarningService extends Service
      */
     private function patientInfo(Warning $warning): array
     {
-        $patient = Patient::query()->where('patient_code', $warning->patient_id)->first();
+        $patient = Patient::query()->where('patient_id', $warning->patient_id)->first();
 
         return [
-            'name' => $patient?->real_name,
+            'name' => $patient?->name,
             'gender' => $patient?->gender,
             'age' => $patient?->age,
             'departmentName' => $this->departmentName($warning->department_id),

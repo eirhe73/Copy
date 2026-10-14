@@ -116,7 +116,7 @@ class DeviceService extends Service
         $this->assert($bed !== null, ResponseCode::BAD_REQUEST, '床位不存在');
 
         $patientName = $bed->patient_id
-            ? Patient::query()->where('patient_code', $bed->patient_id)->value('real_name')
+            ? Patient::query()->where('patient_id', $bed->patient_id)->value('name')
             : null;
 
         $boundAt = now();

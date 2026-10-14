@@ -118,7 +118,7 @@ class EmergencyEventController extends Controller
             ->get()
             ->map(function (EmergencyEvent $event) {
                 // 取最近一张已派车的转诊单获取车辆
-                $transfer = $event->transfers->whereNotNull('vehicle_id')->sortByDesc('created_at')->first();
+                $transfer = $event->transfers->whereNotNull('transport_vehicle_id')->sortByDesc('created_at')->first();
 
                 return [
                     'id' => $event->event_code,
@@ -127,7 +127,7 @@ class EmergencyEventController extends Controller
                     'chiefComplaint' => $event->chief,
                     'pickupAddress' => $event->scene_address,
                     'destination' => $event->target_dept_name ?? $event->acceptOrg?->org_name,
-                    'vehicleId' => $transfer?->vehicle_id,
+                    'vehicleId' => $transfer?->transport_vehicle_id,
                     'vehiclePlate' => $transfer?->vehicle?->plate_number,
                     'status' => $event->event_stage,
                     'startedAt' => $event->occurred_at?->toIso8601String(),

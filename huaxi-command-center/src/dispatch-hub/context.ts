@@ -92,19 +92,42 @@ export function loadDraft(): PatientForm | null {
   }
 }
 
-export function savePatient(form: PatientForm, submit: boolean) {
+export async function savePatient(form: PatientForm, submit: boolean): Promise<string> {
   localStorage.setItem(DRAFT_KEY, JSON.stringify(form))
   const id = form.task120Id || form.eventId || `DRAFT-${Date.now()}`
+  const task = form.task120Id || form.eventId || id
+  const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+
+  if (submit && window.hxBackend?.enabled?.()) {
+    try {
+      await window.hxBackend.ensureAuth()
+      await window.hxBackend.post('/dispatch/patients', {
+        name: form.name,
+        gender: form.gender === '女' ? 'FEMALE' : 'MALE',
+        age: form.age ? Number(form.age) : undefined,
+        phone: form.phone,
+        chiefComplaint: form.chiefComplaint,
+        task120Id: form.task120Id,
+        eventId: form.eventId,
+        vehicleId: form.vehicleId,
+        vehiclePlate: form.vehiclePlate,
+        isDraft: 0,
+      })
+      return `已提交登记 · 后端 POST /dispatch/patients · 任务 ${task}`
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e)
+      return `后端提交失败：${msg}（草稿仍保留在本地）`
+    }
+  }
+
   if (submit) {
     localStorage.setItem(
       `huaxi-dispatch-patient-${id}`,
       JSON.stringify({ ...form, savedAt: new Date().toISOString() }),
     )
   }
-  const task = form.task120Id || form.eventId || id
-  const time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   return submit
-    ? `已提交登记（演示）· 已关联任务 ${task}`
+    ? `已提交登记（本地演示）· 任务 ${task}`
     : `草稿已保存 · ${time} · 任务 ${task || '未填'}`
 }
 

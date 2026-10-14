@@ -109,7 +109,7 @@ onUnmounted(() => {
   <div :class="embedded ? 'dh-embed' : 'dh-page'">
     <template v-if="!embedded">
       <h2 class="dh-h2">车辆监控</h2>
-      <p class="dh-lead">GPS 与到院 ETA（演示数据）。车内监控见右侧占位区域。</p>
+      <p class="dh-lead">GPS 与到院 ETA（后端实时）。车内监控见右侧占位区域。</p>
     </template>
     <div class="dh-split" :class="{ embed: embedded }">
       <div class="dh-map-shell">

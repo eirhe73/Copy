@@ -14,24 +14,27 @@ class StorePatientRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'real_name' => ['required', 'string', 'max:100'],
-            'gender' => ['nullable', 'string', 'in:GENDER_MALE,GENDER_FEMALE,GENDER_UNKNOWN'],
-            'birth_date' => ['nullable', 'date'],
+            'name' => ['required', 'string', 'max:64'],
+            'gender' => ['nullable', 'string', 'in:MALE,FEMALE,UNKNOWN'],
             'age' => ['nullable', 'integer', 'min:0', 'max:150'],
-            'id_card' => ['nullable', 'string', 'max:30'],
-            'phone' => ['nullable', 'string', 'max:50'],
-            'address' => ['nullable', 'string', 'max:500'],
-            'medical_history' => ['nullable', 'string'],
-            'allergy_history' => ['nullable', 'string'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'idCard' => ['nullable', 'string', 'max:30'],
+            'chiefComplaint' => ['nullable', 'string', 'max:255'],
+            'symptoms' => ['nullable', 'array'],
+            'stage' => ['nullable', 'string', 'in:registered,consulting,accepted,admitted,transfer-requested,in-transit,local-closed'],
+            'institutionId' => ['nullable', 'string', 'max:32'],
+            'departmentId' => ['nullable', 'string', 'max:32'],
+            'notes' => ['nullable', 'string'],
+            'isDraft' => ['nullable', 'integer', 'in:0,1'],
         ];
     }
 
     public function attributes(): array
     {
         return [
-            'real_name' => '姓名',
+            'name' => '姓名',
             'gender' => '性别',
-            'id_card' => '身份证号',
+            'idCard' => '证件号',
             'phone' => '联系电话',
         ];
     }

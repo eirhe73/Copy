@@ -7,6 +7,7 @@
     try {
       localStorage.removeItem('huaxi-final-demo-v1')
       sessionStorage.removeItem('huaxi-desktop-session')
+      localStorage.setItem('huaxi-full-backend', '0')
     } catch (e) {
       /* ignore */
     }
