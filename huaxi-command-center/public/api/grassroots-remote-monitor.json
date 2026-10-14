@@ -6,14 +6,14 @@
       "name": "连界镇 ICU 观察",
       "patient": "演示患者01",
       "vitals": "HR 98 · SpO₂ 93%",
-      "videoHref": "/#/monitoring",
+      "videoHref": "/#/critical",
       "bedHref": "/#/critical?mode=town"
     },
     {
       "name": "威远县 ICU 上转监护",
       "patient": "王秀兰",
       "vitals": "HR 102 · SpO₂ 91%",
-      "videoHref": "/#/monitoring",
+      "videoHref": "/#/critical",
       "bedHref": "/#/bed/wy-icu-02"
     }
   ]

@@ -1,5 +1,5 @@
 /**
- * 基层会诊独立页：/#/consultations?scope=grassroots
+ * 远程会诊 · 基层上转视图：/#/consultations?tab=grassroots（兼容 scope=grassroots）
  */
 ;(function () {
   const GRASSROOTS_ORG = new Set(['chuanshi', 'lianjie'])
@@ -10,6 +10,13 @@
     huaxi: '华西医院',
     'neijiang-first': '内江一院',
   }
+
+  /** 基层上转可选的接收医院（指挥中心可按院筛选队列） */
+  const RECEIVING_HOSPITALS = [
+    { id: 'weiyuan', name: '威远县人民医院', tier: '县域' },
+    { id: 'neijiang-first', name: '内江一院', tier: '市级' },
+    { id: 'huaxi', name: '华西医院', tier: '上级' },
+  ]
 
   const STATUS_LABEL = {
     pending: '待接诊',
@@ -45,7 +52,9 @@
   }
 
   function isGrassrootsPage() {
-    return path() === '/consultations' && query().get('scope') === 'grassroots'
+    if (path() !== '/consultations') return false
+    const q = query()
+    return q.get('tab') === 'grassroots' || q.get('scope') === 'grassroots'
   }
 
   function esc(s) {
@@ -111,6 +120,12 @@
       rawLabel === '已结束'
         ? STATUS_LABEL.completed
         : rawLabel || STATUS_LABEL[status] || apiSt
+    const targetInstitutionId =
+      c.targetInstitutionId ||
+      c.target_institution_id ||
+      c.institutionId ||
+      c.institution_id ||
+      guessInstitutionId(targetH)
     return {
       id: String(c.sessionId || c.session_id || c.id || ''),
       sessionId: c.sessionId || c.session_id || '',
@@ -121,12 +136,36 @@
       statusLabel,
       source: sourceD ? `${sourceH || '—'} · ${sourceD}` : sourceH || '—',
       target: targetD ? `${targetH} · ${targetD}` : targetH || '—',
+      targetInstitutionId,
       createdAt: c.createdAt || c.created_at || '',
       token: c.token || '',
       createdBy: c.applicantName || c.applicant_name || '—',
       opinion: c.opinionSummary || c.opinion_summary || '',
       _fromApi: true,
     }
+  }
+
+  function guessInstitutionId(label) {
+    const s = String(label || '')
+    if (s.includes('威远') || s.includes('weiyuan')) return 'weiyuan'
+    if (s.includes('华西') || s.includes('huaxi')) return 'huaxi'
+    if (s.includes('内江') || s.includes('neijiang')) return 'neijiang-first'
+    return ''
+  }
+
+  function selectedHospitalFilter() {
+    const h = query().get('hospital') || ''
+    if (!h || h === 'all') return ''
+    return RECEIVING_HOSPITALS.some((x) => x.id === h) ? h : ''
+  }
+
+  function setHospitalFilter(hospitalId) {
+    const base = '#/consultations?tab=grassroots'
+    const next =
+      hospitalId && hospitalId !== 'all'
+        ? `${base}&hospital=${encodeURIComponent(hospitalId)}`
+        : base
+    if (location.hash.replace(/^#/, '') !== next.replace(/^#/, '')) location.hash = next
   }
 
   async function loadBackendRows(force) {
@@ -195,6 +234,7 @@
         statusLabel: STATUS_LABEL[r.status] || r.status || '—',
         source: orgLabel(r.sourceInstitutionId),
         target: orgLabel(r.institutionId),
+        targetInstitutionId: r.institutionId || '',
         createdAt: r.createdAt,
         token: r.token || patient?.consultationToken,
         createdBy: creator?.name || r.createdBy || '—',
@@ -245,13 +285,41 @@
     return ''
   }
 
-  function buildPageHtml(rows) {
-    const pending = rows.filter((r) => r.status === 'pending').length
-    const active = rows.filter((r) => r.status === 'accepted').length
-    const done = rows.filter((r) => r.status === 'completed').length
+  function hospitalSidebarHtml(allRows) {
+    const filterId = selectedHospitalFilter()
+    const countFor = (hid) =>
+      allRows.filter((r) => !hid || r.targetInstitutionId === hid).filter((r) => r.status === 'pending')
+        .length
+    const allPending = countFor('')
+    const items = RECEIVING_HOSPITALS.map((h) => {
+      const n = countFor(h.id)
+      const active = filterId === h.id
+      return `<li>
+        <button type="button" class="hx-gr-consult-hospital${active ? ' is-active' : ''}" data-hx-gr-hospital="${esc(h.id)}">
+          <strong>${esc(h.name)}</strong>
+          <span>${esc(h.tier)} · 待接诊 ${n}</span>
+        </button>
+      </li>`
+    }).join('')
+    return `<ul class="hx-gr-consult-hospital-list">
+      <li>
+        <button type="button" class="hx-gr-consult-hospital${!filterId ? ' is-active' : ''}" data-hx-gr-hospital="all">
+          <strong>全部接收医院</strong>
+          <span>待接诊 ${allPending}</span>
+        </button>
+      </li>
+      ${items}
+    </ul>`
+  }
 
-    const tableRows = rows.length
-      ? rows
+  function buildPageHtml(rows, allRows) {
+    const viewRows = rows
+    const pending = viewRows.filter((r) => r.status === 'pending').length
+    const active = viewRows.filter((r) => r.status === 'accepted').length
+    const done = viewRows.filter((r) => r.status === 'completed').length
+
+    const tableRows = viewRows.length
+      ? viewRows
           .map(
             (r) => `<tr data-id="${esc(r.id)}">
             <td><strong>${esc(r.patientName)}</strong><small>${esc(r.id)}</small></td>
@@ -267,9 +335,8 @@
 
     return `<div class="hx-gr-consult">
       <div class="hx-gr-consult-toolbar">
-        <p class="hx-gr-consult-lead">乡镇、村卫生室发起的上转会诊申请，由县域或上级医院接诊。</p>
+        <p class="hx-gr-consult-lead">乡镇、村卫生室发起会诊时<strong>选择接收医院</strong>（县域 / 市级 / 上级）；各院在本页各自待接诊队列中接诊，指挥中心可按医院筛选。</p>
         <div class="hx-gr-consult-toolbar__links">
-          <a href="/#/consultations">全县远程会诊</a>
           <a href="/#/organizations?tier=grassroots">协作机构</a>
           <a href="/#/transfers?scope=grassroots">转诊上行</a>
           <a href="/#/dr">基层 Dr.</a>
@@ -279,7 +346,7 @@
         <div><b>${pending}</b><span>待接诊</span></div>
         <div><b>${active}</b><span>会诊中</span></div>
         <div><b>${done}</b><span>已完成</span></div>
-        <div><b>${rows.length}</b><span>合计</span></div>
+        <div><b>${viewRows.length}</b><span>合计</span></div>
       </div>
       <div class="hx-gr-consult-layout">
         <section class="hx-gr-consult-panel">
@@ -294,19 +361,27 @@
           </div>
         </section>
         <aside class="hx-gr-consult-panel hx-gr-consult-sites">
-          <header><h2>基层站点</h2></header>
+          <header><h2>接收医院</h2></header>
+          ${hospitalSidebarHtml(allRows)}
+          <header class="hx-gr-consult-subhead"><h3>基层发起站点</h3></header>
           <ul class="hx-gr-consult-site-list">
             <li><strong>${orgLabel('chuanshi')}</strong><span>全科 / 观察留观</span></li>
             <li><strong>${orgLabel('lianjie')}</strong><span>急诊 / 消化内科</span></li>
           </ul>
-          <p class="hx-gr-consult-tip">新患者可在「急救事件」或「患者登记」中发起会诊，系统将进入对应县级科室队列。</p>
-          <a class="hx-gr-consult-btn block" href="/#/patients">前往急救事件</a>
+          <p class="hx-gr-consult-tip">发起时通过「选择患者发起」指定接收医院与科室；也可在「急救事件」「患者登记」中关联上转。</p>
+          <a class="hx-gr-consult-btn block" href="/#/consultations/pick?tab=grassroots">选择患者 · 指定接收医院</a>
         </aside>
       </div>
     </div>`
   }
 
   function bindPageActions(root) {
+    root.querySelectorAll('[data-hx-gr-hospital]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        setHospitalFilter(btn.getAttribute('data-hx-gr-hospital') || 'all')
+      })
+    })
+
     root.querySelectorAll('[data-hx-gr-accept]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const name = btn.getAttribute('data-hx-gr-accept')
@@ -340,8 +415,7 @@
     document.body.classList.add('hx-consult-grassroots-page')
 
     const h1 = main.querySelector('.workspace-heading h1')
-    if (h1 && h1.textContent !== '基层会诊') h1.textContent = '基层会诊'
-    main.querySelectorAll('.workspace-heading span, .workspace-heading .kt').forEach((el) => el.remove())
+    if (h1 && !/远程会诊/.test(h1.textContent || '')) h1.textContent = '远程会诊'
     const headBtn = main.querySelector('.workspace-heading button')
     if (headBtn && headBtn.textContent.includes('患者')) headBtn.textContent = '选择患者发起'
 
@@ -352,11 +426,11 @@
     })
   }
 
-  function renderPage(rows) {
+  function renderPage(rows, allRows) {
     const main = document.querySelector('main.workspace')
     if (!main) return
 
-    const html = buildPageHtml(rows)
+    const html = buildPageHtml(rows, allRows)
     const fp = rowsFingerprint(rows)
     let root = document.getElementById('hx-grassroots-consult-root')
     if (root && root.dataset.body === html && lastPaintFingerprint === fp) return
@@ -398,8 +472,6 @@
       return
     }
     const serial = ++renderSerial
-    document.getElementById('hx-consult-mode')?.remove()
-
     const [apiRows, state] = await Promise.all([loadBackendRows(force), loadScenario()])
     if (serial !== renderSerial) return
 
@@ -414,9 +486,13 @@
     }
     rows.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
 
-    const fp = rowsFingerprint(rows)
+    const filterH = selectedHospitalFilter()
+    const allRows = rows
+    if (filterH) rows = rows.filter((r) => r.targetInstitutionId === filterH)
+
+    const fp = rowsFingerprint(allRows) + '|h=' + (filterH || 'all')
     if (!force && fp === lastPaintFingerprint) return
-    renderPage(rows)
+    renderPage(rows, allRows)
   }
 
   window.addEventListener('hashchange', () => {

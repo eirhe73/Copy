@@ -11,11 +11,13 @@ export const IA_PLATES: IaPlate[] = [
     home: '/dispatch',
     links: [
       ['/dispatch', '实时出警'],
+      ['/dispatch/list', '出警列表'],
+      ['/ambulances', '救护车列表'],
       ['/patients', '急救事件'],
       ['/register', '患者登记'],
       ['/consultations', '远程会诊'],
-      ['/transfers', '转诊交接'],
-      ['/coordination', '任务协同'],
+      ['/transfers?scope=grassroots', '医院转诊'],
+      ['/critical?mode=grassroots-remote', '基层远程监护'],
     ],
   },
   {
@@ -36,7 +38,6 @@ export const IA_PLATES: IaPlate[] = [
       ['/critical', '重症监护'],
       ['/critical?view=wards', '床位全景'],
       ['/critical?mode=town', '乡镇监护'],
-      ['/monitoring', '视频监控'],
       ['/devices', '床旁设备'],
       ['/centers', '五大中心'],
       ['/organizations', '协作机构'],

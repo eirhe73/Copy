@@ -4,6 +4,7 @@
 ;(function () {
   function onHome() {
     const hash = (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+    if (hash === '/map' || document.body.classList.contains('hx-page-map-only')) return true
     return hash === '/' || hash === ''
   }
 

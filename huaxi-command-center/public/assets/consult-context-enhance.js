@@ -1,9 +1,7 @@
 /**
  * 远程会诊页上下文：
- * - 「返回指挥中枢 / 返回实时出警」按钮固定放到顶部子导航（nav.subnav）右侧，
- *   不再注入工作区内部（避免挤压内容、随页面滚动错位）。
- * - 带 task/plate 参数进入时，任务上下文元信息仍保留在工作区顶部。
- * - 全县会诊队列横幅见 renderRemoteBanner；基层上转会诊见 grassroots-consult-enhance.js
+ * - 顶栏「全县 / 基层上转」与远程会诊同一页切换（基层不再单独侧栏入口）
+ * - 「返回指挥中枢 / 返回实时出警」在 nav.subnav 右侧
  */
 ;(function () {
   function path() {
@@ -22,6 +20,25 @@
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
   }
+
+  function consultTab() {
+    const q = query()
+    if (q.get('scope') === 'grassroots' || q.get('tab') === 'grassroots') return 'grassroots'
+    return 'all'
+  }
+
+  function migrateLegacyGrassrootsUrl() {
+    if (path() !== '/consultations') return
+    const q = query()
+    if (q.get('scope') !== 'grassroots') return
+    const next = new URLSearchParams(q)
+    next.delete('scope')
+    next.set('tab', 'grassroots')
+    const qs = next.toString()
+    location.replace(`${location.pathname}${location.search}#/consultations${qs ? `?${qs}` : ''}`)
+  }
+
+  migrateLegacyGrassrootsUrl()
 
   /** 把返回按钮挂到子导航最右侧（margin-left:auto 由样式控制） */
   function ensureNavBack(label, href) {
@@ -49,8 +66,8 @@
     document.getElementById('hx-nav-back')?.remove()
   }
 
-  function renderRemoteBanner() {
-    if (path() !== '/consultations' || query().get('scope') === 'grassroots') {
+  function renderConsultTabs() {
+    if (path() !== '/consultations') {
       document.getElementById('hx-consult-mode')?.remove()
       return
     }
@@ -58,6 +75,7 @@
       document.querySelector('main.workspace .workspace-heading') ||
       document.querySelector('main.workspace')
     if (!host) return
+    const tab = consultTab()
     let box = document.getElementById('hx-consult-mode')
     if (!box) {
       box = document.createElement('div')
@@ -65,15 +83,22 @@
       box.className = 'hx-consult-mode'
       host.insertAdjacentElement('afterend', box)
     }
-    const html = `<p class="hx-consult-mode__text">全县会诊队列，含院前、县域及上级医院接诊。</p>
-      <a class="hx-consult-mode__link" href="/#/consultations?scope=grassroots">基层上转会诊</a>`
+    const html = `<nav class="hx-consult-tabs" aria-label="会诊范围">
+      <a class="hx-consult-tab${tab === 'all' ? ' is-active' : ''}" href="/#/consultations">全县会诊</a>
+      <a class="hx-consult-tab${tab === 'grassroots' ? ' is-active' : ''}" href="/#/consultations?tab=grassroots">基层上转</a>
+    </nav>
+    <p class="hx-consult-mode__text">${
+      tab === 'grassroots'
+        ? '乡镇、村卫生室发起的上转会诊，按接收医院接诊；与全县院前、县域队列同一工作台。'
+        : '全县会诊队列，含院前、县域及上级医院；基层上转请切到「基层上转」。'
+    }</p>`
     if (box.dataset.body === html) return
     box.dataset.body = html
     box.innerHTML = html
   }
 
   function renderDispatchStrip() {
-    if (path() !== '/consultations' || query().get('scope') === 'grassroots') {
+    if (path() !== '/consultations') {
       document.getElementById('hx-consult-context')?.remove()
       removeNavBack()
       return
@@ -88,7 +113,6 @@
     ensureNavBack(backLabel, back)
 
     if (!task && !plate) {
-      // 普通入口：无需任务上下文条
       document.getElementById('hx-consult-context')?.remove()
       return
     }
@@ -117,9 +141,10 @@
       removeNavBack()
       return
     }
-    renderRemoteBanner()
+    renderConsultTabs()
     renderDispatchStrip()
   }
 
+  window.addEventListener('hashchange', migrateLegacyGrassrootsUrl)
   window.hxEnhance(render, { wait: 350, observeRoot: true, afterNav: 80 })
 })()

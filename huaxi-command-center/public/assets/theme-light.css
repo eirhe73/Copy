@@ -484,7 +484,7 @@ button.link-button:hover {
   border-color: transparent !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.amber):not(.cyan):not(.muted) {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted) {
   background: #fff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
@@ -493,7 +493,7 @@ button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-n
   text-shadow: none !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.amber):not(.cyan):not(.muted):hover {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted):hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
   color: #0f172a !important;
@@ -5062,6 +5062,90 @@ main.dashboard.screen .dashboard-right .event-feed {
   max-height: none !important;
   height: auto !important;
   overflow-y: auto !important;
+  padding: 2px 0 !important;
+}
+
+/* 首页右侧：三块面板等高；列表为扁平行（非卡片） */
+main.dashboard.screen .dashboard-right {
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+  align-content: stretch !important;
+}
+
+main.dashboard.screen .dashboard-right > .panel {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-body {
+  padding: 6px 12px 10px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title {
+  min-height: 38px !important;
+  height: auto !important;
+  padding: 8px 12px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title a,
+main.dashboard.screen .dashboard-right .panel-title .link-button {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 6px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title a:hover {
+  color: #0284c7 !important;
+  background: transparent !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 10px 6px !important;
+  min-height: 0 !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  line-height: 1.65 !important;
+  color: #475569 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #eef2f6 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button:last-child {
+  border-bottom: none !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button:hover {
+  background: #f8fafc !important;
+  border-color: #eef2f6 !important;
+  color: #334155 !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed time {
+  display: inline-block;
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin-right: 6px;
+}
+
+main.dashboard.screen .dashboard-right .event-feed em {
+  font-style: normal !important;
+  color: #0369a1 !important;
+  font-weight: 500 !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed span {
+  color: #475569 !important;
 }
 
 main.dashboard.screen.hx-panels-no-map {
@@ -5730,7 +5814,6 @@ main.dashboard.screen .center-metrics .metric strong {
 .critical-bed,
 .bed-tile,
 .risk-row,
-.consultation-grid article,
 .quality-stat,
 .institution-chain > button,
 .warning-metrics button,
@@ -6689,6 +6772,37 @@ main.meeting .video-state {
   text-decoration: underline;
 }
 
+.hx-consult-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.hx-consult-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0369a1;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #7dd3fc;
+  border-radius: 999px;
+}
+
+.hx-consult-tab:hover {
+  background: #e0f2fe;
+}
+
+.hx-consult-tab.is-active {
+  color: #fff;
+  background: #0284c7;
+  border-color: #0284c7;
+}
+
 .hx-consult-pick-bar {
   display: flex;
   flex-wrap: wrap;
@@ -7010,6 +7124,81 @@ body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > .hx-con
   margin: 12px 0 0;
   font-size: 12px;
   line-height: 1.5;
+  color: #64748b;
+}
+
+.hx-gr-consult-subhead {
+  margin: 16px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.hx-gr-consult-subhead h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.hx-gr-consult-hospital-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-gr-consult-hospital-list li {
+  margin-bottom: 6px;
+}
+
+.hx-gr-consult-hospital {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.hx-gr-consult-hospital:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.hx-gr-consult-hospital.is-active {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.hx-gr-consult-hospital strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.hx-gr-consult-hospital span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hx-consult-pick-target {
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.hx-pick-select {
+  margin-left: 6px;
+  min-width: 160px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.hx-consult-pick-hint {
+  font-size: 12px;
   color: #64748b;
 }
 
@@ -8259,9 +8448,203 @@ button.primary:hover,
   font-weight: 600 !important;
 }
 
+<<<<<<< HEAD
 /* 基层医声 Dr：隐藏内容区重复的板块 Tab，仅保留顶部子导航切换 */
 .app-shell:has(main.dr-page) nav.dr-mainnav,
 main.dr-page nav.dr-mainnav {
   display: none !important;
 }
 
+=======
+/* 远程会诊工作台 — 科室待接诊 / 进行中卡片（sidebar 正式表格化布局） */
+body.hx-consult-page main.workspace {
+  max-width: none !important;
+}
+
+body.hx-consult-page .workspace-heading {
+  align-items: center !important;
+  padding-bottom: 12px !important;
+  margin-bottom: 4px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.hx-consult-page .consultation-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 18px !important;
+  margin-top: 4px !important;
+}
+
+body.hx-consult-page .consultation-grid .consultation-queue {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+body.hx-consult-page .consultation-queue h3 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  margin: 0 0 12px !important;
+  padding: 10px 14px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+body.hx-consult-page .consultation-queue h3 span {
+  min-width: 26px !important;
+  text-align: center !important;
+}
+
+body.hx-consult-page .consultation-queue .hx-consult-queue-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  border: 1px solid #e2e8f0 !important;
+  border-top: 0 !important;
+  border-radius: 0 0 10px 10px !important;
+  overflow: hidden !important;
+  background: #fff !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 300px) !important;
+  grid-template-rows: auto auto auto auto !important;
+  gap: 6px 20px !important;
+  align-items: start !important;
+  margin: 0 !important;
+  padding: 16px 18px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #eef2f7 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card:last-child {
+  border-bottom: 0 !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card header {
+  grid-column: 1 !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 8px 12px !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card header strong {
+  font-size: 16px !important;
+  letter-spacing: 0.02em !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card > p {
+  grid-column: 1 !important;
+  margin: 0 !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card > p:first-of-type {
+  font-weight: 500 !important;
+  color: #1e293b !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card > small,
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card .hx-consult-applicant {
+  grid-column: 1 !important;
+  display: block !important;
+  margin: 0 !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+}
+
+body.hx-consult-page .consultation-queue .hx-consult-admit-actions {
+  grid-column: 2 !important;
+  grid-row: 1 / span 5 !important;
+  align-self: center !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  padding: 12px 14px !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+body.hx-consult-page .consultation-queue .hx-consult-admit-label {
+  margin: 0 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #475569 !important;
+}
+
+body.hx-consult-page .consultation-queue select {
+  width: 100% !important;
+  max-width: none !important;
+  min-height: 38px !important;
+}
+
+body.hx-consult-page .consultation-queue button.primary {
+  width: 100% !important;
+  justify-content: center !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 38px !important;
+  border-radius: 8px !important;
+}
+
+body.hx-consult-page .consultation-grid > article {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  padding: 16px 18px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+body.hx-consult-page .consultation-grid > article header {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px 12px !important;
+  margin-bottom: 8px !important;
+}
+
+body.hx-consult-page .consultation-grid > article footer {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  margin-top: 14px !important;
+  padding-top: 12px !important;
+  border-top: 1px solid #eef2f7 !important;
+}
+
+body.hx-consult-page .consultation-grid .consult-link {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+  font-size: 12px !important;
+  padding: 8px 10px !important;
+  word-break: break-all !important;
+}
+
+body.hx-consult-page .hx-consult-mode {
+  margin-top: 2px !important;
+  border-radius: 10px !important;
+  box-shadow: 0 1px 2px rgba(2, 132, 199, 0.08) !important;
+}
+
+@media (max-width: 900px) {
+  body.hx-consult-page .consultation-queue article.hx-consult-queue-card {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.hx-consult-page .consultation-queue .hx-consult-admit-actions {
+    grid-column: 1 !important;
+    grid-row: auto !important;
+  }
+}
+>>>>>>> 8c92903b76a60004d3bef62dab75d969f18aebe2

@@ -5,10 +5,18 @@ import VehicleDesk from '../components/VehicleDesk.vue'
 import {
   buildHash,
   contextFromHash,
+  defaultListDate,
+  latestEventDate,
   etaText,
+  todayLocalDate,
+  eventLocalDate,
+  filterEventsByDate,
   formatClock,
+  formatDateLabel,
+  hashQuery,
   levelLabel,
   loadEvents,
+  replaceHashQuery,
   statusLabel,
   statusTone,
   vehicleLabel,
@@ -17,16 +25,25 @@ import {
 } from '../context'
 import { startPoll } from '../poll'
 
-const events = ref<DispatchEvent[]>([])
+const allEvents = ref<DispatchEvent[]>([])
+const listDate = ref('')
 const updated = ref('')
 const activeCount = ref(0)
 const selectedId = ref('')
 let stop: (() => void) | null = null
 
-const selected = computed(() => events.value.find((e) => e.id === selectedId.value) ?? null)
+const dayEvents = computed(() => filterEventsByDate(allEvents.value, listDate.value))
 
-const running = computed(() => events.value.filter((e) => e.status.includes('出警')).length)
-const onScene = computed(() => events.value.filter((e) => e.status.includes('现场') || e.status.includes('处置')).length)
+const selected = computed(() => dayEvents.value.find((e) => e.id === selectedId.value) ?? null)
+
+const running = computed(() => dayEvents.value.filter((e) => e.status.includes('出警')).length)
+const onScene = computed(() =>
+  dayEvents.value.filter((e) => e.status.includes('现场') || e.status.includes('处置')).length,
+)
+
+const boardTitle = computed(() =>
+  listDate.value ? `${formatDateLabel(listDate.value)}出警` : '当日出警',
+)
 
 const seed = computed<Partial<PatientForm>>(() => {
   const ev = selected.value
@@ -42,19 +59,55 @@ const seed = computed<Partial<PatientForm>>(() => {
 
 function pickFromHash() {
   const ctx = contextFromHash()
+  const pool = dayEvents.value
   const hit =
-    events.value.find((e) => e.id === ctx.eventId) ||
-    events.value.find((e) => e.vehicleId === ctx.vehicleId) ||
-    events.value.find((e) => e.task120Id === ctx.task120Id)
-  selectedId.value = hit?.id || events.value[0]?.id || ''
+    pool.find((e) => e.id === ctx.eventId) ||
+    pool.find((e) => e.vehicleId === ctx.vehicleId) ||
+    pool.find((e) => e.task120Id === ctx.task120Id)
+  selectedId.value = hit?.id || pool[0]?.id || ''
+}
+
+function syncDateHash(ymd: string) {
+  replaceHashQuery((q) => {
+    if (ymd) q.set('date', ymd)
+    else q.delete('date')
+  })
+}
+
+function setListDate(ymd: string) {
+  if (!ymd || listDate.value === ymd) return
+  listDate.value = ymd
+  syncDateHash(ymd)
+  pickFromHash()
+}
+
+function shiftDay(delta: number) {
+  const base = listDate.value || eventLocalDate(updated.value)
+  const parts = base.split('-').map(Number)
+  if (parts.length !== 3 || parts.some((n) => Number.isNaN(n))) return
+  const d = new Date(parts[0], parts[1] - 1, parts[2])
+  d.setDate(d.getDate() + delta)
+  const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  setListDate(next)
+}
+
+function onHashChange() {
+  const d = hashQuery().get('date') || ''
+  if (d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d !== listDate.value) listDate.value = d
+  pickFromHash()
 }
 
 async function load() {
   const data = await loadEvents()
   updated.value = data.updatedAt
   activeCount.value = data.activeCount
-  events.value = data.events
-  if (!selectedId.value || !events.value.some((e) => e.id === selectedId.value)) pickFromHash()
+  allEvents.value = data.events
+  const hashDate = hashQuery().get('date') || ''
+  if (!listDate.value) {
+    listDate.value = defaultListDate(allEvents.value, data.updatedAt, hashDate)
+    if (hashDate !== listDate.value) syncDateHash(listDate.value)
+  }
+  if (!selectedId.value || !dayEvents.value.some((e) => e.id === selectedId.value)) pickFromHash()
 }
 
 function select(ev: DispatchEvent) {
@@ -74,16 +127,16 @@ onMounted(() => {
     await load()
     return null
   }, () => {}, 10000)
-  window.addEventListener('hashchange', pickFromHash)
+  window.addEventListener('hashchange', onHashChange)
 })
 
 onUnmounted(() => {
   stop?.()
-  window.removeEventListener('hashchange', pickFromHash)
+  window.removeEventListener('hashchange', onHashChange)
 })
 
-watch(events, () => {
-  if (!selectedId.value) pickFromHash()
+watch(dayEvents, () => {
+  if (!selectedId.value || !dayEvents.value.some((e) => e.id === selectedId.value)) pickFromHash()
 })
 </script>
 
@@ -96,16 +149,42 @@ watch(events, () => {
       </div>
       <p class="dh-stats">
         进行中 {{ activeCount }} · 出警 {{ running }} · 现场 {{ onScene }}
-        · <a href="#events">全部 {{ events.length }}</a>
+        · 当日 {{ dayEvents.length }} 条
+        · <a href="#events">全部 {{ allEvents.length }}</a>
         · 更新 {{ formatClock(updated) }}
       </p>
     </section>
     <div class="dh-work dh-work--live">
       <section class="dh-panel dh-board">
-        <h3 class="dh-board-title">今日出警</h3>
-        <ul class="dh-event-grid">
+        <header class="dh-board-head">
+          <h3 class="dh-board-title">{{ boardTitle }}</h3>
+          <div class="dh-date-toolbar">
+            <label class="dh-date-field">
+              <span class="sr-only">选择日期</span>
+              <input
+                type="date"
+                class="dh-date-input"
+                :value="listDate"
+                :max="todayLocalDate()"
+                @change="setListDate(($event.target as HTMLInputElement).value)"
+              />
+            </label>
+            <button type="button" class="dh-date-btn" @click="setListDate(todayLocalDate())">今天</button>
+            <button
+              type="button"
+              class="dh-date-btn"
+              @click="setListDate(latestEventDate(allEvents, updated))"
+            >
+              最近有记录
+            </button>
+            <button type="button" class="dh-date-btn" :disabled="!listDate" @click="shiftDay(-1)">上一日</button>
+            <button type="button" class="dh-date-btn" @click="shiftDay(1)">下一日</button>
+          </div>
+        </header>
+        <p v-if="!dayEvents.length" class="dh-day-empty">该日暂无出警记录，请切换日期或查看「全部」急救事件。</p>
+        <ul v-else class="dh-event-grid">
           <li
-            v-for="ev in events"
+            v-for="ev in dayEvents"
             :key="ev.id"
             class="dh-event-card"
             :class="{ selected: ev.id === selectedId }"
