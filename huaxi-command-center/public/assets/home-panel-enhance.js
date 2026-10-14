@@ -16,6 +16,7 @@
 
   function isHome() {
     const p = path()
+    if (p === '/map' || document.body.classList.contains('hx-page-map-only')) return false
     return p === '/' || p === ''
   }
 
@@ -135,25 +136,40 @@
       bar.id = 'hx-panel-toggles'
     }
 
+    const sidebarShell = document.body.classList.contains('hx-sidebar-shell')
+    bar.classList.toggle('hx-panel-toggles--strip', sidebarShell)
+
     if (bar.parentElement !== shell) {
-      const main = shell.querySelector('main.dashboard.screen, main.dashboard')
-      shell.insertBefore(bar, main || dash)
+      const header = shell.querySelector('header.command-header')
+      if (sidebarShell && header) header.insertAdjacentElement('afterend', bar)
+      else {
+        const main = shell.querySelector('main.dashboard.screen, main.dashboard')
+        shell.insertBefore(bar, main || dash)
+      }
     }
 
-    bar.innerHTML = `
-      <span class="hx-panel-toggles-label">面板</span>
-      ${Object.keys(LABELS)
-        .map(
-          (key) =>
-            `<label><input type="checkbox" data-panel="${key}" ${state[key] ? 'checked' : ''}/>${LABELS[key]}</label>`,
-        )
-        .join('')}
+    const checks = Object.keys(LABELS)
+      .map(
+        (key) =>
+          `<label><input type="checkbox" data-panel="${key}" ${state[key] ? 'checked' : ''}/>${LABELS[key]}</label>`,
+      )
+      .join('')
+
+    bar.innerHTML = sidebarShell
+      ? `<div class="hx-panel-toggles-row"><span class="hx-panel-toggles-label">显示</span>${checks}</div>
+      <div class="hx-panel-toggles-row hx-panel-toggles-row--sub">
+        <button type="button" class="hx-preset-btn" data-preset="report">汇报布局</button>
+        <button type="button" class="hx-preset-btn ghost" data-preset="full">全部显示</button>
+        <a class="hx-preset-link" href="#/map">三维地图</a>
+        <a class="hx-preset-link" href="#/dispatch">院前调度</a>
+      </div>`
+      : `<span class="hx-panel-toggles-label">面板</span>${checks}
       <span class="hx-panel-toggles-sep" aria-hidden="true"></span>
       <button type="button" class="hx-preset-btn" data-preset="report">汇报布局</button>
       <button type="button" class="hx-preset-btn ghost" data-preset="full">全部显示</button>
       <span class="hx-toolbar-links">
-        <a class="hx-preset-link" href="/gis-command.html">GIS 协同大屏 →</a>
-        <a class="hx-preset-link" href="/dispatch.html#live">院前调度 →</a>
+        <a class="hx-preset-link" href="#/map">三维地图 →</a>
+        <a class="hx-preset-link" href="#/dispatch">院前调度 →</a>
       </span>`
 
     bar.querySelectorAll('input[data-panel]').forEach((input) => {
@@ -189,7 +205,7 @@
       resetVisibility()
       return
     }
-    mountDemoLinks()
+    if (!document.body.classList.contains('hx-sidebar-shell')) mountDemoLinks()
     const state = load()
     mountToolbar(state)
     applyVisibility(state)

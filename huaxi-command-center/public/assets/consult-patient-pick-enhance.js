@@ -4,7 +4,53 @@
 ;(function () {
   const STORE_KEY = 'huaxi-final-demo-v1'
   const CLOSED = new Set(['local-closed', 'discharged', 'service-closed'])
-  const TARGET = { institutionId: 'weiyuan', departmentId: 'emergency' }
+  const RECEIVING_HOSPITALS = [
+    {
+      id: 'weiyuan',
+      name: '威远县人民医院',
+      departments: [
+        { id: 'emergency', name: '急诊科' },
+        { id: 'icu', name: '重症医学科' },
+      ],
+    },
+    {
+      id: 'neijiang-first',
+      name: '内江一院',
+      departments: [
+        { id: 'emergency', name: '急诊科' },
+        { id: 'icu', name: '重症医学科' },
+      ],
+    },
+    {
+      id: 'huaxi',
+      name: '华西医院',
+      departments: [
+        { id: 'emergency', name: '急诊科' },
+        { id: 'icu', name: '重症医学科' },
+        { id: 'cardiology', name: '心脏内科' },
+      ],
+    },
+  ]
+
+  function hashQuery() {
+    const raw = location.hash.replace(/^#/, '')
+    const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
+    return new URLSearchParams(q)
+  }
+
+  function isGrassrootsTab() {
+    const q = hashQuery()
+    return q.get('tab') === 'grassroots' || q.get('scope') === 'grassroots'
+  }
+
+  function pickTarget() {
+    const q = hashQuery()
+    const institutionId = q.get('hospital') || 'weiyuan'
+    const departmentId = q.get('dept') || 'emergency'
+    const hospital = RECEIVING_HOSPITALS.find((h) => h.id === institutionId) || RECEIVING_HOSPITALS[0]
+    const dept = hospital.departments.find((d) => d.id === departmentId) || hospital.departments[0]
+    return { institutionId: hospital.id, departmentId: dept.id, hospitalName: hospital.name, deptName: dept.name }
+  }
   const STAGE = {
     registered: '已登记',
     consulting: '会诊中',
@@ -26,6 +72,12 @@
 
   function path() {
     return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+  }
+
+  function query() {
+    const raw = location.hash.replace(/^#/, '')
+    const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
+    return new URLSearchParams(q)
   }
 
   function isPickPage() {
@@ -72,7 +124,7 @@
     return p.patient_code ? String(p.patient_code) : '—'
   }
 
-  function blockReason(state, session, p) {
+  function blockReason(state, session, p, target) {
     if (!p) return '患者不存在'
     if (!canSee(session, p)) return '无权申请'
     if (CLOSED.has(p.stage)) return '服务已结束'
@@ -83,8 +135,8 @@
       !(state.staff || []).some(
         (s) =>
           s.profession === 'doctor' &&
-          s.institutionId === TARGET.institutionId &&
-          s.departmentId === TARGET.departmentId,
+          s.institutionId === target.institutionId &&
+          s.departmentId === target.departmentId,
       )
     ) {
       return '目标科室无接诊医生'
@@ -92,10 +144,10 @@
     return ''
   }
 
-  function applyConsult(pack, patientId) {
+  function applyConsult(pack, patientId, target) {
     const { state, session } = pack
     const patient = state.patients.find((p) => String(p.id) === String(patientId))
-    const block = blockReason(state, session, patient)
+    const block = blockReason(state, session, patient, target)
     if (block) throw new Error(block)
 
     const token = uuid()
@@ -105,8 +157,8 @@
     const doctor = (state.staff || []).find(
       (s) =>
         s.profession === 'doctor' &&
-        s.institutionId === TARGET.institutionId &&
-        s.departmentId === TARGET.departmentId,
+        s.institutionId === target.institutionId &&
+        s.departmentId === target.departmentId,
     )
 
     let next = { ...state, events: [...(state.events || [])] }
@@ -127,8 +179,8 @@
       patientId: patient.id,
       token,
       status: 'pending',
-      institutionId: TARGET.institutionId,
-      departmentId: TARGET.departmentId,
+      institutionId: target.institutionId,
+      departmentId: target.departmentId,
       createdBy: actorId,
       createdAt: at,
       sourceInstitutionId: patient.institutionId,
@@ -167,7 +219,37 @@
     }, 5000)
   }
 
+  function targetSelectorHtml() {
+    const target = pickTarget()
+    const hospitalOpts = RECEIVING_HOSPITALS.map(
+      (h) =>
+        `<option value="${esc(h.id)}"${h.id === target.institutionId ? ' selected' : ''}>${esc(h.name)}</option>`,
+    ).join('')
+    const hospital = RECEIVING_HOSPITALS.find((h) => h.id === target.institutionId) || RECEIVING_HOSPITALS[0]
+    const deptOpts = hospital.departments
+      .map(
+        (d) =>
+          `<option value="${esc(d.id)}"${d.id === target.departmentId ? ' selected' : ''}>${esc(d.name)}</option>`,
+      )
+      .join('')
+    const grassroots = isGrassrootsTab()
+    const backHref = grassroots ? '#/consultations?tab=grassroots' : '#/consultations'
+    return { hospitalOpts, deptOpts, target, grassroots, backHref }
+  }
+
+  function syncPickHash(institutionId, departmentId) {
+    const q = hashQuery()
+    const parts = ['#/consultations/pick']
+    const params = new URLSearchParams()
+    if (isGrassrootsTab()) params.set('tab', 'grassroots')
+    if (institutionId) params.set('hospital', institutionId)
+    if (departmentId) params.set('dept', departmentId)
+    const qs = params.toString()
+    location.hash = qs ? `${parts[0]}?${qs}` : parts[0]
+  }
+
   function buildPageHtml(rows) {
+    const sel = targetSelectorHtml()
     const body = rows.length
       ? rows
           .map((row) => {
@@ -186,10 +268,19 @@
       <header class="workspace-heading">
         <div>
           <h1>选择患者 · 发起远程会诊</h1>
-          <span>申请将进入威远县人民医院 · 急诊科「科室待接诊」队列</span>
+          <span>申请将进入 <strong>${esc(sel.target.hospitalName)} · ${esc(sel.target.deptName)}</strong> 待接诊队列</span>
         </div>
-        <a class="button" href="#/consultations">返回远程会诊</a>
+        <a class="button" href="${esc(sel.backHref)}">返回${sel.grassroots ? '基层会诊' : '远程会诊'}</a>
       </header>
+      <div class="filter-bar hx-consult-pick-filter hx-consult-pick-target">
+        <label class="field">接收医院
+          <select id="hx-pick-hospital" class="hx-pick-select">${sel.hospitalOpts}</select>
+        </label>
+        <label class="field">接诊科室
+          <select id="hx-pick-dept" class="hx-pick-select">${sel.deptOpts}</select>
+        </label>
+        <span class="field hx-consult-pick-hint">基层上转请在此选择县域 / 市级 / 上级接收医院</span>
+      </div>
       <div class="filter-bar hx-consult-pick-filter">
         <span class="field">在列表中选择患者并点击「发起会诊」</span>
       </div>
@@ -203,16 +294,30 @@
   }
 
   function bindActions(root) {
+    const hospitalSel = root.querySelector('#hx-pick-hospital')
+    const deptSel = root.querySelector('#hx-pick-dept')
+    hospitalSel?.addEventListener('change', () => {
+      syncPickHash(hospitalSel.value, 'emergency')
+      renderPickPage()
+    })
+    deptSel?.addEventListener('change', () => {
+      syncPickHash(hospitalSel?.value || 'weiyuan', deptSel.value)
+      renderPickPage()
+    })
+
     root.querySelectorAll('[data-hx-pick-start]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const pid = btn.getAttribute('data-hx-pick-start')
         if (!pid) return
         try {
           const fresh = loadStore()
-          const name = applyConsult(fresh, pid)
+          const target = pickTarget()
+          const name = applyConsult(fresh, pid, target)
           persistStore(fresh)
-          toast(`已为「${name}」发起远程会诊`)
-          location.hash = '#/consultations'
+          toast(`已为「${name}」发起至 ${target.hospitalName} · ${target.deptName}`)
+          const q = hashQuery()
+          location.hash =
+            isGrassrootsTab() ? '#/consultations?tab=grassroots' : '#/consultations'
           setTimeout(() => location.reload(), 60)
         } catch (err) {
           toast(err.message || '发起失败')
@@ -262,7 +367,7 @@
         id: displayId(p),
         symptoms: (p.symptoms || []).join('、') || '—',
         stageLabel: STAGE[p.stage] || p.stage || '—',
-        _block: blockReason(state, session, p),
+        _block: blockReason(state, session, p, pickTarget()),
       }))
 
     const html = buildPageHtml(rows)
@@ -293,11 +398,16 @@
       (e) => {
         if (path() !== '/consultations') return
         const btn = e.target.closest?.('button')
-        if (!btn || !(btn.textContent || '').includes('选择患者发起会诊')) return
+        const label = (btn.textContent || '').trim()
+        if (!label.includes('选择患者发起')) return
         e.preventDefault()
         e.stopPropagation()
         e.stopImmediatePropagation()
-        location.hash = '#/consultations/pick'
+        const grassroots =
+          query().get('tab') === 'grassroots' || query().get('scope') === 'grassroots'
+        location.hash = grassroots
+          ? '#/consultations/pick?tab=grassroots&hospital=weiyuan&dept=emergency'
+          : '#/consultations/pick?hospital=weiyuan&dept=emergency'
       },
       true,
     )

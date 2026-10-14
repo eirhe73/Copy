@@ -4,7 +4,11 @@ import AmbulanceList from './pages/AmbulanceList.vue'
 import EventsList from './pages/EventsList.vue'
 import LiveDispatch from './pages/LiveDispatch.vue'
 import PatientRegister from './pages/PatientRegister.vue'
-import { tabFromHash, type TabId } from './context'
+import { hashQuery, tabFromHash, type TabId } from './context'
+
+const embed = computed(
+  () => hashQuery().get('embed') === '1' || (typeof window !== 'undefined' && window.parent !== window),
+)
 
 const tabs = [
   { id: 'live', label: '实时出警', hint: '选中车辆就地登记' },
@@ -46,8 +50,8 @@ const Current = computed(() => {
 </script>
 
 <template>
-  <div class="dh-app">
-    <header class="dh-header">
+  <div class="dh-app" :class="{ 'dh-app--embed': embed }">
+    <header v-if="!embed" class="dh-header">
       <div class="dh-brand">
         <h1>120 急救调度</h1>
         <p>重症出诊 · 出警、事件、车辆、登记</p>
@@ -70,7 +74,7 @@ const Current = computed(() => {
         <a class="dh-back" href="/app.html#/">返回指挥中枢</a>
       </div>
     </header>
-    <main class="dh-main">
+    <main class="dh-main" :class="{ 'dh-main--embed': embed }">
       <component :is="Current" />
     </main>
   </div>

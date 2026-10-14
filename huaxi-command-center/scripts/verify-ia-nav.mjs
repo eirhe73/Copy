@@ -35,8 +35,10 @@ const noGrassrootsTop = !HP.some((h) => h.title === '基层调度')
 const ambulance = HP[0].links.some(([p, l]) => l === '救护车列表')
 
 const cases = [
-  ['/#/dispatch?hub=ambulances', '/dispatch', 'hub=ambulances'],
-  ['/#/consultations?scope=grassroots', '/consultations', 'scope=grassroots', '智慧急救调度'],
+  ['/#/ambulances', '/ambulances', ''],
+  ['/#/dispatch/list', '/dispatch/list', ''],
+  ['/#/consultations?tab=grassroots', '/consultations', 'tab=grassroots'],
+  ['/#/consultations?tab=grassroots', '/consultations', 'tab=grassroots', '智慧急救调度'],
   ['/#/critical?mode=grassroots-remote', '/critical', 'mode=grassroots-remote', '智慧急救调度'],
   ['/#/medical-quality', '/medical-quality', '', '智能医疗质控'],
 ]
@@ -74,7 +76,7 @@ for (const row of cases) {
 }
 
 const dispatchGrass = HP[0].links.map((l) => l[1])
-for (const name of ['基层会诊', '医院转诊', '基层机构管理', '基层远程监护']) {
+for (const name of ['医院转诊', '基层远程监护']) {
   if (!dispatchGrass.includes(name)) {
     console.error('FAIL: missing under 智慧急救调度:', name)
     failed++

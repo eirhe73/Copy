@@ -484,7 +484,7 @@ button.link-button:hover {
   border-color: transparent !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.amber):not(.cyan):not(.muted) {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted) {
   background: #fff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
@@ -493,7 +493,7 @@ button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-n
   text-shadow: none !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.amber):not(.cyan):not(.muted):hover {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted):hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
   color: #0f172a !important;
@@ -5062,6 +5062,90 @@ main.dashboard.screen .dashboard-right .event-feed {
   max-height: none !important;
   height: auto !important;
   overflow-y: auto !important;
+  padding: 2px 0 !important;
+}
+
+/* 首页右侧：三块面板等高；列表为扁平行（非卡片） */
+main.dashboard.screen .dashboard-right {
+  grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
+  align-content: stretch !important;
+}
+
+main.dashboard.screen .dashboard-right > .panel {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-body {
+  padding: 6px 12px 10px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title {
+  min-height: 38px !important;
+  height: auto !important;
+  padding: 8px 12px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title a,
+main.dashboard.screen .dashboard-right .panel-title .link-button {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 4px 6px !important;
+}
+
+main.dashboard.screen .dashboard-right .panel-title a:hover {
+  color: #0284c7 !important;
+  background: transparent !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 10px 6px !important;
+  min-height: 0 !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  line-height: 1.65 !important;
+  color: #475569 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #eef2f6 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button:last-child {
+  border-bottom: none !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed button:hover {
+  background: #f8fafc !important;
+  border-color: #eef2f6 !important;
+  color: #334155 !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed time {
+  display: inline-block;
+  font-size: 11px !important;
+  color: #94a3b8 !important;
+  margin-right: 6px;
+}
+
+main.dashboard.screen .dashboard-right .event-feed em {
+  font-style: normal !important;
+  color: #0369a1 !important;
+  font-weight: 500 !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed span {
+  color: #475569 !important;
 }
 
 main.dashboard.screen.hx-panels-no-map {
@@ -6689,6 +6773,37 @@ main.meeting .video-state {
   text-decoration: underline;
 }
 
+.hx-consult-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+}
+
+.hx-consult-tab {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #0369a1;
+  text-decoration: none;
+  background: #fff;
+  border: 1px solid #7dd3fc;
+  border-radius: 999px;
+}
+
+.hx-consult-tab:hover {
+  background: #e0f2fe;
+}
+
+.hx-consult-tab.is-active {
+  color: #fff;
+  background: #0284c7;
+  border-color: #0284c7;
+}
+
 .hx-consult-pick-bar {
   display: flex;
   flex-wrap: wrap;
@@ -7010,6 +7125,81 @@ body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > .hx-con
   margin: 12px 0 0;
   font-size: 12px;
   line-height: 1.5;
+  color: #64748b;
+}
+
+.hx-gr-consult-subhead {
+  margin: 16px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.hx-gr-consult-subhead h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.hx-gr-consult-hospital-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hx-gr-consult-hospital-list li {
+  margin-bottom: 6px;
+}
+
+.hx-gr-consult-hospital {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.hx-gr-consult-hospital:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.hx-gr-consult-hospital.is-active {
+  border-color: #0ea5e9;
+  background: #f0f9ff;
+}
+
+.hx-gr-consult-hospital strong {
+  display: block;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.hx-gr-consult-hospital span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.hx-consult-pick-target {
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.hx-pick-select {
+  margin-left: 6px;
+  min-width: 160px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+}
+
+.hx-consult-pick-hint {
+  font-size: 12px;
   color: #64748b;
 }
 

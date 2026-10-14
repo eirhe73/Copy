@@ -80,9 +80,6 @@ export function HomeCountyMap({
           <span>今日结案数</span>
         </div>
       </div>
-      <div className="center-caption">
-        {region === 'dafang' ? '大方汇总指标 · 协作节点已标注' : '威远协作 · 协作节点已标注'}
-      </div>
     </>
   )
 }

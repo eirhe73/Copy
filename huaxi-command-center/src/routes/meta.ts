@@ -35,7 +35,7 @@ export const APP_ROUTES: AppRouteMeta[] = [
   },
   {
     path: '/monitoring',
-    title: '视频监控',
+    title: '视频监控（已下线，重定向重症监护）',
     group: '指挥大屏',
     modules: ['远程 ICU 画面', '云台控制', '多路监控切换'],
   },
