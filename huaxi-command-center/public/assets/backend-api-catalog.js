@@ -159,7 +159,7 @@
       { method: 'GET', path: '/ambulances' },
       { method: 'GET', path: '/vehicles/gps' },
       { method: 'GET', path: '/beds/overview' },
-      { method: 'GET', path: '/dashboard/county-map?region=dafang' },
+      { method: 'GET', path: '/dashboard/county-map' },
       { method: 'GET', path: '/warnings/summary' },
       { method: 'GET', path: '/warnings?pageNum=1&pageSize=15' },
       { method: 'GET', path: '/critical/alerts' },

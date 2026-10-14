@@ -269,22 +269,28 @@
   }
 
   async function adaptGisCollab() {
+    let staticPack = null
     try {
-      // 后端 county-map 不按 region 过滤，直接拉取全量节点，统一挂到 weiyuan 下
+      staticPack = await loadStaticGisCollab()
+    } catch {
+      /* optional */
+    }
+    try {
       const raw = await backendGet('/dashboard/county-map')
       const data = unwrapEnvelope(raw)
-      const pack = {
+      const livePack = {
         erToday: data?.erToday ?? 0,
         nodes: data?.nodes ?? [],
         links: data?.links ?? [],
       }
       return {
         updatedAt: data?.updatedAt || new Date().toISOString(),
-        weiyuan: pack,
-        dafang: { erToday: 0, nodes: [], links: [] },
+        weiyuan: livePack.nodes?.length ? livePack : staticPack?.weiyuan || livePack,
+        dafang: staticPack?.dafang || livePack,
       }
     } catch (e) {
-      console.warn('[hx-api-bridge] county-map 失败', e)
+      console.warn('[hx-api-bridge] county-map 失败，回退 gis-collab.json', e)
+      if (staticPack) return staticPack
       throw e
     }
   }

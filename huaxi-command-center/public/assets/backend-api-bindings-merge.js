@@ -2,8 +2,9 @@
  * 将 HX_API_CATALOG 中各 tag 的 GET 合并进 HX_ROUTE_BINDINGS（去重，带 {param} 的走 useSamples）
  */
 ;(function () {
+  /** 首页大屏仅用 catalog 里手写的 13 条绑定；勿合并整 tag（否则 40+ 顺序探测 → 429/401 + 布局卡顿） */
   const ROUTE_TAGS = {
-    '/': ['auth', 'dispatch', 'gis', 'bed', 'warning', 'critical', 'patient', 'center'],
+    '/': [],
     '/dispatch': ['dispatch', 'vehicle'],
     '/register': ['dispatch', 'org', 'patient'],
     '/warning': ['warning'],

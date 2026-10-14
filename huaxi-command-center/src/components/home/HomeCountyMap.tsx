@@ -26,7 +26,7 @@ export function HomeCountyMap({
   const { region, setRegion } = useHomeRegion()
   const { ready, authenticated } = useAuth()
   const { results, loading: countyLoading } = useRouteApi(
-    [{ method: 'GET', path: `/dashboard/county-map?region=${region}` }],
+    [{ method: 'GET', path: '/dashboard/county-map' }],
     {},
     { enabled: ready && authenticated },
   )
