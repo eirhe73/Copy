@@ -134,6 +134,29 @@ class ConsultRtcService extends Service
     }
 
     /**
+     * 房间状态明细：'WAITING' / 'IN_CALL' / 'ENDED'；房间已被回收时返回 'GONE'；不可达时返回 null
+     *
+     * 与 probe() 的区别在于把"房主主动结束"和"房间不存在"区分开：
+     * 会诊系统重启会让房间丢失（404），这不等于会诊结束，不能据此关闭主系统会诊单。
+     */
+    public function roomState(string $rtcSessionId): ?string
+    {
+        if (! $this->enabled() || $rtcSessionId === '') {
+            return null;
+        }
+
+        $httpStatus = null;
+        $data = $this->call('get', '/api/rooms/'.rawurlencode($rtcSessionId), [], $httpStatus);
+        if ($data === null) {
+            return $httpStatus === 404 ? 'GONE' : null;
+        }
+
+        $state = strtoupper(trim((string) ($data['state'] ?? '')));
+
+        return $state !== '' ? $state : null;
+    }
+
+    /**
      * 拉取参会人，用于主系统补参会留痕
      *
      * 优先取"曾入会成员" attended（含已退出）——只取在线列表会漏记先退出的医生。
@@ -224,10 +247,9 @@ class ConsultRtcService extends Service
             $patient = Patient::where('patient_id', $session->patient_id)->first();
         }
 
-        // 性别：主系统 patients.gender 为 0男 1女 2未知，接口层为 MALE/FEMALE；会诊系统为 M/F/U
-        $gender = $patient !== null
-            ? $this->genderOf($patient->gender)
-            : ($session->patient_gender !== null ? ((int) $session->patient_gender === 1 ? 'F' : 'M') : 'U');
+        // 性别：主系统 0男 1女 2未知 → 会诊系统 M/F/U。
+        // 临时患者（无患者编号）走同一映射：原来把"不是1"一律当 M，未知会被报成男性。
+        $gender = $this->genderOf($patient !== null ? $patient->gender : $session->patient_gender);
 
         $dept = $session->department ?: ($patient->department_id ?? '');
         if ($patient !== null && $patient->department_id && ! $session->department) {
@@ -354,9 +376,10 @@ class ConsultRtcService extends Service
     /**
      * 统一 HTTP 调用：服务令牌、超时、错误降级、脱敏日志
      *
+     * @param  int|null  $httpStatus  出参：实际响应状态码（不可达时为 null），供调用方区分 404 与网络故障
      * @return array<string, mixed>|null 失败返回 null
      */
-    private function call(string $method, string $path, array $payload = []): ?array
+    private function call(string $method, string $path, array $payload = [], ?int &$httpStatus = null): ?array
     {
         $cfg = config('services.consultation');
         $baseUrl = rtrim((string) $cfg['base_url'], '/');
@@ -380,6 +403,8 @@ class ConsultRtcService extends Service
                 default => $request->post($path, $payload),
             };
 
+            $httpStatus = $response->status();
+
             if (! $response->successful()) {
                 Log::warning('会诊系统调用失败', [
                     'method' => $method,
@@ -392,6 +417,7 @@ class ConsultRtcService extends Service
 
             return $response->json() ?: [];
         } catch (\Throwable $e) {
+            $httpStatus = null;
             Log::warning('会诊系统不可达', [
                 'method' => $method,
                 'error' => $e->getMessage(),

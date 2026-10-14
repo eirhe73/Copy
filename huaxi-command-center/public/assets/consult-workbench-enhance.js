@@ -37,6 +37,8 @@
     depts: [],
     msg: '',
     msgKind: '',
+    schedule: null, // Date|null 定时开始时间
+    qtab: 'wait',   // 队列状态 Tab：wait/incall/sched/done/all
   }
 
   // ---------- 基础工具 ----------
@@ -206,11 +208,45 @@
       P + '-tag.waiting{background:#fef3c7;color:#92400e;border-color:#fde68a}',
       P + '-tag.calling{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}',
       P + '-tag.finished{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}',
+      P + '-tag.sched{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}',
+      // ---------- 队列状态 Tab ----------
+      P + '-tabs{display:flex;gap:6px;margin:0 0 10px;flex-wrap:wrap}',
+      P + '-tab{border:1px solid #cbd5e1;background:#fff;color:#475569;border-radius:999px;padding:3px 12px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1.5}',
+      P + '-tab:hover{border-color:#94a3b8;background:#f8fafc}',
+      P + '-tab.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}',
+      P + '-tab .n{opacity:.7;margin-left:3px}',
+      P + ' tr.' + HOST_ID + '-done td{opacity:.55}',
       P + '-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-bottom:14px}',
       P + '-field{display:flex;flex-direction:column;gap:4px}',
       P + '-field label{font-size:12px;color:#64748b}',
       P + '-field input,' + P + '-field select,' + P + '-field textarea{font-family:inherit;font-size:13px;color:#1e293b;border:1px solid #cbd5e1;border-radius:4px;padding:6px 8px;background:#fff;width:100%;box-sizing:border-box}',
       P + '-field input:focus,' + P + '-field select:focus{outline:none;border-color:#1d4ed8}',
+      // ---------- 定时选择器（自定义面板，替代原生 datetime-local） ----------
+      P + '-dt{position:relative}',
+      P + '-dt input{cursor:pointer;padding-right:52px}',
+      P + '-dt input::placeholder{color:#94a3b8}',
+      P + '-dt-clear{position:absolute;right:26px;top:50%;transform:translateY(-50%);width:16px;height:16px;line-height:14px;text-align:center;border-radius:50%;color:#94a3b8;font-size:13px;cursor:pointer;display:none}',
+      P + '-dt-clear:hover{background:#f1f5f9;color:#475569}',
+      P + '-dt-icon{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:#94a3b8;display:flex;pointer-events:none}',
+      P + '-dp{position:fixed;z-index:60;width:272px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 12px 32px rgba(15,23,42,.16);padding:10px;font-size:13px;user-select:none}',
+      P + '-dp-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}',
+      P + '-dp-title{font-weight:600;color:#1e293b;font-size:13px}',
+      P + '-dp-nav{border:none;background:none;cursor:pointer;color:#475569;width:24px;height:24px;border-radius:4px;font-size:14px;line-height:1}',
+      P + '-dp-nav:hover{background:#f1f5f9}',
+      P + '-dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}',
+      P + '-wd{color:#94a3b8;font-size:11px;text-align:center;padding:2px 0}',
+      P + '-day{border:none;background:none;cursor:pointer;height:26px;border-radius:4px;color:#1e293b;font-size:12px;font-family:inherit;padding:0}',
+      P + '-day:hover{background:#f1f5f9}',
+      P + '-day.dim{color:#cbd5e1}',
+      P + '-day.today{box-shadow:inset 0 0 0 1px #94a3b8}',
+      P + '-day.sel{background:#1d4ed8;color:#fff}',
+      P + '-day.sel:hover{background:#1e40af}',
+      P + '-day:disabled{color:#cbd5e1;cursor:not-allowed;background:none;box-shadow:none}',
+      P + '-time{display:flex;gap:8px;align-items:center;margin-top:8px}',
+      P + '-time b{font-size:12px;color:#64748b;font-weight:400;white-space:nowrap}',
+      P + '-time select{flex:1;font-family:inherit;font-size:12px;color:#1e293b;border:1px solid #cbd5e1;border-radius:4px;padding:4px 6px;background:#fff;min-width:0}',
+      P + '-foot{display:flex;gap:6px;align-items:center;margin-top:10px}',
+      P + '-foot .sp{flex:1}',
       P + '-form-foot{grid-column:1/-1;display:flex;gap:8px;align-items:center}',
       P + '-msg{font-size:12px}',
       P + '-msg.err{color:#b91c1c}',
@@ -244,6 +280,12 @@
       '<div class="' + HOST_ID + '-field"><label>目标科室</label><select id="hx-cw-f-dept"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label>指定接诊医生</label><select id="hx-cw-f-doctor"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label>备注</label><input id="hx-cw-f-note" type="text" placeholder="选填"></div>' +
+      '<div class="' + HOST_ID + '-field"><label>定时开始（选填）</label>' +
+      '<div class="' + HOST_ID + '-dt">' +
+      '<input id="hx-cw-f-schedule" type="text" readonly placeholder="选填 · 留空立即开始">' +
+      '<span class="' + HOST_ID + '-dt-clear" id="hx-cw-f-dt-clear" data-act="dt-clear" title="清除定时">&times;</span>' +
+      '<span class="' + HOST_ID + '-dt-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>' +
+      '</div></div>' +
       '<div class="' + HOST_ID + '-form-foot">' +
       '<button type="button" class="' + HOST_ID + '-btn primary" data-act="submit">提交会诊</button>' +
       '<button type="button" class="' + HOST_ID + '-btn" data-act="toggle-form">取消</button>' +
@@ -266,6 +308,7 @@
       '</div>' +
       '<div class="' + HOST_ID + '-panel">' +
       '<div class="' + HOST_ID + '-h3">会诊队列</div>' +
+      '<div class="' + HOST_ID + '-tabs" id="hx-cw-tabs"></div>' +
       '<div id="hx-cw-queue"></div>' +
       '</div>' +
       '<div class="' + HOST_ID + '-panel">' +
@@ -280,31 +323,271 @@
     return '<span class="' + HOST_ID + '-tag ' + cls + '">' + esc(label || status || '') + '</span>'
   }
 
+  /** ISO 时间 → 浏览器本地时区的 "M月D日 HH:MM" */
+  function fmtLocal(iso) {
+    var d = new Date(iso)
+    if (isNaN(d.getTime())) return ''
+    function p(n) { return (n < 10 ? '0' : '') + n }
+    return (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + p(d.getHours()) + ':' + p(d.getMinutes())
+  }
+
+  /** 定时会诊是否已到开始时间（按浏览器时钟算，到点即时翻转为可进入） */
+  function startableNow(it) {
+    return !it.scheduledAt || Date.now() >= new Date(it.scheduledAt).getTime()
+  }
+
+  // ---------- 定时选择器（自定义面板） ----------
+
+  var dp = { open: false, view: null, sel: null, panel: null }
+
+  function p2(n) {
+    return (n < 10 ? '0' : '') + n
+  }
+
+  /** 同步输入框显示与清除按钮 */
+  function updateDtInput() {
+    var inp = $('hx-cw-f-schedule')
+    if (inp) {
+      var text = ''
+      if (state.schedule) {
+        var d = state.schedule
+        var ymd = d.getFullYear() === new Date().getFullYear()
+          ? (d.getMonth() + 1) + '月' + d.getDate() + '日'
+          : d.getFullYear() + '年' + (d.getMonth() + 1) + '月' + d.getDate() + '日'
+        text = ymd + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes())
+      }
+      inp.value = text
+    }
+    var clear = $('hx-cw-f-dt-clear')
+    if (clear) clear.style.display = state.schedule ? 'block' : 'none'
+  }
+
+  function dpApply(d) {
+    d.setSeconds(0, 0)
+    state.schedule = new Date(d.getTime())
+    updateDtInput()
+    dpClose()
+  }
+
+  function dpClose() {
+    // 防御性清理所有面板实例：dpBuild 重建时会先移除旧面板，
+    // 但万一有历史残留（如异常路径未走 dpClose），一并清掉，杜绝僵尸面板
+    var all = document.querySelectorAll('.' + HOST_ID + '-dp')
+    for (var i = 0; i < all.length; i++) all[i].remove()
+    dp.panel = null
+    dp.open = false
+  }
+
+  /** 面板定位：贴到输入框下方，放不下则翻到上方；左右防出屏 */
+  function dpPlace() {
+    if (!dp.panel) return
+    var inp = $('hx-cw-f-schedule')
+    if (!inp) return dpClose()
+    var r = inp.getBoundingClientRect()
+    var pw = dp.panel.offsetWidth
+    var ph = dp.panel.offsetHeight
+    var left = Math.min(Math.max(8, r.left), window.innerWidth - pw - 8)
+    var top = r.bottom + 6
+    if (top + ph > window.innerHeight - 8 && r.top - ph - 6 > 8) top = r.top - ph - 6
+    dp.panel.style.left = Math.round(left) + 'px'
+    dp.panel.style.top = Math.round(top) + 'px'
+  }
+
+  function dpBuild() {
+    // 先移除旧面板再重建：切月/选日都会走到这里，
+    // 原来只 append 新面板不移除旧的，导致面板叠加、旧面板永远关不掉
+    if (dp.panel) dp.panel.remove()
+    var v = dp.view
+    var y = v.getFullYear()
+    var m = v.getMonth()
+    var today = new Date()
+    var today0 = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+
+    var firstDow = new Date(y, m, 1).getDay()
+    var days = new Date(y, m + 1, 0).getDate()
+    var cells = ''
+    for (var i = 0; i < firstDow; i++) cells += '<span></span>'
+    for (var d = 1; d <= days; d++) {
+      var dayEnd = new Date(y, m, d, 23, 59, 59).getTime()
+      var dis = dayEnd < today0 ? ' disabled' : ''
+      var cls = []
+      var cur = new Date(y, m, d)
+      if (today.getFullYear() === y && today.getMonth() === m && today.getDate() === d) cls.push('today')
+      if (dp.sel && cur.getFullYear() === dp.sel.getFullYear() && cur.getMonth() === dp.sel.getMonth() && cur.getDate() === dp.sel.getDate()) cls.push('sel')
+      cells += '<button type="button" class="' + HOST_ID + '-day' + (cls.length ? ' ' + cls.join(' ') : '') + '"' +
+        dis + ' data-dp="day" data-d="' + d + '">' + d + '</button>'
+    }
+
+    var hh = dp.sel ? dp.sel.getHours() : Math.min(23, new Date().getHours())
+    var mi = dp.sel ? dp.sel.getMinutes() : Math.ceil(new Date().getMinutes() / 5) * 5 % 60
+    var hourOpts = ''
+    for (var h = 0; h < 24; h++) hourOpts += '<option value="' + h + '"' + (h === hh ? ' selected' : '') + '>' + p2(h) + '时</option>'
+    var minOpts = ''
+    for (var mi2 = 0; mi2 < 60; mi2 += 5) {
+      minOpts += '<option value="' + mi2 + '"' + (mi2 === (Math.round(mi / 5) * 5) % 60 ? ' selected' : '') + '>' + p2(mi2) + '分</option>'
+    }
+
+    var panel = document.createElement('div')
+    panel.className = HOST_ID + '-dp'
+    panel.innerHTML =
+      '<div class="' + HOST_ID + '-dp-head">' +
+      '<button type="button" class="' + HOST_ID + '-dp-nav" data-dp="prev">‹</button>' +
+      '<span class="' + HOST_ID + '-dp-title">' + y + '年' + (m + 1) + '月</span>' +
+      '<button type="button" class="' + HOST_ID + '-dp-nav" data-dp="next">›</button>' +
+      '</div>' +
+      '<div class="' + HOST_ID + '-dp-grid">' +
+      ['日', '一', '二', '三', '四', '五', '六'].map(function (w) { return '<span class="' + HOST_ID + '-wd">' + w + '</span>' }).join('') +
+      cells +
+      '</div>' +
+      '<div class="' + HOST_ID + '-time"><b>时间</b>' +
+      '<select id="hx-cw-dp-h">' + hourOpts + '</select>' +
+      '<select id="hx-cw-dp-m">' + minOpts + '</select>' +
+      '</div>' +
+      '<div class="' + HOST_ID + '-foot">' +
+      '<button type="button" class="' + HOST_ID + '-btn" data-dp="p1h">1小时后</button>' +
+      '<button type="button" class="' + HOST_ID + '-btn" data-dp="tom9">明天9:00</button>' +
+      '<span class="sp"></span>' +
+      '<button type="button" class="' + HOST_ID + '-btn" data-dp="clear">清除</button>' +
+      '<button type="button" class="' + HOST_ID + '-btn primary" data-dp="ok">确定</button>' +
+      '</div>'
+
+    panel.addEventListener('click', function (ev) {
+      var el = ev.target.closest('[data-dp]')
+      if (!el || !panel.contains(el)) return
+      var act = el.getAttribute('data-dp')
+      if (act === 'prev' || act === 'next') {
+        dp.view = new Date(y, m + (act === 'next' ? 1 : -1), 1)
+        dpBuild()
+        dpPlace()
+      } else if (act === 'day') {
+        var d = parseInt(el.getAttribute('data-d'), 10)
+        var sh = parseInt(($('hx-cw-dp-h') || {}).value || '9', 10)
+        var sm = parseInt(($('hx-cw-dp-m') || {}).value || '0', 10)
+        dp.sel = new Date(y, m, d, sh, sm, 0, 0)
+        dpBuild()
+        dpPlace()
+      } else if (act === 'p1h') {
+        var t1 = new Date(Date.now() + 3600e3)
+        dpApply(new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), 0, 0))
+      } else if (act === 'tom9') {
+        var t2 = new Date()
+        dpApply(new Date(t2.getFullYear(), t2.getMonth(), t2.getDate() + 1, 9, 0, 0, 0))
+      } else if (act === 'clear') {
+        state.schedule = null
+        updateDtInput()
+        dpClose()
+      } else if (act === 'ok') {
+        if (dp.sel) dpApply(dp.sel)
+        else dpClose()
+      }
+    })
+
+    panel.addEventListener('change', function (ev) {
+      var id = ev.target && ev.target.id
+      if (id !== 'hx-cw-dp-h' && id !== 'hx-cw-dp-m') return
+      var sh = parseInt(($('hx-cw-dp-h') || {}).value || '9', 10)
+      var sm = parseInt(($('hx-cw-dp-m') || {}).value || '0', 10)
+      if (dp.sel) dp.sel = new Date(dp.sel.getFullYear(), dp.sel.getMonth(), dp.sel.getDate(), sh, sm, 0, 0)
+      else dp.sel = new Date(new Date().setHours(sh, sm, 0, 0))
+    })
+
+    dp.panel = panel
+    document.body.appendChild(panel)
+  }
+
+  function dpOpen() {
+    if (dp.open) return dpClose()
+    dp.sel = state.schedule ? new Date(state.schedule.getTime()) : null
+    dp.view = new Date()
+    dp.view.setDate(1)
+    dp.view.setHours(0, 0, 0, 0)
+    dpBuild()
+    dp.open = true
+    dpPlace()
+  }
+
+  // 面板打开时的全局关闭与快捷键（只注册一次）
+  if (!window.__hxCwDtBound) {
+    window.__hxCwDtBound = true
+    document.addEventListener('mousedown', function (ev) {
+      if (!dp.open || !dp.panel) return
+      var t = ev.target
+      // 选择器面板在 body 上，触发框在宿主内：这两处都不要被外部 mousedown 关掉。
+      // 原来写的是 '#hx-cw-f-dt'，但触发框是 class（hx-cw-dt）、输入框 id 是 hx-cw-f-schedule，
+      // 这个选择器永远匹配不到，等于该保护没生效。
+      if (dp.panel.contains(t) || (t.closest && t.closest('.' + HOST_ID + '-dt'))) return
+      dpClose()
+    })
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape' && dp.open) dpClose()
+    })
+  }
+
   function opBtn(act, id, text, primary) {
     return '<button type="button" class="' + HOST_ID + '-btn' + (primary ? ' primary' : ' link') +
       '" data-act="' + act + '" data-id="' + esc(id) + '">' + esc(text) + '</button>'
   }
 
+  // ---------- 队列状态 Tab ----------
+
+  var QTABS = [
+    { k: 'wait', label: '待接诊' },
+    { k: 'incall', label: '会诊中' },
+    { k: 'sched', label: '定时' },
+    { k: 'done', label: '已结束' },
+    { k: 'all', label: '全部' },
+  ]
+
+  /** 单条会诊单归属哪个 Tab（定时未到点的 WAITING 单归"定时"，其余 WAITING 归"待接诊"） */
+  function qtabMatch(it, k) {
+    switch (k) {
+      case 'wait': return it.status === 'WAITING' && startableNow(it)
+      case 'incall': return it.status === 'IN_CALL'
+      case 'sched': return it.status !== 'FINISHED' && !!it.scheduledAt && !startableNow(it)
+      case 'done': return it.status === 'FINISHED'
+      default: return true
+    }
+  }
+
+  function tabsHtml() {
+    return QTABS.map(function (t) {
+      var n = 0
+      state.queue.forEach(function (it) { if (qtabMatch(it, t.k)) n++ })
+      return '<button type="button" class="' + HOST_ID + '-tab' + (state.qtab === t.k ? ' on' : '') +
+        '" data-act="qtab" data-qtab="' + t.k + '">' + t.label + '<span class="n">' + n + '</span></button>'
+    }).join('')
+  }
+
   function queueHtml() {
+    var rows0 = state.queue.filter(function (it) { return qtabMatch(it, state.qtab) })
     if (state.loading && !state.queue.length) return '<div class="' + HOST_ID + '-empty">加载中…</div>'
-    if (!state.queue.length) return '<div class="' + HOST_ID + '-empty">暂无会诊单</div>'
-    var rows = state.queue.map(function (it) {
+    if (!rows0.length) return '<div class="' + HOST_ID + '-empty">' + (state.queue.length ? '该状态下暂无会诊单' : '暂无会诊单') + '</div>'
+    var rows = rows0.map(function (it) {
       var p = it.patient || {}
       var who = esc(p.name || '—')
       if (p.age) who += ' · ' + esc(p.age) + '岁'
       var ops = []
-      if (it.status === 'WAITING') ops.push(opBtn('accept', it.sessionId, '接诊'))
-      if (it.status === 'WAITING' || it.status === 'IN_CALL') {
-        ops.push(opBtn('join', it.sessionId, '进入会诊室', it.status === 'IN_CALL'))
+      // 定时未到点：状态列显示"定时·开始时间"，不出现"进入会诊室"（后端 join-link 也会拒绝）
+      if (it.scheduledAt && !startableNow(it)) {
+        if (it.status === 'WAITING') ops.push(opBtn('accept', it.sessionId, '接诊'))
+      } else {
+        if (it.status === 'WAITING') ops.push(opBtn('accept', it.sessionId, '接诊'))
+        if (it.status === 'WAITING' || it.status === 'IN_CALL') {
+          ops.push(opBtn('join', it.sessionId, '进入会诊室', it.status === 'IN_CALL'))
+        }
       }
+      var statusHtml = (it.scheduledAt && !startableNow(it))
+        ? '<span class="' + HOST_ID + '-tag sched">定时 · ' + esc(fmtLocal(it.scheduledAt)) + ' 开始</span>'
+        : statusTag(it.status, it.statusLabel)
+      var done = it.status === 'FINISHED'
       return (
-        '<tr>' +
+        '<tr' + (done ? ' class="' + HOST_ID + '-done"' : '') + '>' +
         '<td>' + esc(it.consultCode || it.sessionId) + '</td>' +
         '<td>' + who + '</td>' +
         '<td>' + esc(it.sourceHospital || '—') + '<br><span style="color:#94a3b8">' + esc(it.sourceDepartment || '') + '</span></td>' +
         '<td>' + esc(it.targetHospital || '—') + '<br><span style="color:#94a3b8">' + esc(it.targetDepartment || '') + '</span></td>' +
         '<td>' + esc(it.nominatedDoctorName || '—') + '</td>' +
-        '<td>' + statusTag(it.status, it.statusLabel) + '</td>' +
+        '<td>' + statusHtml + '</td>' +
         '<td>' + (ops.length ? ops.join(' ') : '<span style="color:#94a3b8">—</span>') + '</td>' +
         '</tr>'
       )
@@ -336,8 +619,10 @@
   function paint() {
     var q = $('hx-cw-queue')
     var d = $('hx-cw-doctors')
+    var tb = $('hx-cw-tabs')
     if (q) q.innerHTML = queueHtml()
     if (d) d.innerHTML = doctorsHtml()
+    if (tb) tb.innerHTML = tabsHtml()
     syncForm()
   }
 
@@ -431,6 +716,12 @@
     })
   }
 
+  /** 同步右上角按钮文案：表单展开时是"收起表单"，避免两个入口互相冲突 */
+  function setHeadBtn(open) {
+    var btn = document.querySelector('#' + HOST_ID + ' .' + HOST_ID + '-actions [data-act="toggle-form"]')
+    if (btn) btn.textContent = open ? '收起表单' : '发起会诊'
+  }
+
   function toggleForm() {
     var wrap = $('hx-cw-form-wrap')
     if (!wrap) return
@@ -439,6 +730,7 @@
       syncForm()
       setFormMsg('')
     }
+    setHeadBtn(!wrap.hidden)
   }
 
   function submitForm() {
@@ -452,6 +744,19 @@
     var patient = state.patients.filter(function (p) {
       return p.patientId === pid
     })[0] || {}
+
+    // 定时开始：选择器产出的本地时间转带时区 ISO 发给后端
+    // （应用后端时区为 UTC，裸时间会被按 UTC 解释而偏差 8 小时）
+    var scheduledAt = null
+    if (state.schedule) {
+      if (!(state.schedule instanceof Date) || isNaN(state.schedule.getTime())) {
+        return setFormMsg('定时开始时间无效', 'err')
+      }
+      if (state.schedule.getTime() <= Date.now()) {
+        return setFormMsg('定时开始时间必须晚于当前时间', 'err')
+      }
+      scheduledAt = state.schedule.toISOString()
+    }
 
     state.busy = true
     setFormMsg('提交中…')
@@ -467,12 +772,24 @@
       targetDepartment: dept,
       nominatedDoctorId: ($('hx-cw-f-doctor') || {}).value || null,
       note: ($('hx-cw-f-note') || {}).value || '',
+      scheduledAt: scheduledAt,
     }).then(function (data) {
       setFormMsg('')
       $('hx-cw-form-wrap').hidden = true
+      setHeadBtn(false)
+      state.schedule = null
+      updateDtInput()
+      dpClose()
       var code = (data && data.consultCode) || ''
-      setMsg('会诊已发起' + (code ? '：' + code : '') +
-        (data && data.rtcReady ? '，已接入远程会诊系统' : '，音视频服务未就绪，已生成会诊单'), data && data.rtcReady ? 'ok' : '')
+      // 切到新单所在的 Tab，避免用户停在"已结束"看不到刚发起的会诊
+      if (data && data.scheduledAt && !data.startable) {
+        state.qtab = 'sched'
+        setMsg('会诊已定时：' + code + '，' + fmtLocal(data.scheduledAt) + ' 开始，到点后可在队列点击进入会诊室', 'ok')
+      } else {
+        state.qtab = 'wait'
+        setMsg('会诊已发起' + (code ? '：' + code : '') +
+          (data && data.rtcReady ? '，已接入远程会诊系统' : '，音视频服务未就绪，已生成会诊单'), data && data.rtcReady ? 'ok' : '')
+      }
       return loadAll()
     }).catch(function (e) {
       setFormMsg((e && e.message) || '发起失败', 'err')
@@ -542,6 +859,10 @@
     if (root.dataset.hxCwBound === '1') return
     root.dataset.hxCwBound = '1'
     root.addEventListener('click', function (ev) {
+      if (ev.target && ev.target.id === 'hx-cw-f-schedule') {
+        dpOpen()
+        return
+      }
       var btn = ev.target.closest('[data-act]')
       if (!btn || !root.contains(btn)) return
       var act = btn.getAttribute('data-act')
@@ -553,6 +874,15 @@
       else if (act === 'submit') submitForm()
       else if (act === 'accept') accept(id)
       else if (act === 'join') enterRoom(id)
+      else if (act === 'qtab') {
+        state.qtab = btn.getAttribute('data-qtab') || 'all'
+        paint()
+      }
+      else if (act === 'dt-clear') {
+        state.schedule = null
+        updateDtInput()
+        dpClose()
+      }
     })
     root.addEventListener('change', function (ev) {
       if (ev.target && ev.target.id === 'hx-cw-f-patient') {
@@ -593,6 +923,7 @@
     document.body.classList.remove(BODY_FLAG)
     var el = $(HOST_ID)
     if (el) el.remove()
+    dpClose()
     state.ready = false
   }
 
@@ -622,4 +953,17 @@
   // 兜底：布局变化（窗口缩放、字体加载、侧栏展开）时重算位置，并保证节点不丢
   setInterval(tick, 900)
   window.addEventListener('resize', tick)
+  // 定时会诊到点自动翻转：本地时钟越过开始时间后，把"定时未开始"行刷成可进入
+  // （只更新本地状态并重绘，不重新请求；改完 startable 计数归零即停）
+  setInterval(function () {
+    if (!state.ready || !state.queue.length) return
+    var flipped = false
+    state.queue.forEach(function (it) {
+      if (it.scheduledAt && !it.startable && startableNow(it)) {
+        it.startable = true
+        flipped = true
+      }
+    })
+    if (flipped) paint()
+  }, 15000)
 })()

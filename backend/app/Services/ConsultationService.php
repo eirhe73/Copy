@@ -15,14 +15,19 @@ use Illuminate\Support\Str;
  */
 class ConsultationService extends Service
 {
+    /** 单次请求最多探活几个音视频房间 */
+    private const RTC_PROBE_LIMIT = 8;
+
     /** 状态码 → 常量名 */
     private const STATUS_NAMES = [0 => 'WAITING', 1 => 'IN_CALL', 2 => 'FINISHED'];
 
     /** 状态码 → 展示文案 */
     private const STATUS_LABELS = [0 => '待接诊', 1 => '会诊中', 2 => '已结束'];
 
-    public function __construct(private readonly ConsultRtcService $rtc)
-    {
+    public function __construct(
+        private readonly ConsultRtcService $rtc,
+        private readonly ConsultRoomService $rooms,
+    ) {
     }
 
     /**
@@ -31,7 +36,7 @@ class ConsultationService extends Service
     public function index(array $params): array
     {
         $query = ConsultSession::query()
-            ->with('participants')
+            ->with(['participants', 'room'])
             ->whereIn('status', $this->parseStatuses($params['status'] ?? 'WAITING'));
 
         $query->when($params['institutionId'] ?? null, fn ($q, $v) => $q->where('hospital', $v))
@@ -48,12 +53,57 @@ class ConsultationService extends Service
         $total = (clone $query)->count();
         $rows = $query->orderByDesc('created_at')->forPage($pageNum, $pageSize)->get();
 
+        // 对账：音视频房间已在会诊系统侧结束的，收口为"已结束"（会诊系统不反向回调）
+        $this->reconcileRtcClosed($rows);
+
         $nominatedNames = $this->userNames($rows->pluck('nominated_doctor_id')->all());
 
         return [
             'total' => $total,
             'list' => $rows->map(fn (ConsultSession $s) => $this->queueItem($s, $nominatedNames))->all(),
         ];
+    }
+
+    /**
+     * 音视频房间已结束对账
+     *
+     * 会诊系统是单向依赖（不反向回调主系统），所以主系统只能在读队列/详情时主动探活：
+     * 房间 state=ENDED 说明房主已在会诊室点"关闭房间"，据此把会诊单收口为"已结束"。
+     *
+     * 只认明确的 ENDED：房间 404（会诊系统重启导致内存态丢失）不代表会诊结束，不能据此关单，
+     * 那种情况由下次入会时按同一 consultId 重建房间兜底。
+     */
+    private function reconcileRtcClosed($rows): void
+    {
+        if (! $this->rtc->enabled()) {
+            return;
+        }
+
+        $candidates = $rows
+            ->filter(fn (ConsultSession $s) => in_array((int) $s->status, [0, 1], true)
+                && $s->room !== null
+                && $s->room->rtcReady()
+                && (int) $s->room->rtc_sync_status === ConsultRtcService::SYNC_OK)
+            // 会诊中的优先对账，且限制探活个数：探活是跨系统 HTTP 调用，队列页不宜无上限外呼
+            ->sortByDesc(fn (ConsultSession $s) => (int) $s->status === 1)
+            ->take(self::RTC_PROBE_LIMIT);
+
+        foreach ($candidates as $session) {
+            $state = $this->rtc->roomState((string) $session->room->rtc_session_id);
+
+            if ($state === 'ENDED') {
+                $this->rooms->closeByRtc($session->room);
+                // closeByRtc 内部操作的是 room->session（另一个模型实例），
+                // 这里让调用方持有的实例同步刷新，否则详情/入院会话会返回过期状态
+                $session->refresh();
+                continue;
+            }
+
+            // 会诊系统不可达：本次不再继续探活，避免队列请求被跨系统超时拖慢
+            if ($state === null) {
+                break;
+            }
+        }
     }
 
     /**
@@ -110,6 +160,7 @@ class ConsultationService extends Service
             'department' => $department,
             'nominated_doctor_id' => $data['nominatedDoctorId'] ?? null,
             'note' => $data['note'] ?? '',
+            'scheduled_at' => $data['scheduledAt'] ?? null,
             'status' => 0,
         ]);
 
@@ -123,11 +174,13 @@ class ConsultationService extends Service
             'status' => 0,
         ]);
 
-        // 同步到远程会诊系统创建音视频房间。失败不阻断：仍返回本地占位会诊室链接，
-        // 房间标记 rtc_sync_status=2 由补偿任务重推。
-        // $patient 复用上面查到的结果，避免对远程库重复查询；createRoom 内部落库后
-        // 各字段已在内存中，无需再 refresh 回读。
-        $this->rtc->createRoom($session, $room, $this->operatorName(), $patient);
+        // 定时未到点：不创建音视频房间。会诊系统的房间是内存态（WAITING 30 分钟自动回收），
+        // 提前创建必然被回收；到点后首次点"进入会诊室"时由 joinLink 的 ensureRoom 按需创建。
+        // 立即会诊：同步创建，失败不阻断，房间标记 rtc_sync_status=2 由补偿任务重推。
+        // $patient 复用上面查到的结果，避免对远程库重复查询。
+        if ($this->startable($session)) {
+            $this->rtc->createRoom($session, $room, $this->operatorName(), $patient);
+        }
 
         return [
             'sessionId' => $session->session_id,
@@ -136,9 +189,19 @@ class ConsultationService extends Service
             'consultLink' => $room->rtc_url ?: rtrim(request()->root(), '/').'/#/room/'.$token,
             'mediaMode' => $room->media_mode,
             'rtcReady' => $room->rtcReady(),
+            'scheduledAt' => optional($session->scheduled_at)->toIso8601String(),
+            'startable' => $this->startable($session),
             'status' => self::STATUS_NAMES[0],
             'statusLabel' => self::STATUS_LABELS[0],
         ];
+    }
+
+    /**
+     * 会诊是否已到可开始时间：未定时时始终可开始
+     */
+    private function startable(ConsultSession $session): bool
+    {
+        return $session->scheduled_at === null || now()->gte($session->scheduled_at);
     }
 
     /**
@@ -154,6 +217,14 @@ class ConsultationService extends Service
 
         $room = $session->room;
         $this->assert($room !== null, ResponseCode::NOT_FOUND, '会诊室不存在');
+
+        // 定时会诊未到点：服务端强校验，前端隐藏按钮只是第一道防线
+        // 具体开始时间由前端按浏览器时区展示，这里不带时间避免服务端时区歧义
+        $this->assert(
+            $this->startable($session),
+            ResponseCode::CONFLICT,
+            '会诊未到预定开始时间，不能进入会诊室'
+        );
 
         [$doctorId, $doctorName] = $this->resolveDoctor($params['doctorId'] ?? null);
 
@@ -263,7 +334,7 @@ class ConsultationService extends Service
      */
     public function admission(): ?array
     {
-        $session = ConsultSession::with('participants')
+        $session = ConsultSession::with(['participants', 'room'])
             ->whereIn('status', [0, 1])
             ->orderByDesc('id')
             ->first();
@@ -271,6 +342,9 @@ class ConsultationService extends Service
         if ($session === null) {
             return null;
         }
+
+        // 对账：音视频房间已结束的，收口为"已结束"
+        $this->reconcileRtcClosed(collect([$session]));
 
         return [
             'sessionId' => $session->session_id,
@@ -293,6 +367,9 @@ class ConsultationService extends Service
         $session = ConsultSession::with(['participants', 'room'])->where('session_id', $sessionId)->first();
         $this->assert($session !== null, ResponseCode::NOT_FOUND, '会诊会话不存在');
 
+        // 对账：音视频房间已结束的，收口为"已结束"
+        $this->reconcileRtcClosed(collect([$session]));
+
         $room = $session->room;
 
         return [
@@ -305,6 +382,8 @@ class ConsultationService extends Service
             'targetHospital' => $session->hospital,
             'targetDepartment' => $session->department,
             'participants' => $this->participantsOf($session),
+            'scheduledAt' => optional($session->scheduled_at)->toIso8601String(),
+            'startable' => $this->startable($session),
             'status' => self::STATUS_NAMES[$session->status] ?? 'UNKNOWN',
             'statusLabel' => self::STATUS_LABELS[$session->status] ?? '',
             'room' => [
@@ -472,6 +551,8 @@ class ConsultationService extends Service
             'targetDepartment' => $session->department,
             'applicantName' => $applicant->name ?? '',
             'nominatedDoctorName' => $nominatedNames[$session->nominated_doctor_id] ?? '',
+            'scheduledAt' => optional($session->scheduled_at)->toIso8601String(),
+            'startable' => $this->startable($session),
             'status' => self::STATUS_NAMES[$session->status] ?? 'UNKNOWN',
             'statusLabel' => self::STATUS_LABELS[$session->status] ?? '',
             'createdAt' => optional($session->created_at)->toIso8601String(),
@@ -513,13 +594,31 @@ class ConsultationService extends Service
         return Department::whereIn('dept_code', $codes)->pluck('dept_name', 'dept_code')->all();
     }
 
+    /**
+     * 性别编码 → 接口名：0男 1女 2未知
+     *
+     * 原来只分"是1/不是1"，未知(2)会被报成 MALE，队列与详情把性别不明显示为男性。
+     */
     private function genderName(int $gender): string
     {
-        return $gender === 1 ? 'FEMALE' : 'MALE';
+        return match ($gender) {
+            0 => 'MALE',
+            1 => 'FEMALE',
+            default => 'UNKNOWN',
+        };
     }
 
+    /**
+     * 接口名 → 性别编码：MALE→0、FEMALE→1，其余（UNKNOWN/空/非数字）→2未知
+     *
+     * 原来未知一律落到 0 男，患者性别不明会被存成男性。
+     */
     private function genderCode(?string $gender): int
     {
-        return (in_array($gender, ['FEMALE', 'GENDER_FEMALE'], true) || (int) $gender === 1) ? 1 : 0;
+        return match (strtoupper(trim((string) $gender))) {
+            'MALE', 'GENDER_MALE', '0' => 0,
+            'FEMALE', 'GENDER_FEMALE', '1' => 1,
+            default => 2,
+        };
     }
 }

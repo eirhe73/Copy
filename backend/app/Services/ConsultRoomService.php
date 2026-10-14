@@ -145,6 +145,27 @@ class ConsultRoomService extends Service
     }
 
     /**
+     * 音视频房间已在会诊系统侧被结束（房主在会诊室点"关闭房间"）
+     *
+     * 会诊系统不反向回调主系统（单向依赖），因此只能由主系统主动探活对账：
+     * 发现房间 state=ENDED 后调用本方法收口 —— 先抓参会人留痕（会诊系统内存态，房间回收后名单不可查），
+     * 再把会诊单与会诊室流转为"已结束"。
+     */
+    public function closeByRtc(ConsultRoom $room): void
+    {
+        $session = $room->session;
+        if (! $room->rtcReady() || $session === null || (int) $session->status === 2) {
+            return;
+        }
+
+        $this->captureRtcParticipants($room);
+
+        $now = now();
+        $session->update(['status' => 2, 'closed_at' => $now]);
+        $room->update(['status' => 2, 'closed_at' => $now]);
+    }
+
+    /**
      * 关闭远程会诊系统的音视频房间
      *
      * 会诊系统为内存态，房间关闭后参会人即不可查，因此必须先抓参会人留痕再关房间。
@@ -156,7 +177,22 @@ class ConsultRoomService extends Service
             return;
         }
 
-        // 房主（接诊医生/指定医生）记为主讲医生，其余记参会专家
+        $this->captureRtcParticipants($room);
+
+        $this->rtc->endRoom($room);
+    }
+
+    /**
+     * 抓取会诊系统参会人并写入主系统留痕
+     *
+     * 房主（接诊医生/指定医生）记为主讲医生，其余记参会专家；按姓名去重，避免重复入会重复记账。
+     */
+    private function captureRtcParticipants(ConsultRoom $room): void
+    {
+        if (! $room->rtcReady()) {
+            return;
+        }
+
         $session = $room->session;
         $ownerId = $session?->accepted_by ?: $session?->nominated_doctor_id;
         $ownerName = $session?->accepted_by_name;
@@ -179,8 +215,6 @@ class ConsultRoomService extends Service
                 ]
             );
         }
-
-        $this->rtc->endRoom($room);
     }
 
     /**
@@ -203,8 +237,13 @@ class ConsultRoomService extends Service
         ])->values()->all();
     }
 
+    /** 性别编码 → 接口名：0男 1女 2未知（未知不能再落到 MALE） */
     private function genderName(int $gender): string
     {
-        return $gender === 1 ? 'FEMALE' : 'MALE';
+        return match ($gender) {
+            0 => 'MALE',
+            1 => 'FEMALE',
+            default => 'UNKNOWN',
+        };
     }
 }
