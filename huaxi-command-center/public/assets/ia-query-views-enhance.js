@@ -1,5 +1,5 @@
 /**
- * 导图补项：下级医院科室监控、基层远程监护
+ * 科室监控内嵌科室床位、/beds 与旧 sub-hospitals 链接重定向
  */
 ;(function () {
   function pathAndQuery() {
@@ -10,7 +10,7 @@
   }
 
   function esc(s) {
-    return String(s)
+    return String(s ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -23,23 +23,17 @@
       .trim()
   }
 
-  function findHost() {
-    return (
-      document.querySelector('main.department-overview.screen') ||
-      document.querySelector('main.warning-screen.screen') ||
-      document.querySelector('main.warning-screen') ||
-      document.querySelector('.warning-screen') ||
-      document.querySelector('main.workspace')
-    )
+  function findDeptHost() {
+    return document.querySelector('main.department-overview.screen')
   }
 
-  function mountBanner(host, id, html) {
+  function mount(host, id, html) {
     if (!host) return false
     let box = document.getElementById(id)
     if (!box) {
       box = document.createElement('div')
       box.id = id
-      host.insertBefore(box, host.firstChild)
+      host.appendChild(box)
     }
     if (box.dataset.html === html) return true
     box.dataset.html = html
@@ -53,46 +47,85 @@
 
   function syncViewMode() {
     const { p, q } = pathAndQuery()
-    const sub = p === '/warning' && q.get('view') === 'sub-hospitals'
     const dept = p === '/warning' && q.get('view') === 'departments'
-    document.body.classList.toggle('hx-ia-sub-hospitals-view', sub)
+    document.body.classList.remove('hx-ia-sub-hospitals-view')
     document.body.classList.toggle('hx-ia-departments-view', dept)
   }
 
-  function renderSubHospitals(data) {
+  function redirectSubHospitalsRoute() {
     const { p, q } = pathAndQuery()
-    syncViewMode()
-    if (p !== '/warning' || q.get('view') !== 'sub-hospitals') {
-      remove('hx-sub-hospital-monitor')
+    if (p !== '/warning' || q.get('view') !== 'sub-hospitals') return
+    const qs = new URLSearchParams({ view: 'departments' })
+    location.replace(`${location.pathname}${location.search}#/warning?${qs.toString()}`)
+  }
+
+  function redirectBedsRoute() {
+    const { p, q } = pathAndQuery()
+    if (p !== '/beds') return
+    const org = q.get('org') || ''
+    const dept = q.get('dept') || ''
+    const qs = new URLSearchParams({ view: 'departments' })
+    if (org) qs.set('org', org)
+    if (dept) qs.set('dept', dept)
+    location.replace(`${location.pathname}${location.search}#/warning?${qs.toString()}`)
+  }
+
+  function renderDeptBeds(bedsPayload) {
+    const { p, q } = pathAndQuery()
+    if (p !== '/warning' || q.get('view') !== 'departments') {
+      remove('hx-dept-beds-panel')
       return
     }
-    const host = findHost()
+    const host = findDeptHost()
     if (!host) return
-    const hospitals = data?.hospitals || []
-    const rows = hospitals
-      .map((h) => {
-        const deptRows = (h.departments || [])
-          .map(
-            (d) => `<tr>
-              <td>${esc(d.name)}</td>
-              <td>${d.bedsUsed}/${d.bedsTotal}</td>
-              <td>${d.alerts}</td>
-              <td><span class="hx-sh-status">${esc(d.status)}</span></td>
-            </tr>`,
-          )
-          .join('')
-        return `<section class="hx-sh-block">
-          <header><strong>${esc(h.name)}</strong><span class="muted">${esc(h.tier)}</span></header>
-          <table class="hx-sh-table"><thead><tr><th>科室</th><th>床位</th><th>预警</th><th>状态</th></tr></thead><tbody>${deptRows || '<tr><td colspan="4">暂无科室数据</td></tr>'}</tbody></table>
-        </section>`
-      })
+
+    const focusOrg = q.get('org') || ''
+    const focusDept = q.get('dept') || ''
+    const depts = bedsPayload?.departments || []
+    const filtered = depts.filter((d) => {
+      if (focusDept && d.id !== focusDept) return false
+      return true
+    })
+
+    const cards = (filtered.length ? filtered : depts)
+      .map(
+        (d) => `<article class="hx-dept-bed-card" data-dept="${esc(d.id)}">
+          <h4>${esc(d.name)}</h4>
+          <ul>
+            <li><span>总床</span><strong>${d.total ?? '—'}</strong></li>
+            <li><span>在用</span><strong>${d.occupied ?? '—'}</strong></li>
+            <li><span>预留</span><strong>${d.reserved ?? '—'}</strong></li>
+            <li><span>空床</span><strong class="hx-dept-bed-free">${d.free ?? '—'}</strong></li>
+          </ul>
+        </article>`,
+      )
       .join('')
-    const notice = cleanNotice(data?.notice)
-    const html = `<section class="hx-sub-hospital-monitor" aria-label="${esc(data?.title || '下级医院科室监控')}">
-      <header class="hx-ia-view-head"><strong>${esc(data?.title || '下级医院科室监控')}</strong>${notice ? `<span>${esc(notice)}</span>` : ''}</header>
-      <div class="hx-sh-grid">${rows || '<p class="hx-ia-view-empty">暂无机构数据，请检查后端 organizations / beds/by-dept 或刷新页面。</p>'}</div>
+
+    const html = `<section id="hx-dept-beds-panel" class="hx-dept-beds-panel" aria-label="科室床位">
+      <header class="hx-dept-beds-head">
+        <strong>科室床位</strong>
+        <span>已并入科室监控 · ${esc(bedsPayload?.hospitalId || '本院')}${focusDept ? ` · 当前科室 ${esc(focusDept)}` : ''}</span>
+      </header>
+      <div class="hx-dept-beds-grid">${cards || '<p class="hx-ia-view-empty">暂无床位统计数据</p>'}</div>
     </section>`
-    mountBanner(host, 'hx-sub-hospital-monitor', html)
+
+    let box = document.getElementById('hx-dept-beds-panel')
+    if (box && box.dataset.html === html) return
+    remove('hx-dept-beds-panel')
+    host.insertAdjacentHTML('beforeend', html)
+    const panel = document.getElementById('hx-dept-beds-panel')
+    if (panel) panel.dataset.html = html
+
+    host.querySelectorAll('.department-matrix a[href*="/beds"]').forEach((a) => {
+      const href = a.getAttribute('href') || ''
+      const m = href.match(/org=([^&]+).*dept=([^&]+)/)
+      if (!m) return
+      a.setAttribute('href', `#/warning?view=departments&org=${decodeURIComponent(m[1])}&dept=${decodeURIComponent(m[2])}`)
+    })
+
+    if (focusDept && panel) {
+      panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
   }
 
   function renderGrassrootsRemote(data) {
@@ -101,7 +134,10 @@
       remove('hx-grassroots-remote')
       return
     }
-    const host = findHost()
+    const host =
+      document.querySelector('main.workspace') ||
+      document.querySelector('main.critical-screen') ||
+      findDeptHost()
     if (!host || !data) return
     const cards = (data.sites || [])
       .map(
@@ -121,15 +157,11 @@
       <header class="hx-ia-view-head"><strong>${esc(data.title)}</strong>${notice ? `<span>${esc(notice)}</span>` : ''}</header>
       <div class="hx-gr-grid">${cards || '<p class="hx-ia-view-empty">暂无监护点数据</p>'}</div>
     </section>`
-    mountBanner(host, 'hx-grassroots-remote', html)
+    mount(host, 'hx-grassroots-remote', html)
   }
 
-  function renderScopeBanners() {
-    remove('hx-ia-scope-banner')
-  }
-
-  let subData = null
-  let remoteData = null
+  const remoteCache = { value: null, promise: null }
+  const bedsCache = { value: null, promise: null }
 
   function loadJson(url, cache) {
     if (cache.value) return Promise.resolve(cache.value)
@@ -144,27 +176,40 @@
     return cache.promise
   }
 
-  const subCache = { value: null, promise: null }
-  const remoteCache = { value: null, promise: null }
-
   function resetCaches() {
-    subCache.value = null
-    subCache.promise = null
     remoteCache.value = null
     remoteCache.promise = null
+    bedsCache.value = null
+    bedsCache.promise = null
   }
 
   function render() {
+    redirectSubHospitalsRoute()
+    redirectBedsRoute()
     syncViewMode()
-    renderScopeBanners()
-    loadJson('/api/sub-hospital-monitor.json', subCache).then(renderSubHospitals)
+    remove('hx-sub-hospital-monitor')
     loadJson('/api/grassroots-remote-monitor.json', remoteCache).then(renderGrassrootsRemote)
+    loadJson('/api/beds-by-dept.json', bedsCache).then(renderDeptBeds)
   }
+
+  document.addEventListener(
+    'click',
+    (e) => {
+      const a = e.target instanceof Element ? e.target.closest('nav.subnav > a') : null
+      if (!a || (a.textContent || '').trim() !== '科室床位') return
+      e.preventDefault()
+      e.stopPropagation()
+      location.hash = '#/warning?view=departments'
+    },
+    true,
+  )
 
   window.addEventListener('hashchange', () => {
     resetCaches()
+    redirectSubHospitalsRoute()
     syncViewMode()
+    redirectBedsRoute()
   })
 
-  window.hxEnhance(render, { wait: 400, observeRoot: true, afterNav: 100 })
+  window.hxEnhance(render, { wait: 350, afterNav: 90 })
 })()

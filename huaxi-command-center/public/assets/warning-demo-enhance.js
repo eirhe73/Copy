@@ -15,9 +15,17 @@
     return p === '/' || p === ''
   }
 
-  function isWarningRoute() {
+  function warningView() {
+    const raw = location.hash.replace(/^#/, '')
+    const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
+    return new URLSearchParams(q).get('view') || ''
+  }
+
+  function isWarningOverviewOnly() {
     const p = path()
-    return p === '/warning' || p.startsWith('/warning/')
+    if (p !== '/warning' && !p.startsWith('/warning/')) return false
+    const v = warningView()
+    return v !== 'departments' && v !== 'sub-hospitals'
   }
 
   function loadData() {
@@ -160,7 +168,7 @@
     if (!isHome()) {
       document.querySelector('#hx-warning-home')?.remove()
     }
-    if (!isWarningRoute()) {
+    if (!isWarningOverviewOnly()) {
       document.querySelector('#hx-warning-demo-page')?.remove()
     }
   }
@@ -170,7 +178,7 @@
     const data = await loadData()
     if (!data) return
     if (isHome()) renderHome(data)
-    if (isWarningRoute()) renderWarningPage(data)
+    if (isWarningOverviewOnly()) renderWarningPage(data)
   }
 
   window.hxEnhance(render, { wait: 380, observeRoot: true, afterNav: 100 })
