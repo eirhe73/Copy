@@ -48,6 +48,8 @@ export default defineConfig(({ mode }) => ({
     rollupOptions: {
       input: {
         main: path.resolve(__dirname, 'index.html'),
+        app: path.resolve(__dirname, 'app.html'),
+        login: path.resolve(__dirname, 'login.html'),
         srcShell: path.resolve(__dirname, 'src-shell.html'),
         devtools: path.resolve(__dirname, 'index.devtools.html'),
         smartCity: path.resolve(__dirname, 'smart-city.html'),
