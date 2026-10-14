@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import VehicleDesk from '../components/VehicleDesk.vue'
-import { buildHash, formatClock, loadEvents, statusTone, type DispatchEvent } from '../context'
+import { buildHash, formatClock, loadEvents, statusLabel, statusTone, type DispatchEvent } from '../context'
 
 type Amb = {
   id: string
@@ -87,7 +87,7 @@ function registerHref(row: Amb) {
             <td>{{ a.org }}</td>
             <td>{{ a.boundHospital }}</td>
             <td>{{ a.crew }}</td>
-            <td><span class="dh-status" :class="statusTone(a.status)">{{ a.status }}</span></td>
+            <td><span class="dh-status" :class="statusTone(statusLabel(a.status))">{{ statusLabel(a.status) }}</span></td>
             <td>{{ eventOf(a)?.task120Id ?? '—' }}</td>
             <td class="dh-row-actions">
               <a :href="liveHref(a)">出警处理</a>
