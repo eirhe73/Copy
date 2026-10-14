@@ -8010,6 +8010,22 @@ html.hx-full-backend .hx-device-bind-hint {
   font-weight: 600;
 }
 
+.hx-login-demo-only {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f766e;
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+}
+
+.hx-login-demo-only:hover:not(:disabled) {
+  background: #d1fae5;
+  border-color: #34d399;
+}
+
 .hx-login-page-footer {
   margin-top: 22px;
   padding-top: 18px;

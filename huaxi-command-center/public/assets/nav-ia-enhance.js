@@ -1,5 +1,5 @@
 /**
- * 医生视角：院前子导航裁剪；急救子页留在 app.html，不强制跳 dispatch.html。
+ * 医生视角：院前四页进 120 工作台 dispatch.html；会诊/转诊仍走 app.html。
  */
 ;(function () {
   const DISPATCH_KEEP = [
@@ -12,8 +12,16 @@
     '医院转诊',
     '基层远程监护',
   ]
-  const DISPATCH_GO = {}
-  const DISPATCH_HASH = {}
+  const DISPATCH_GO = {
+    实时出警: '/dispatch.html#live',
+    急救事件: '/dispatch.html#events',
+    患者登记: '/dispatch.html#register',
+    救护车列表: '/dispatch.html#ambulances',
+  }
+  const DISPATCH_HASH = {
+    '/dispatch': '/dispatch.html#live',
+    '/dispatch?hub=ambulances': '/dispatch.html#ambulances',
+  }
 
   function links(nav) {
     return [...nav.querySelectorAll(':scope > a')].filter((a) => !a.dataset.iaExtra)

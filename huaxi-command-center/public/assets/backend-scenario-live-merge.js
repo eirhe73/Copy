@@ -67,9 +67,9 @@
       out.state.staff = doctors.map((d) => ({
         id: String(d.doctor_code || d.id),
         name: d.real_name || d.name || d.doctor_code,
-        profession: d.profession || 'doctor',
-        institutionId: d.institution_id || 'weiyuan',
-        departmentId: d.department_id || 'emergency',
+        profession: String(d.profession || 'doctor').toLowerCase(),
+        institutionId: d.institution_id || d.institutionId || 'weiyuan',
+        departmentId: d.department_id || d.departmentId || 'emergency',
         workAreas: [],
       }))
       return 1
