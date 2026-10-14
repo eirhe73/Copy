@@ -29,7 +29,16 @@ class QcIssue extends BaseModel
 
         static::creating(function (self $model) {
             if (empty($model->qc_code)) {
-                $model->qc_code = 'QC'.now()->format('YmdHis').str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+                // 与种子数据格式一致：QC-{Ymd}-{三位序号}
+                $prefix = 'QC-'.now()->format('Ymd').'-';
+                $seq = static::withTrashed()->where('qc_code', 'like', $prefix.'%')->count() + 1;
+
+                do {
+                    $code = $prefix.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+                    $seq++;
+                } while (static::withTrashed()->where('qc_code', $code)->exists());
+
+                $model->qc_code = $code;
             }
         });
     }

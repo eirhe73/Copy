@@ -39,7 +39,16 @@ class EmergencyEvent extends BaseModel
 
         static::creating(function (self $model) {
             if (empty($model->event_code)) {
-                $model->event_code = 'EVT'.now()->format('YmdHis').str_pad((string) random_int(0, 999), 3, '0', STR_PAD_LEFT);
+                // 与 DispatchEventService::nextEventCode 保持一致：EVT-{Ymd}-{两位序号}
+                $prefix = 'EVT-'.now()->format('Ymd').'-';
+                $seq = static::withTrashed()->where('event_code', 'like', $prefix.'%')->count() + 1;
+
+                do {
+                    $code = $prefix.str_pad((string) $seq, 2, '0', STR_PAD_LEFT);
+                    $seq++;
+                } while (static::withTrashed()->where('event_code', $code)->exists());
+
+                $model->event_code = $code;
             }
         });
     }
