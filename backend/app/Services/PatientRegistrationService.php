@@ -18,7 +18,7 @@ class PatientRegistrationService extends Service
                 'name' => $data['name'],
                 'gender' => $this->toGender($data['gender']),
                 'age' => isset($data['age']) ? (int) $data['age'] : null,
-                'phone' => $data['phone'] ?? null,
+                'phone' => $data['phone'] ?? '',
                 'chief_complaint' => $data['chiefComplaint'] ?? '',
                 'is_draft' => (int) ($data['isDraft'] ?? 0),
             ]);
@@ -51,7 +51,7 @@ class PatientRegistrationService extends Service
                 'name' => $data['name'],
                 'gender' => $this->toGender($data['gender']),
                 'age' => isset($data['age']) ? (int) $data['age'] : null,
-                'phone' => $data['phone'] ?? null,
+                'phone' => $data['phone'] ?? '',
                 'prehospital' => $data['prehospital'],
                 'stage' => 'transfer-requested',
                 'source' => '120',
