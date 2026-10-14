@@ -197,7 +197,7 @@ class ConsultRtcService extends Service
      *
      * @param  array<string, string>  $query  房主用 ownerTicket，受邀专家用 token
      */
-    public function buildJoinUrl(string $rtcSessionId, array $query): string
+    public function buildJoinUrl(string $rtcSessionId, array $query = []): string
     {
         $base = rtrim((string) (config('services.consultation.join_base_url') ?: config('services.consultation.base_url')), '/');
         if ($base === '' || $rtcSessionId === '') {
