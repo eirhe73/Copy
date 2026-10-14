@@ -227,25 +227,35 @@
   let cacheKey = ''
 
   async function loadAndCompute() {
-    const [slaRes, scenRes, liveRes] = await Promise.all([
+    const strict = window.hxBackend?.strict?.()
+    const [slaRes, liveRes] = await Promise.all([
       fetch('/api/qc-sla.json', { cache: 'no-store' }),
-      fetch('/scenario.json', { cache: 'no-store' }),
       fetch('/api/dispatch-live.json', { cache: 'no-store' }),
     ])
     const sla = slaRes.ok
       ? await slaRes.json()
-      : { rules: DEFAULT_RULES, records: [], notice: '未加载到 qc-sla.json，使用内置演示时限' }
+      : { rules: DEFAULT_RULES, records: [], notice: strict ? '后端 sla-records 不可用' : '未加载 qc-sla' }
+    if (sla.error) {
+      return {
+        sla: { rules: DEFAULT_RULES, records: [], notice: sla.message || '后端不可用' },
+        rows: [],
+      }
+    }
     if (!sla.rules?.length) sla.rules = DEFAULT_RULES
-    const scenWrap = scenRes.ok ? await scenRes.json() : { state: {} }
     const live = liveRes.ok ? await liveRes.json() : { events: [] }
-    const state = scenWrap.state || scenWrap
     const alertLimit = sla.rules?.find((r) => r.id === 'SLA-ALERT')?.limitMinutes ?? 10
     const dispatchLimit = sla.rules?.find((r) => r.id === 'SLA-DISPATCH')?.limitMinutes ?? 30
-    const computed = [
-      ...computeAlertRows(state, alertLimit),
-      ...computeDispatchRows(state, live, dispatchLimit),
-    ]
+    let computed = []
+    if (!strict) {
+      const scenRes = await fetch('/scenario.json', { cache: 'no-store' })
+      const scenWrap = scenRes.ok ? await scenRes.json() : { state: {} }
+      const state = scenWrap.state || scenWrap
+      computed = [...computeAlertRows(state, alertLimit), ...computeDispatchRows(state, live, dispatchLimit)]
+    } else {
+      computed = computeDispatchRows({ events: [] }, live, dispatchLimit)
+    }
     const rows = mergeRows(computed, rowsFromJsonRecords(sla.records))
+    if (strict && sla.notice) sla.notice = `${sla.notice || ''} · 环节数据来自后端 sla-records`
     return { sla, rows }
   }
 

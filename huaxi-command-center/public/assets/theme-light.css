@@ -6928,4 +6928,82 @@ main.workspace .tab-row button.active {
   line-height: 1.45;
 }
 
+/* 全路由 API 对接面板 */
+#hx-api-route-dock {
+  margin: 0 0 12px;
+  padding: 0 12px;
+}
+
+details.hx-api-route-dock {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  color: #334155;
+}
+
+details.hx-api-route-dock summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.hx-api-write-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.hx-api-write-btn {
+  padding: 6px 12px;
+  font-size: 12px;
+  border-radius: 8px;
+  border: 1px solid #7dd3fc;
+  background: #e0f2fe;
+  color: #0369a1;
+  cursor: pointer;
+}
+
+.hx-api-route-scroll {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.hx-api-route-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.hx-api-route-scroll td,
+.hx-api-route-scroll th {
+  padding: 4px 8px;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+}
+
+#hx-api-write-dock {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 9000;
+  max-width: min(420px, calc(100vw - 24px));
+  margin: 0;
+  padding: 0;
+}
+
+#hx-api-write-dock details.hx-api-route-dock {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+html.hx-full-backend .hx-plate-api-foot,
+html.hx-full-backend .hx-device-bind-hint {
+  opacity: 0.85;
+}
+
+.hx-api-route-scroll tr.fail td {
+  color: #b91c1c;
+}
+
 

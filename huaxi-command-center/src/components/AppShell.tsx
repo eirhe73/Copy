@@ -1,4 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useAuth } from '../context/AuthContext'
 import { NAV_ROUTES } from '../routes/meta'
 
 const GROUP_ORDER = [
@@ -14,15 +15,24 @@ const GROUP_ORDER = [
 
 export function AppShell() {
   const location = useLocation()
+  const { user, logout, error } = useAuth()
 
   return (
     <div className="app-shell">
       <header className="app-header">
         <div>
           <h1>华西 · 县域急危重症救治一体化指挥中心</h1>
-          <div className="subtitle">本地复刻工程 · 开发导航</div>
+          <div className="subtitle">Vite + React 源码 · 后端 API</div>
         </div>
-        <div className="subtitle">{location.pathname || '/'}</div>
+        <div className="app-header-actions">
+          <span className="subtitle">{location.pathname || '/'}</span>
+          {error ? <span className="api-error">{error}</span> : null}
+          {user ? (
+            <button type="button" className="btn-ghost" onClick={() => logout()}>
+              退出
+            </button>
+          ) : null}
+        </div>
       </header>
       <aside className="app-sidebar">
         <nav>

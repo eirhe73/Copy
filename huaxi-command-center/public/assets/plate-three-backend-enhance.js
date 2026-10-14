@@ -58,10 +58,23 @@
       <header><strong>${escapeHtml(title)}</strong>${badge}<span class="hx-plate-api-meta">${escapeHtml(meta || '')}</span></header>`
   }
 
+  let backendOkCache = { ok: false, at: 0 }
+  const BACKEND_OK_TTL_MS = 60000
+
   async function backendOk() {
     if (!window.hxBackend?.enabled?.()) return false
-    const h = await window.hxBackend.health()
-    return !!h?.status
+    const now = Date.now()
+    // 只缓存成功结果，失败时立即重试，避免临时网络问题被长时间缓存
+    if (backendOkCache.ok && now - backendOkCache.at < BACKEND_OK_TTL_MS) return true
+    try {
+      const ok = await window.hxBackend.ensureAuth()
+      if (ok) backendOkCache = { ok: true, at: now }
+      else backendOkCache = { ok: false, at: 0 }
+      return ok
+    } catch {
+      backendOkCache = { ok: false, at: 0 }
+      return false
+    }
   }
 
   async function renderOrganizations() {
@@ -154,11 +167,9 @@
       'hx-plate-api-consult',
       `${header(
         '3.1 基层会诊',
-        live
-          ? '会诊队列仍走本机 scenario；转诊/机构/质控/Dr. 已接 Laravel v1'
-          : '后端未连接 · 全部为演示存档',
+        live ? 'GET /consultations · 见上方 hx-wire-consult 面板' : '后端未连接 · 全部为演示存档',
         live,
-      )}<p class="hx-plate-api-note">生产会诊音视频与待办需单独接口；当前可配合 <a href="/#/transfers">转诊</a> 与 <a href="/dispatch.html#live">院前</a> 后端数据演示闭环。</p></section>`,
+      )}<p class="hx-plate-api-note">会诊意见写接口：/#/room/:token 保存时 POST /rooms/{token}/opinions。</p></section>`,
     )
   }
 
@@ -212,17 +223,7 @@
     const host = document.querySelector('.quality-workspace') || document.querySelector('main.workspace')
     if (!host) return
     const live = await backendOk()
-    mountPanel(
-      host,
-      'hx-plate-api-qc-banner',
-      `${header(
-        '4 医院质控',
-        live
-          ? '环节时限 / 标准：qc-sla、qc-standards 已走 /v1；下方整改台账仍为演示存档'
-          : '未连接后端 · 环节时限读本地 JSON',
-        live,
-      )}<p class="hx-plate-api-note">4.1 智能监控：见上方环节时限块；4.3 质控提醒：超期行与 SLA 表联动演示。接全量整改单可扩展 sync qc-issues → scenario。</p></section>`,
-    )
+    mountPanel(host, 'hx-plate-api-qc-banner', `${header('4 医院质控', '', live)}</section>`)
   }
 
   async function renderDr() {
@@ -281,9 +282,14 @@
     ].forEach((id) => document.getElementById(id)?.remove())
   }
 
+  let lastRoute = null
   async function render() {
     const p = path()
-    clearPanels()
+    // 仅在路由变化时清除面板，避免 observeRoot 频繁触发导致闪烁
+    if (p !== lastRoute) {
+      clearPanels()
+      lastRoute = p
+    }
     if (p === '/organizations') await renderOrganizations()
     else if (p === '/transfers') await renderTransfers()
     else if (p === '/consultations') await renderConsultBanner()
@@ -293,6 +299,7 @@
   }
 
   window.addEventListener('hashchange', () => {
+    lastRoute = null
     clearPanels()
   })
 

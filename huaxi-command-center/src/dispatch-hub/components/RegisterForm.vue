@@ -37,19 +37,19 @@ watch(
 
 const messageKind = ref<'ok' | 'warn'>('ok')
 
-function submit() {
+async function submit() {
   if (!form.value.name.trim()) {
     messageKind.value = 'warn'
     message.value = '请填写姓名后再提交'
     return
   }
   messageKind.value = 'ok'
-  message.value = savePatient(form.value, true)
+  message.value = await savePatient(form.value, true)
 }
 
-function onDraft() {
+async function onDraft() {
   messageKind.value = 'ok'
-  message.value = savePatient(form.value, false)
+  message.value = await savePatient(form.value, false)
 }
 </script>
 

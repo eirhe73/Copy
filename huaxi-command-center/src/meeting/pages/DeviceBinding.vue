@@ -42,7 +42,7 @@ const stats = computed(() => ({
   alarm: devices.value.filter((d) => d.alarm).length,
 }))
 
-function bind(device: Device, bedId: string) {
+async function bind(device: Device, bedId: string) {
   const prev = device.bedId
   if (prev && prev !== bedId) {
     device.previousBedId = prev
@@ -57,6 +57,16 @@ function bind(device: Device, bedId: string) {
     device.patientName = null
   }
   persist()
+  if (window.hxBackend?.enabled?.()) {
+    try {
+      await window.hxBackend.ensureAuth()
+      await window.hxBackend.put(`/devices/${encodeURIComponent(device.deviceId)}/binding`, {
+        bedId: bedId || null,
+      })
+    } catch (e) {
+      console.warn('设备改绑 API', e)
+    }
+  }
 }
 
 function persist() {
