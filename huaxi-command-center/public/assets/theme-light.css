@@ -4619,6 +4619,47 @@ footer.system-footer {
   background: #cbd5e1 !important;
 }
 
+/* B 站嵌入：基层 Dr · 技能操作视频（dr-video-enhance.js） */
+.dr-stage:has(.dr-player-panel--bili) {
+  align-items: stretch !important;
+}
+
+.dr-player-panel.dr-player-panel--bili {
+  display: flex !important;
+  flex-direction: column !important;
+  align-self: stretch !important;
+  min-height: 100% !important;
+}
+
+.dr-player-panel.dr-player-panel--bili > .dr-controls {
+  display: none !important;
+}
+
+.dr-player.dr-player--bili {
+  flex: 1 1 auto !important;
+  width: 100% !important;
+  aspect-ratio: unset !important;
+  min-height: clamp(360px, 62vh, 860px) !important;
+  height: auto !important;
+}
+
+.dr-player.dr-player--bili .dr-bilibili-embed {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  border: 0 !important;
+  background: #0f172a !important;
+}
+
+.dr-player.dr-player--bili .dr-center-play,
+.dr-player.dr-player--bili .dr-caption-shade,
+.dr-player.dr-player--bili .dr-caption,
+.dr-player.dr-player--bili .dr-topic {
+  display: none !important;
+}
+
 /* 未播放 / 封面态：顶部话题、底部副标题提高对比度 */
 .dr-caption-shade {
   height: 48% !important;
@@ -6928,10 +6969,21 @@ main.workspace .tab-row button.active {
   line-height: 1.45;
 }
 
-/* 全路由 API 对接面板 */
+/* 全路由 API 对接面板（挂 body，勿插入 dashboard grid） */
 #hx-api-route-dock {
-  margin: 0 0 12px;
-  padding: 0 12px;
+  position: fixed;
+  left: 12px;
+  bottom: 48px;
+  z-index: 8500;
+  margin: 0;
+  padding: 0;
+  max-width: min(420px, calc(100vw - 24px));
+  pointer-events: auto;
+}
+
+main.dashboard.screen ~ #hx-api-route-dock,
+body:has(main.dashboard.screen) #hx-api-route-dock:not(:empty) {
+  opacity: 0.92;
 }
 
 details.hx-api-route-dock {
@@ -7007,3 +7059,31 @@ html.hx-full-backend .hx-device-bind-hint {
 }
 
 
+
+/* ========== 基层医声 Dr · 板块导航 Tab 化（点击切换 + 操作技能视频置首） ========== */
+.dr-mainnav {
+  display: flex !important;
+  gap: 0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.dr-mainnav button {
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: -2px !important;
+  padding: 10px 22px !important;
+}
+.dr-mainnav button:hover {
+  background: #f1f5f9 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.dr-mainnav button.active {
+  background: transparent !important;
+  color: #0284c7 !important;
+  border-bottom-color: #0284c7 !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}

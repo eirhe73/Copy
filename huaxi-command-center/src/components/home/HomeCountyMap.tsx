@@ -24,11 +24,11 @@ export function HomeCountyMap({
   onCountyMap,
 }: Props) {
   const { region, setRegion } = useHomeRegion()
-  const { ready } = useAuth()
+  const { ready, authenticated } = useAuth()
   const { results, loading: countyLoading } = useRouteApi(
-    [{ method: 'GET', path: `/dashboard/county-map?region=${region}` }],
+    [{ method: 'GET', path: '/dashboard/county-map' }],
     {},
-    { enabled: ready },
+    { enabled: ready && authenticated },
   )
   const countyResult = results[0]
   const county = countyResult?.ok ? countyResult.data : undefined
@@ -59,7 +59,11 @@ export function HomeCountyMap({
         <MapLegend />
         <MapTools />
         <div className="county-map">
-          <MapCollabPanel loading={ready && countyLoading} error={countyError} payload={county} />
+          <MapCollabPanel
+            loading={ready && authenticated && countyLoading}
+            error={!authenticated ? '未登录' : countyError}
+            payload={county}
+          />
           <Suspense fallback={<p className="api-muted">地图加载中…</p>}>
             <MapScene themeId="light" region={region} variant="command" />
           </Suspense>
