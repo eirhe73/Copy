@@ -2,17 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ApiSourceNotice } from '../../components/ApiSourceNotice'
 import { DashboardPanel } from '../../components/home/DashboardPanel'
+import { useAuth } from '../../context/AuthContext'
 import { apiGet } from '../../lib/apiClient'
 import { genderBadgeClass, genderLabel, patientDetailFields, patientFromUnknown } from '../../lib/patientDisplay'
 import type { PatientRecord } from '../../types/patient'
 
 export function PatientDetailPage() {
+  const { ready, authenticated } = useAuth()
   const { id } = useParams()
   const [patient, setPatient] = useState<PatientRecord | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    if (!ready || !authenticated) return
     if (!id) {
       setError('缺少患者 ID')
       setLoading(false)
@@ -39,7 +42,7 @@ export function PatientDetailPage() {
     return () => {
       cancelled = true
     }
-  }, [id])
+  }, [id, ready, authenticated])
 
   const fields = patient ? patientDetailFields(patient) : []
 

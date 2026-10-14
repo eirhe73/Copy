@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { apiRoot } from '../lib/apiClient'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -29,7 +30,9 @@ export function LoginPage() {
     <main className="workspace login-page">
       <form className="login-card" onSubmit={onSubmit}>
         <h2>华西 · 一体化指挥中心</h2>
-        <p className="api-muted">JWT 登录 · POST /api/v1/auth/login</p>
+        <p className="api-muted">
+          JWT 登录 · POST {apiRoot()}/v1/auth/login
+        </p>
         <label className="field">
           <span>账号</span>
           <input

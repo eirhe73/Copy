@@ -8,7 +8,10 @@ function applyViteBackendEnv(): void {
     const pass = import.meta.env.VITE_API_PASS as string | undefined
     const fullBackend = import.meta.env.VITE_FULL_BACKEND as string | undefined
 
-    if (base?.trim()) localStorage.setItem('huaxi-api-origin', base.trim())
+    if (base?.trim()) {
+      const normalized = base.trim().replace(/\/$/, '').replace(/\/v1$/, '')
+      localStorage.setItem('huaxi-api-origin', normalized)
+    }
     if (user?.trim()) localStorage.setItem('huaxi-api-user', user.trim())
     if (pass?.trim()) localStorage.setItem('huaxi-api-pass', pass.trim())
     if (fullBackend === '1') {

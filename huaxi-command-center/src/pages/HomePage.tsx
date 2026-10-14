@@ -16,12 +16,12 @@ const bindings = ROUTE_API_BINDINGS['/'] ?? []
 const VEHICLE_BUCKETS = ['出警中', '空闲中', '不能调用'] as const
 
 function HomeDashboard() {
-  const { ready } = useAuth()
+  const { ready, authenticated } = useAuth()
   const [countyErToday, setCountyErToday] = useState<number | undefined>()
   const onCountyMap = useCallback((p: { erToday?: number }) => {
     setCountyErToday(p.erToday)
   }, [])
-  const { results } = useRouteApi(bindings, undefined, { enabled: ready })
+  const { results } = useRouteApi(bindings, undefined, { enabled: ready && authenticated })
 
   const ambulances = results.find((r) => r.path.includes('/ambulances'))
   const live = results.find((r) => r.path.includes('dispatch-live'))

@@ -76,10 +76,21 @@
     }
   }
 
+  function clearToken() {
+    token = null
+    try {
+      sessionStorage.removeItem(TOKEN_KEY)
+      localStorage.removeItem(TOKEN_KEY)
+    } catch {
+      /* ignore */
+    }
+  }
+
   function saveToken(t) {
     token = t
     try {
       sessionStorage.setItem(TOKEN_KEY, t)
+      localStorage.setItem(TOKEN_KEY, t)
     } catch {
       /* ignore */
     }
@@ -112,7 +123,7 @@
         return true
       } catch (e) {
         console.error('[hx-api-bridge] JWT 登录失败', e)
-        token = null
+        clearToken()
         return false
       } finally {
         loginPromise = null
@@ -166,8 +177,10 @@
       if (token) headers.Authorization = `Bearer ${token}`
       let res = await nativeFetch(`${apiV1()}${apiPath}`, { ...init, headers })
       if (res.status === 401 && !init?._retried) {
-        await ensureAuth(true)
-        return backendRequest(apiPath, { ...init, _retried: true, _skipCache: init?._skipCache })
+        clearToken()
+        const ok = await ensureAuth(true)
+        if (!ok) throw new Error(`未授权 ${apiPath}`)
+        return backendRequest(apiPath, { ...init, _retried: true, _skipCache: true })
       }
       let attempt = 0
       while (res.status === 429 && attempt < 3) {
