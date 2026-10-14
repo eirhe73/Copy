@@ -8448,14 +8448,12 @@ button.primary:hover,
   font-weight: 600 !important;
 }
 
-<<<<<<< HEAD
 /* 基层医声 Dr：隐藏内容区重复的板块 Tab，仅保留顶部子导航切换 */
 .app-shell:has(main.dr-page) nav.dr-mainnav,
 main.dr-page nav.dr-mainnav {
   display: none !important;
 }
 
-=======
 /* 远程会诊工作台 — 科室待接诊 / 进行中卡片（sidebar 正式表格化布局） */
 body.hx-consult-page main.workspace {
   max-width: none !important;
@@ -8647,4 +8645,3 @@ body.hx-consult-page .hx-consult-mode {
     grid-row: auto !important;
   }
 }
->>>>>>> 8c92903b76a60004d3bef62dab75d969f18aebe2
