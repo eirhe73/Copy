@@ -144,7 +144,21 @@ export function consultHref(
 }
 
 export async function loadEvents(): Promise<{ updatedAt: string; activeCount: number; events: DispatchEvent[] }> {
-  return fetch('/api/dispatch-live.json', { cache: 'no-store' }).then((r) => r.json())
+  const [live, amb] = await Promise.all([
+    fetch('/api/dispatch-live.json', { cache: 'no-store' }).then((r) => r.json()),
+    fetch('/api/dispatch-ambulances.json', { cache: 'no-store' })
+      .then((r) => r.json())
+      .catch(() => null),
+  ])
+  const plates = new Map<string, string>()
+  for (const a of (amb?.ambulances ?? []) as Array<{ currentEventId?: string; plate?: string }>) {
+    if (a?.currentEventId && a?.plate) plates.set(a.currentEventId, a.plate)
+  }
+  const events = ((live.events ?? []) as DispatchEvent[]).map((ev) => ({
+    ...ev,
+    vehiclePlate: ev.vehiclePlate || plates.get(ev.id) || '',
+  }))
+  return { updatedAt: live.updatedAt, activeCount: live.activeCount, events }
 }
 
 export function formatClock(iso: string) {
@@ -166,4 +180,55 @@ export function statusTone(status: string) {
   if (status.includes('待命')) return 'idle'
   if (status.includes('返院')) return 'run'
   return 'run'
+}
+
+const LEVEL_LABELS: Record<string, string> = {
+  RISK_HIGH: '高风险',
+  RISK_MEDIUM: '中风险',
+  RISK_LOW: '低风险',
+  TRIAGE_I: 'Ⅰ 级',
+  TRIAGE_II: 'Ⅱ 级',
+  TRIAGE_III: 'Ⅲ 级',
+  TRIAGE_IV: 'Ⅳ 级',
+}
+
+export function levelLabel(level: string) {
+  if (!level) return '—'
+  return LEVEL_LABELS[level] ?? level
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  STAGE_CREATED: '已接警',
+  STAGE_ENROUTE: '出警中',
+  STAGE_SCENE: '现场处置',
+  STAGE_TRANSPORT: '转运中',
+  STAGE_CLOSED: '已结束',
+  STANDBY: '待命',
+  DISPATCHING: '出警中',
+  ON_SCENE: '现场处置',
+  RETURNING: '返院途中',
+}
+
+export function statusLabel(status: string) {
+  if (!status) return '—'
+  return STATUS_LABELS[status] ?? status
+}
+
+export function etaText(minutes?: number | null) {
+  if (minutes === null || minutes === undefined || Number.isNaN(minutes) || minutes <= 0) return '—'
+  return `${minutes} 分钟`
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  CHANNEL_120: '120 接入',
+  CHANNEL_NORMAL: '普通接入',
+}
+
+export function channelLabel(channel?: string) {
+  if (!channel) return ''
+  return CHANNEL_LABELS[channel] ?? channel
+}
+
+export function vehicleLabel(plate?: string | null) {
+  return plate && plate.trim() ? plate : '待派车'
 }
