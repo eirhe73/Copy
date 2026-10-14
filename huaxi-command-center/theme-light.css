@@ -4031,3 +4031,31 @@ table.dr-drug tr:hover td {
   background: #f0f9ff !important;
   border-color: #7dd3fc !important;
 }
+
+/* ========== 基层医声 Dr · 板块导航 Tab 化（点击切换 + 操作技能视频置首） ========== */
+.dr-mainnav {
+  display: flex !important;
+  gap: 0 !important;
+  border-bottom: 2px solid #e2e8f0 !important;
+}
+.dr-mainnav button {
+  border: none !important;
+  border-bottom: 3px solid transparent !important;
+  border-radius: 8px 8px 0 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  margin-bottom: -2px !important;
+  padding: 10px 22px !important;
+}
+.dr-mainnav button:hover {
+  background: #f1f5f9 !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+.dr-mainnav button.active {
+  background: transparent !important;
+  color: #0284c7 !important;
+  border-bottom-color: #0284c7 !important;
+  box-shadow: none !important;
+  font-weight: 700 !important;
+}
