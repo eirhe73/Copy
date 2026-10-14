@@ -65,9 +65,9 @@ const Current = computed(() => {
         </a>
       </nav>
       <div class="dh-links">
-        <a href="/#/consultations">远程会诊</a>
-        <a href="/#/transfers">转诊交接</a>
-        <a class="dh-back" href="/#/">返回指挥中枢</a>
+        <a href="/app.html#/consultations">远程会诊</a>
+        <a href="/app.html#/transfers">转诊交接</a>
+        <a class="dh-back" href="/app.html#/">返回指挥中枢</a>
       </div>
     </header>
     <main class="dh-main">

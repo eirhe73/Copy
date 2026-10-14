@@ -1,6 +1,6 @@
 /**
- * 120 院前工作台：纠正主站 Hash 误用（/#/dispatch、/#/dispatch.html）→ /dispatch.html#live
- * 保留 ?legacy=1 或 localStorage huaxi-dispatch-legacy=1 可进旧版 /#/dispatch。
+ * 120 院前工作台：主站 #/dispatch → /dispatch.html#live；?hub=ambulances → #ambulances
+ * 保留 ?legacy=1 或 localStorage huaxi-dispatch-legacy=1 可留在 app.html#/dispatch。
  */
 ;(function () {
   function path() {

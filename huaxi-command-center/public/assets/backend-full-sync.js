@@ -174,11 +174,17 @@
 
     try {
       const gps = await get('/vehicles/gps')
+      const STATUS_ZH = {
+        STANDBY: '站内待命',
+        DISPATCHING: '出警中',
+        ON_SCENE: '现场处置',
+        RETURNING: '返院途中',
+      }
       base.vehicles = (gps?.vehicles || []).map((v, i) => ({
         id: String(v.vehicle_id || v.id || `V-${i}`),
         name: v.vehicle_name || v.plate || '车辆',
         plate: v.plate || '',
-        status: v.status || '待命',
+        status: STATUS_ZH[v.status] || v.status || '站内待命',
         institutionId: 'weiyuan',
         departmentId: 'emergency',
         position: v.lat != null ? [Number(v.lat), Number(v.lng ?? 104.66)] : [29.53, 104.66],

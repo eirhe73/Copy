@@ -19,7 +19,11 @@
     const out = base && typeof base === 'object' ? base : { schemaVersion: 2, state: {} }
     if (!out.state) out.state = {}
     if (!window.hxBackend?.enabled?.()) return out
-    await window.hxBackend.ensureAuth(false)
+    const authed = await window.hxBackend.ensureAuth(false)
+    if (!authed) {
+      console.warn('[hx-scenario-merge] 未登录，跳过 live 合并（仍使用 scenario.json）')
+      return out
+    }
 
     const get = (p) => window.hxBackend.get(p)
     const list = (p, q) => window.hxBackend.list(p, q)
@@ -63,9 +67,9 @@
       out.state.staff = doctors.map((d) => ({
         id: String(d.doctor_code || d.id),
         name: d.real_name || d.name || d.doctor_code,
-        profession: d.profession || 'doctor',
-        institutionId: d.institution_id || 'weiyuan',
-        departmentId: d.department_id || 'emergency',
+        profession: String(d.profession || 'doctor').toLowerCase(),
+        institutionId: d.institution_id || d.institutionId || 'weiyuan',
+        departmentId: d.department_id || d.departmentId || 'emergency',
         workAreas: [],
       }))
       return 1
@@ -123,13 +127,19 @@
       const gpsList = gps?.vehicles || []
       const src = amb.length ? amb : gpsList
       if (!src.length) return 0
+      const STATUS_ZH = {
+        STANDBY: '站内待命',
+        DISPATCHING: '出警中',
+        ON_SCENE: '现场处置',
+        RETURNING: '返院途中',
+      }
       out.vehicles = src.map((v, i) => {
         const g = gpsList.find((x) => (x.vehicle_id || x.id) === (v.vehicle_id || v.id)) || v
         return {
           id: String(v.vehicle_id || v.id || v.plate || `V-${i}`),
           name: v.vehicle_name || v.plate || v.name || '车辆',
           plate: v.plate || '',
-          status: v.status || '待命',
+          status: STATUS_ZH[v.status] || v.status || '站内待命',
           institutionId: 'weiyuan',
           departmentId: 'emergency',
           position:
