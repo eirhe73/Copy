@@ -56,8 +56,9 @@
   }
 
   function criticalBedChips() {
+    // 重症监护床位视频区由 bed-video-fill-enhance 用本地录像填充，不再叠加「演示未接」角标
     document.querySelectorAll('.critical-bed').forEach((el) => {
-      if (el.querySelector('.hx-video-chip-foot, video, iframe')) return
+      if (el.querySelector('.video-pane video, .hx-video-chip-foot, video, iframe')) return
       el.classList.add('hx-critical-bed-video')
       const foot = document.createElement('div')
       foot.className = 'hx-video-chip-foot'
@@ -103,6 +104,7 @@
     document.querySelectorAll('.dh-video').forEach((el) => normalizeBlock(el, 'vehicle'))
 
     document.querySelectorAll('.video-pane, .video-state, .clinical-device-frame').forEach((el) => {
+      if (el.closest('.critical-grid')) return
       const t = (el.textContent || '').trim()
       if (!t && !el.querySelector('video, iframe, canvas')) normalizeBlock(el, 'bed')
       else if (/未接|占位|摄像头|画面/.test(t) && !el.querySelector('.hx-video-placeholder__title')) {
