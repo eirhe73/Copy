@@ -105,7 +105,7 @@ function mountGlbMap() {
     themeId: 'light',
     region,
     variant: 'command',
-    campusDisplayScale: 1.0,
+    campusDisplayScale: 1.2,
   })
   mountedRegion = region
 

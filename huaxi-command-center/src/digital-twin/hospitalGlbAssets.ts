@@ -9,9 +9,10 @@ export const HOSPITAL_GLB_BY_TIER = {
 } as const
 
 /** 地图单位：院区占地宽度（约县界宽度的 35~55%） */
-const TARGET_FOOTPRINT = [0.6, 0.48, 0.37, 0.55] as const
+const TARGET_FOOTPRINT = [0.68, 0.55, 0.43, 0.62] as const
 
-const LAYOUT_VERSION = 5
+/** 模板加载版本（footprint / 高度策略变更时递增） */
+const LAYOUT_VERSION = 6
 
 export function recenterCampusOnAnchor(model: THREE.Object3D) {
   model.updateMatrixWorld(true)
@@ -63,14 +64,9 @@ let loadPromise: Promise<HospitalGlbTemplates> | null = null
 let loadedLayoutVersion = 0
 
 function tuneMaterial(m: THREE.Material) {
-  if (m instanceof THREE.MeshStandardMaterial) {
-    m.metalness = Math.min(m.metalness, 0.2)
-    m.roughness = Math.max(m.roughness, 0.55)
-    if (m.emissive) {
-      const base = Math.min(Math.max(m.emissiveIntensity ?? 0, 0.08), 0.28)
-      m.emissiveIntensity = base
-      m.userData.baseEmissiveIntensity = base
-    }
+  if (m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhysicalMaterial) {
+    m.metalness = Math.min(m.metalness, 0.15)
+    m.roughness = Math.max(m.roughness, 0.5)
     return
   }
   if (m instanceof THREE.MeshPhongMaterial) {

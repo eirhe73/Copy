@@ -8,6 +8,7 @@ import {
   attachCampusGlb,
   loadCampusTemplates,
 } from '../lib/hospitalCampusOnMap'
+import { tierLegendHex } from '../lib/hospitalCampusStyle'
 import type { GeoJson } from './geo'
 import {
   buildShapeFromPoints,
@@ -235,6 +236,19 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
           if (top > 0) {
             h = top
             usedCampus = true
+            const pin = new THREE.Mesh(
+              new THREE.OctahedronGeometry(MARKER.diamondRadius * 0.75, 0),
+              new THREE.MeshPhongMaterial({
+                color: markerColor,
+                emissive: markerColor,
+                emissiveIntensity: 0.4,
+                shininess: 80,
+                transparent: true,
+                opacity: 0.92,
+              }),
+            )
+            pin.position.z = h + 0.03
+            g.add(pin)
           }
         }
 
@@ -270,6 +284,9 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
           labelEl.className = usedCampus ? 'hx-campus-map-label' : 'hx-command-map-label'
           if (usedCampus) {
             labelEl.textContent = shortNodeName(node.name)
+            const tierColor = tierLegendHex(node.tier)
+            labelEl.style.color = tierColor
+            labelEl.style.borderColor = `${tierColor}66`
           } else {
             labelEl.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${node.name}</span>`
           }

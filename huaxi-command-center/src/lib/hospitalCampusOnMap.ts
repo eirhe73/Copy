@@ -5,7 +5,7 @@ import {
   recenterCampusOnAnchor,
   type HospitalGlbTemplates,
 } from '../digital-twin/hospitalGlbAssets'
-import { stylizeCampusMeshes } from './hospitalCampusStyle'
+import { stylizeCampusMeshes, tierLegendColor } from './hospitalCampusStyle'
 
 type MapThree = {
   markerGlow: number
@@ -50,22 +50,42 @@ export function attachCampusGlb(
   g.add(shadow)
 
   const { model, height } = cloneHospitalModel(template, tierKey)
-  if (displayScale !== 1) model.scale.multiplyScalar(displayScale)
+  if (displayScale !== 1) {
+    model.scale.x *= displayScale
+    model.scale.y *= displayScale
+    model.scale.z *= displayScale
+  }
+  /** 竖向拉高，占地不变 */
+  const heightStretch = 1.58
+  model.scale.z *= heightStretch
   recenterCampusOnAnchor(model)
   stylizeCampusMeshes(model, t, tierKey)
   g.add(model)
   const box2 = new THREE.Box3().setFromObject(model)
-  return Math.max(box2.max.z - box2.min.z, height * displayScale) + 0.04
+  return Math.max(box2.max.z - box2.min.z, height * displayScale * heightStretch) + 0.04
 }
 
 /** 首页：单圈淡光，不用三层波纹 */
 export function addCampusBasePlate(g: THREE.Group, t: MapThree, tier: number) {
   const r = 0.12 + tier * 0.025
+  const c = tierLegendColor(tier)
   g.add(
     new THREE.Mesh(
-      new THREE.RingGeometry(r * 0.72, r, 48),
+      new THREE.RingGeometry(r * 0.55, r, 48),
       new THREE.MeshBasicMaterial({
-        color: t.markerGlow,
+        color: c,
+        transparent: true,
+        opacity: 0.38,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    ),
+  )
+  g.add(
+    new THREE.Mesh(
+      new THREE.RingGeometry(r * 1.02, r * 1.14, 48),
+      new THREE.MeshBasicMaterial({
+        color: c,
         transparent: true,
         opacity: 0.14,
         side: THREE.DoubleSide,
