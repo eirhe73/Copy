@@ -7150,3 +7150,10 @@ html.hx-full-backend .hx-device-bind-hint {
   min-height: 268px !important;
 }
 
+
+/* 基层医声 Dr：隐藏内容区重复的板块 Tab，仅保留顶部子导航切换 */
+.app-shell:has(main.dr-page) nav.dr-mainnav,
+main.dr-page nav.dr-mainnav {
+  display: none !important;
+}
+
