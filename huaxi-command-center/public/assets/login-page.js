@@ -22,6 +22,31 @@
     }
   }
 
+  function demoCredentials() {
+    let username = 'admin'
+    let password = '123456'
+    try {
+      const u = localStorage.getItem('huaxi-api-user')?.trim()
+      const p = localStorage.getItem('huaxi-api-pass')
+      if (u) username = u
+      if (p) password = p
+    } catch {
+      /* ignore */
+    }
+    return { username, password }
+  }
+
+  function fillDemoCredentials(form) {
+    const { username, password } = demoCredentials()
+    const userInput = form.querySelector('[name="username"]')
+    const passInput = form.querySelector('[name="password"]')
+    if (userInput) userInput.value = username
+    if (passInput) passInput.value = password
+    showError('')
+    setStatus('')
+    passInput?.focus()
+  }
+
   function showError(msg) {
     const el = document.getElementById('hx-login-error')
     if (!el) return
@@ -60,7 +85,9 @@
     form.dataset.bound = '1'
 
     const userInput = form.querySelector('[name="username"]')
-    if (userInput) userInput.value = savedUsername()
+    if (userInput && !userInput.value.trim()) userInput.value = savedUsername()
+
+    document.getElementById('hx-login-fill-demo')?.addEventListener('click', () => fillDemoCredentials(form))
 
     form.addEventListener('submit', async (e) => {
       e.preventDefault()
