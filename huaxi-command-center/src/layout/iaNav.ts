@@ -23,9 +23,8 @@ export const IA_PLATES: IaPlate[] = [
     home: '/warning',
     links: [
       ['/warning', '预警总览'],
-      ['/warning?view=departments', '科室全景'],
+      ['/warning?view=departments', '科室监控'],
       ['/patients?focus=1', '重点关注'],
-      ['/beds', '科室床位'],
       ['/messages', '预警通知'],
       ['/quality', '运行统计'],
     ],
@@ -55,7 +54,7 @@ export const IA_PLATES: IaPlate[] = [
     title: '基层医声Dr.',
     home: '/dr',
     links: [
-      ['/dr', '健康科普'],
+      ['/dr?view=videos', '视频展示'],
       ['/dr?view=saved', '我的收藏'],
     ],
   },
