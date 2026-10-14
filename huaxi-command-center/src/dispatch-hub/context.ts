@@ -140,7 +140,7 @@ export function consultHref(
   if (ctx.vehicleId) q.set('vehicle', ctx.vehicleId)
   if (ctx.chiefComplaint) q.set('complaint', ctx.chiefComplaint)
   const s = q.toString()
-  return s ? `/#/consultations?${s}` : '/#/consultations'
+  return s ? `/app.html#/consultations?${s}` : '/app.html#/consultations'
 }
 
 export async function loadEvents(): Promise<{ updatedAt: string; activeCount: number; events: DispatchEvent[] }> {
