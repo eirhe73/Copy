@@ -44,20 +44,22 @@ class ConsultRtcService extends Service
      *
      * @return array{rtcSessionId:string, rtcRoomId:int, joinToken:string, ownerToken:string, wsTicket:string, videoEnabled:bool}|null
      */
-    public function createRoom(ConsultSession $session, ConsultRoom $room, string $ownerName = ''): ?array
+    public function createRoom(ConsultSession $session, ConsultRoom $room, string $ownerName = '', ?Patient $patient = null): ?array
     {
         if (! $this->enabled()) {
             return null;
         }
+
+        [$invitees, $invitedUserIds] = $this->inviteeContext($session);
 
         $payload = [
             'roomName' => $this->roomName($session),
             'displayName' => $ownerName !== '' ? $ownerName : '医生',
             'consultId' => $session->session_id,
             'eventId' => $session->task120_id,
-            'patientContext' => $this->patientContext($session),
-            'invitees' => $this->invitees($session),
-            'invitedUserIds' => $this->invitedUserIds($session),
+            'patientContext' => $this->patientContext($session, $patient),
+            'invitees' => $invitees,
+            'invitedUserIds' => $invitedUserIds,
         ];
 
         $data = $this->call('post', '/api/rooms', $payload);
@@ -69,6 +71,7 @@ class ConsultRtcService extends Service
 
         // 注：会诊系统当前版本返回的 ownerToken 实为 ownerTicket（已知缺陷，已在会诊系统侧修复中），
         // 主系统只把它当作"房主凭证"原样保存与回传，不依赖其具体形态。
+        // 同步状态与业务字段一次落库，省一次数据库往返（远程库每往返都有公网延迟）。
         $room->forceFill([
             'rtc_session_id' => (string) $data['sessionId'],
             'rtc_room_id' => (int) ($data['roomId'] ?? 0) ?: null,
@@ -78,8 +81,9 @@ class ConsultRtcService extends Service
             // 只存不带票据的入会基址：ownerTicket 60 秒失效，存进库就是死链。
             // 需要入会时一律走 GET /consultations/{sessionId}/join-link 现签。
             'rtc_url' => $this->buildJoinUrl((string) $data['sessionId']),
+            'rtc_sync_status' => self::SYNC_OK,
+            'rtc_synced_at' => now(),
         ])->save();
-        $this->markSync($room, self::SYNC_OK);
 
         return [
             'rtcSessionId' => (string) $data['sessionId'],
@@ -211,12 +215,14 @@ class ConsultRtcService extends Service
     /**
      * 患者上下文：映射为会诊系统 PatientProfile
      * 主系统 patients 表没有住院号/病区/床位的字段，缺失项一律留空，不臆造。
+     *
+     * $patient 由调用方传入（发起会诊时已查过一次，避免对远程库重复查询）。
      */
-    private function patientContext(ConsultSession $session): array
+    private function patientContext(ConsultSession $session, ?Patient $patient = null): array
     {
-        $patient = ! empty($session->patient_id)
-            ? Patient::where('patient_id', $session->patient_id)->first()
-            : null;
+        if ($patient === null && ! empty($session->patient_id)) {
+            $patient = Patient::where('patient_id', $session->patient_id)->first();
+        }
 
         // 性别：主系统 patients.gender 为 0男 1女 2未知，接口层为 MALE/FEMALE；会诊系统为 M/F/U
         $gender = $patient !== null
@@ -231,7 +237,8 @@ class ConsultRtcService extends Service
         return [
             'patientId' => (string) ($session->patient_id ?? ''),
             'patientType' => empty($session->patient_id) ? 'TEMP' : 'FORMAL',
-            'name' => (string) ($session->patient_name ?? ''),
+            // 存量会诊单里可能还有"？？？？"这类身份不明姓名，推给会诊系统前统一显示为"临时患者"
+            'name' => ConsultationService::displayPatientName($session->patient_name ?? ''),
             'nameMasked' => (bool) config('services.consultation.name_masked', false),
             'gender' => $gender,
             'age' => (int) ($session->patient_age ?? 0),
@@ -274,21 +281,39 @@ class ConsultRtcService extends Service
     }
 
     /**
-     * 受邀专家明细：会诊系统用它替代内置专家目录，在入会页展示"受邀专家点击认领"
-     * 跨系统用户标识统一用 users.username。
+     * 受邀专家上下文：一次查询同时产出 invitees 明细与 invitedUserIds
+     *
+     * 原实现里 invitedUserIds() 会被调用两次（invitees() 内部一次、payload 一次），
+     * 加上明细查询共 4 次数据库往返；远程库下这里是发起会诊的主要耗时之一。
+     *
+     * @return array{0: array<int, array<string, string>>, 1: array<int, string>}
      */
-    private function invitees(ConsultSession $session): array
+    private function inviteeContext(ConsultSession $session): array
     {
-        $usernames = $this->invitedUserIds($session);
-        if ($usernames === []) {
-            return [];
+        $nominated = (string) ($session->nominated_doctor_id ?? '');
+
+        $query = User::query()->with('organization')->where('identity_type', 'DOCTOR');
+        if (! empty($session->department)) {
+            $query->where('department_id', $session->department);
+        }
+        $users = $query->limit(20)->get()->keyBy('username');
+
+        // 指定医生可能不在目标科室名单里，单独补取
+        if ($nominated !== '' && ! $users->has($nominated)) {
+            $extra = User::query()->with('organization')->where('username', $nominated)->get()->keyBy('username');
+            $users = $users->merge($extra);
         }
 
-        $users = User::with('organization')->whereIn('username', $usernames)->get()->keyBy('username');
+        // 指定医生排最前，其余为目标科室医生（上限 20，避免单次载荷过大）
+        $ids = array_values(array_unique(array_filter(array_merge(
+            [$nominated],
+            $users->keys()->all(),
+        ))));
+
         $deptNames = $this->deptNames($users->pluck('department_id')->filter()->all());
 
         $list = [];
-        foreach ($usernames as $username) {
+        foreach ($ids as $username) {
             $user = $users->get($username);
             if ($user === null) {
                 continue;
@@ -303,23 +328,7 @@ class ConsultRtcService extends Service
             ];
         }
 
-        return $list;
-    }
-
-    /**
-     * 受邀专家用户名：指定医生 + 目标科室医生（上限 20，避免单次载荷过大）
-     */
-    private function invitedUserIds(ConsultSession $session): array
-    {
-        $ids = array_filter([(string) ($session->nominated_doctor_id ?? '')]);
-
-        $query = User::query()->where('identity_type', 'DOCTOR');
-        if (! empty($session->department)) {
-            $query->where('department_id', $session->department);
-        }
-        $ids = array_merge($ids, $query->limit(20)->pluck('username')->all());
-
-        return array_values(array_unique(array_filter($ids)));
+        return [$list, $ids];
     }
 
     private function deptNames(array $codes): array
@@ -356,6 +365,9 @@ class ConsultRtcService extends Service
         try {
             $request = Http::baseUrl($baseUrl)
                 ->timeout($timeout)
+                // 连接阶段单独限短：会诊系统地址不可达时快速失败，
+                // 否则 TCP 重传+总超时会拖满 timeout 秒，把发起会诊卡住
+                ->connectTimeout(min(2, $timeout))
                 ->acceptJson()
                 ->asJson()
                 ->withHeaders(array_filter([

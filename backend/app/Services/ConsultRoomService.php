@@ -37,7 +37,7 @@ class ConsultRoomService extends Service
             'roomName' => $room->room_name,
             'patient' => [
                 'patientId' => $room->patient_id,
-                'name' => $session->patient_name,
+                'name' => ConsultationService::displayPatientName($session->patient_name),
                 'gender' => $this->genderName($session->patient_gender),
                 'age' => (int) $session->patient_age,
                 'chiefComplaint' => $session->chief_complaint,

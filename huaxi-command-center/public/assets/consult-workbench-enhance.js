@@ -134,19 +134,24 @@
   }
 
   /**
-   * 单次网络抖动重试一次。
+   * 网络级错误自动重试（最多 2 次，间隔递增）。
    * 开发态后端是单进程 PHP dev server，请求严格串行，并发稍多偶尔会掉连接，
    * 表现为浏览器抛 TypeError: Failed to fetch。
    */
   function call(method, pathname, query, body) {
-    return request(method, pathname, query, body, false).catch(function (e) {
-      if (!isNetworkError(e)) throw e
-      return new Promise(function (resolve, reject) {
-        setTimeout(function () {
-          request(method, pathname, query, body, false).then(resolve, reject)
-        }, 500)
+    var attempt = 0
+    function run() {
+      return request(method, pathname, query, body, false).catch(function (e) {
+        if (!isNetworkError(e) || attempt >= 2) throw e
+        attempt += 1
+        return new Promise(function (resolve, reject) {
+          setTimeout(function () {
+            run().then(resolve, reject)
+          }, attempt === 1 ? 500 : 1200)
+        })
       })
-    })
+    }
+    return run()
   }
 
   /** 限制并发的批量执行，避免一次性打满后端 */
@@ -176,9 +181,11 @@
     var style = document.createElement('style')
     style.id = STYLE_ID
     style.textContent = [
-      // 宿主挂在 body 下，用固定定位覆盖工作区；原演示内容整体隐藏
+      // 宿主挂在 body 下，用固定定位覆盖工作区；原演示内容整体隐藏。
+      // 盒子外观全部去掉（透明背景、无内边距），滚动条也不显示（滚轮仍可滚动）。
       'body.' + BODY_FLAG + ' .workspace > *{display:none !important}',
-      '#' + HOST_ID + '{position:fixed;z-index:30;overflow:auto;background:#f0f4f8;padding:16px 18px;box-sizing:border-box;display:none}',
+      '#' + HOST_ID + '{position:fixed;z-index:30;overflow:auto;background:transparent;padding:0;box-sizing:border-box;display:none;scrollbar-width:none}',
+      '#' + HOST_ID + '::-webkit-scrollbar{display:none;width:0;height:0}',
       P + '-panel{background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:14px 16px;margin-bottom:14px}',
       P + '-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}',
       P + '-head h2{margin:0;font-size:17px;font-weight:600;color:#1e293b}',
@@ -558,7 +565,10 @@
     })
   }
 
-  /** 让宿主节点贴在 .workspace 的位置上（固定定位，随窗口与布局变化重算） */
+  /**
+   * 让宿主节点贴在 .workspace 的位置上（固定定位，随窗口与布局变化重算）。
+   * 高度钳制到视口内：超出部分靠宿主内部滚动（滚动条已隐藏），页面级不再出现滚动条。
+   */
   function place(host) {
     var ws = document.querySelector('.workspace')
     if (!ws) {
@@ -570,11 +580,13 @@
       host.style.display = 'none'
       return
     }
+    var top = Math.max(0, Math.round(r.top))
+    var avail = window.innerHeight - top - 8
     host.style.display = 'block'
-    host.style.top = Math.round(r.top) + 'px'
+    host.style.top = top + 'px'
     host.style.left = Math.round(r.left) + 'px'
     host.style.width = Math.round(r.width) + 'px'
-    host.style.height = Math.round(r.height) + 'px'
+    host.style.height = Math.max(160, Math.min(Math.round(r.height), avail)) + 'px'
   }
 
   function unmount() {

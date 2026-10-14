@@ -7150,3 +7150,55 @@ html.hx-full-backend .hx-device-bind-hint {
   min-height: 268px !important;
 }
 
+
+/* ============================================================
+ * 全局布局：顶栏固定（sticky），业务页滚动时导航保持可见
+ * ============================================================ */
+.app-shell:not(:has(main.dashboard.screen)) .command-header.compact-header {
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+
+.app-shell:not(:has(main.dashboard.screen)) nav.subnav {
+  position: sticky;
+  top: var(--header, 52px);
+  z-index: 50;
+}
+
+/* 子导航右侧的「返回指挥中枢 / 返回实时出警」按钮（consult-context-enhance） */
+nav.subnav .hx-nav-back {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #ffffff;
+  color: #1e4b7b;
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+nav.subnav .hx-nav-back:hover {
+  background: #e8eef4;
+  text-decoration: none;
+}
+
+/* ============================================================
+ * 远程会诊工作台（consult-workbench-enhance）：整页接管
+ * 页面级不出滚动条，工作区容器也不再有盒子外观
+ * ============================================================ */
+body.hx-cw-active {
+  overflow: hidden;
+}
+
+body.hx-cw-active .workspace {
+  border: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}

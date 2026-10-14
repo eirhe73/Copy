@@ -67,6 +67,7 @@ class ConsultationService extends Service
         $gender = $data['gender'] ?? null;
         $age = (int) ($data['age'] ?? 0);
 
+        $patient = null;
         if (! empty($patientId)) {
             $patient = Patient::where('patient_id', $patientId)->first();
             if ($patient) {
@@ -75,6 +76,10 @@ class ConsultationService extends Service
                 $age = $age ?: (int) $patient->age;
             }
         }
+
+        // 未知患者（空名/？？？？/无名氏）统一以"临时患者"入账，
+        // 会诊队列、会诊室名与推给会诊系统的患者信息保持一致
+        $patientName = self::displayPatientName($patientName);
 
         $duplicated = ConsultSession::whereIn('status', [0, 1])
             ->when($patientId, fn ($q) => $q->where('patient_id', $patientId))
@@ -120,8 +125,9 @@ class ConsultationService extends Service
 
         // 同步到远程会诊系统创建音视频房间。失败不阻断：仍返回本地占位会诊室链接，
         // 房间标记 rtc_sync_status=2 由补偿任务重推。
-        $this->rtc->createRoom($session, $room, $this->operatorName());
-        $room->refresh();
+        // $patient 复用上面查到的结果，避免对远程库重复查询；createRoom 内部落库后
+        // 各字段已在内存中，无需再 refresh 回读。
+        $this->rtc->createRoom($session, $room, $this->operatorName(), $patient);
 
         return [
             'sessionId' => $session->session_id,
@@ -412,12 +418,28 @@ class ConsultationService extends Service
     }
 
     /**
+     * 未知患者展示名：空名/全问号/无名氏等身份不明姓名统一显示为"临时患者"
+     *
+     * 院前或车上登记时身份不明的患者，姓名常被填成"？？？？"，
+     * 会诊队列等界面不得原样展示。
+     */
+    public static function displayPatientName(?string $name): string
+    {
+        $name = trim((string) $name);
+        if ($name === '' || preg_match('/^[?？]+$/', $name) === 1) {
+            return '临时患者';
+        }
+
+        return in_array($name, ['未知患者', '无名氏', '姓名不详', '名字不详', '不详'], true) ? '临时患者' : $name;
+    }
+
+    /**
      * 患者基础信息（不含患者编号）
      */
     private function patientOf(ConsultSession $session): array
     {
         return [
-            'name' => $session->patient_name,
+            'name' => self::displayPatientName($session->patient_name),
             'gender' => $this->genderName($session->patient_gender),
             'age' => (int) $session->patient_age,
             'chiefComplaint' => $session->chief_complaint,
@@ -438,7 +460,7 @@ class ConsultationService extends Service
             'consultCode' => $session->consult_code,
             'patient' => [
                 'patientId' => $session->patient_id,
-                'name' => $session->patient_name,
+                'name' => self::displayPatientName($session->patient_name),
                 'gender' => $this->genderName($session->patient_gender),
                 'age' => (int) $session->patient_age,
                 'chiefComplaint' => $session->chief_complaint,
