@@ -42,27 +42,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "api" middleware group. Make something great!
-|
-*/
-
-// 健康检查：免鉴权，供网关/负载均衡存活探测
-Route::get('/health', function () {
-    return response()->json([
-        'status' => 'ok',
-        'service' => 'huaxi-command-center-backend',
-        'time' => now()->toIso8601String(),
-    ]);
-});
-/*
 | V1 业务接口
-| 鉴权范围：仅健康检查与登录免鉴权，其余接口需 Authorization: Bearer {jwt}
+| 鉴权范围：仅登录免鉴权，其余接口需 Authorization: Bearer {jwt}
 */
 Route::prefix('v1')->group(function () {
 
