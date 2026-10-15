@@ -1,0 +1,850 @@
+/**
+ * 首页 3D 地图 — 蓝色指挥风
+ */
+.dashboard-center .main-map {
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background: #f4f7fa !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.dashboard-center {
+  perspective: none;
+}
+
+.dashboard-center .county-map {
+  height: 100%;
+  min-height: 0;
+  background: transparent !important;
+  border: none !important;
+}
+
+.dashboard-center .map-stage {
+  filter: none;
+}
+
+.dashboard-center .map-stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  filter: none;
+}
+
+/* 3D 地图 · 浅蓝背景 */
+.dashboard-center .main-map.hx-map-light-3d {
+  background: radial-gradient(
+    ellipse 88% 72% at 50% 58%,
+    #e3eef8 0%,
+    #eef4fa 45%,
+    #f4f7fa 100%
+  ) !important;
+}
+
+.dashboard-center .main-map.hx-map-light-3d .map-stage {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-center .main-map.hx-map-light-3d .map-stage::before {
+  content: '';
+  position: absolute;
+  inset: 8% 10% 14%;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 62%, rgba(56, 189, 248, 0.14) 0%, transparent 68%);
+  filter: blur(18px);
+}
+
+.dashboard-center .main-map.hx-map-light-3d .map-stage canvas {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 10px 24px rgba(30, 75, 123, 0.14));
+}
+
+/* 首页地图：避免 flex + overflow 把 3D 模型底部裁切 */
+main.dashboard.screen .dashboard-center {
+  position: relative;
+}
+
+main.dashboard.screen .dashboard-center .center-caption {
+  position: absolute !important;
+  bottom: 2px !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 4 !important;
+  flex: none !important;
+  height: auto !important;
+  pointer-events: none !important;
+}
+
+main.dashboard.screen .dashboard-center .center-metrics {
+  flex: 0 0 auto !important;
+  grid-template-rows: repeat(2, 46px) !important;
+  gap: 5px 10px !important;
+  padding: 2px 8px 0 !important;
+}
+
+main.dashboard.screen .dashboard-center .main-map {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding-bottom: 0 !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+main.dashboard.screen .dashboard-center .county-map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* WebGL 画布留出底/顶安全区，避免 3D 挤出体被容器裁切 */
+main.dashboard.screen .dashboard-center .map-stage {
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 8% !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: auto !important;
+}
+
+/* 源码叠加 GLB 院区（appHomeMapUpgrade.ts） */
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay {
+  z-index: 8 !important;
+  pointer-events: auto !important;
+}
+
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay canvas {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  transform: none;
+  filter: drop-shadow(0 12px 28px rgba(30, 75, 123, 0.12));
+}
+
+.hx-campus-map-label {
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #1e4b7b;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(56, 189, 248, 0.38);
+  border-radius: 999px;
+  box-shadow: 0 6px 16px rgba(30, 75, 123, 0.14);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -118%);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hx-campus-map-label--selected {
+  transform: translate(-50%, -122%) scale(1.04);
+  box-shadow: 0 10px 22px rgba(30, 75, 123, 0.22);
+}
+
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay .hx-campus-info-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 12;
+  width: min(240px, 88%);
+  padding: 12px 14px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 32px rgba(30, 75, 123, 0.14);
+  pointer-events: auto;
+}
+
+.hx-campus-info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hx-campus-info-tier {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+}
+
+.hx-campus-info-close {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.hx-campus-info-close:hover {
+  color: #475569;
+}
+
+.hx-campus-info-name {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.hx-campus-info-stats {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.hx-campus-info-stats > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hx-campus-info-stats dt {
+  margin: 0;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.hx-campus-info-stats dd {
+  margin: 0;
+  font-weight: 700;
+  color: #1e4b7b;
+}
+
+.hx-campus-info-stats dd.is-tight {
+  color: #d97706;
+}
+
+.hx-campus-info-hint {
+  margin: 10px 0 0;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.4;
+}
+
+/* 进入首页时 3D 县界略放大，减少中央留白 */
+main.dashboard.screen .dashboard-center .main-map.hx-map-light-3d .map-stage canvas {
+  transform: scale(1.14);
+  transform-origin: 50% 54%;
+  filter: drop-shadow(0 10px 24px rgba(30, 75, 123, 0.14));
+}
+
+main.dashboard.screen .dashboard-center .map-kpi.left {
+  bottom: 14% !important;
+}
+
+/* 左右 KPI：去掉圆角描边卡片 */
+.dashboard-center .map-kpi {
+  display: flex !important;
+  flex-direction: column;
+  align-items: flex-start;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  padding: 12px 16px !important;
+  box-shadow: none !important;
+  min-width: 108px;
+  z-index: 5;
+}
+
+.dashboard-center .map-kpi.left {
+  left: auto !important;
+  right: 16px !important;
+  top: auto !important;
+  bottom: 36px !important;
+  align-items: flex-end !important;
+}
+
+.dashboard-center .map-kpi.right {
+  display: none !important;
+}
+
+.dashboard-center .map-kpi strong {
+  font-size: 28px !important;
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  color: #1e4b7b !important;
+  background: none !important;
+  -webkit-text-fill-color: #1e4b7b !important;
+  line-height: 1 !important;
+}
+
+.dashboard-center .map-kpi span {
+  font-size: 12px !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+.dashboard-center .map-kpi .platform,
+.dashboard-center .map-kpi svg,
+.dashboard-center .map-kpi circle {
+  display: none !important;
+}
+
+.dashboard-center .region-switch.segmented {
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 4px !important;
+  box-shadow: none !important;
+}
+
+.dashboard-center .region-switch.segmented button {
+  color: #475569 !important;
+}
+
+.dashboard-center .region-switch.segmented button.selected {
+  background: #1e4b7b !important;
+  color: #fff !important;
+}
+
+.dashboard-center .map-legend {
+  top: 10px !important;
+  right: 12px !important;
+  left: auto !important;
+  backdrop-filter: none;
+  background: transparent !important;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
+  z-index: 6;
+  gap: 6px !important;
+}
+
+.dashboard-center .map-legend button,
+.dashboard-center .map-legend button.legend-0 {
+  color: #1e4b7b !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  min-height: 22px !important;
+  justify-content: flex-start !important;
+}
+
+.dashboard-center .map-legend button.legend-1 {
+  color: #2563eb !important;
+}
+
+.dashboard-center .map-legend button.legend-2 {
+  color: #38bdf8 !important;
+}
+
+.dashboard-center .map-legend button.legend-0 i {
+  background: #1e4b7b !important;
+}
+
+.dashboard-center .map-legend button.legend-1 i {
+  background: #2563eb !important;
+}
+
+.dashboard-center .map-legend button.legend-2 i {
+  background: #38bdf8 !important;
+}
+
+.dashboard-center .map-legend i {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+.dashboard-center .map-tools {
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.dashboard-center .map-tools button,
+.dashboard-center .map-tools .icon-btn {
+  color: #475569 !important;
+}
+
+.dashboard-center .map-caption,
+.dashboard-center .county-map .map-caption,
+.dashboard-center .county-map .north {
+  background: transparent !important;
+  color: #94a3b8 !important;
+  border: 0;
+  border-radius: 0;
+  font-size: 11px !important;
+}
+
+.dashboard-center .center-caption {
+  background: transparent !important;
+  color: #475569 !important;
+  border: 0;
+  border-radius: 0 !important;
+}
+
+/* —— 协作节点：默认收起，点开再滑出 —— */
+.map-med-tab {
+  position: absolute;
+  top: 12px;
+  left: 8px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 4px;
+  border: 0;
+  border-left: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  cursor: pointer;
+  font: inherit;
+  color: #1e4b7b;
+  writing-mode: vertical-rl;
+  letter-spacing: 0.16em;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.map-med-tab-count {
+  display: none;
+}
+
+.map-med-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(15, 23, 42, 0.12);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.dashboard-center .main-map.map-nodes-open .map-med-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.map-med-sidepanel {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  bottom: 48px;
+  z-index: 6;
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  background: #fff;
+  border: 0;
+  border-left: none;
+  border-radius: 0;
+  box-shadow: none;
+  pointer-events: auto;
+  overflow: hidden;
+  transform: translateX(-102%);
+  transition: transform 0.22s ease;
+}
+
+.dashboard-center .main-map.map-nodes-open .map-med-sidepanel {
+  transform: translateX(0);
+}
+
+.map-med-side-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 12px 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.map-med-side-head strong {
+  font-size: 14px;
+  color: #0f172a;
+}
+
+.map-med-close {
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.map-med-close:hover {
+  background: #e2e8f0;
+}
+
+.map-med-side-tip {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.45;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.map-med-side-list {
+  overflow-y: auto;
+  padding: 4px 6px 8px;
+  flex: 1;
+  min-height: 0;
+}
+
+.map-med-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 8px;
+  margin-bottom: 4px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.map-med-row:hover {
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.map-med-row.active {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+}
+
+.map-med-tier {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.map-med-tier.t0 {
+  background: #dbeafe;
+  color: #1e4b7b;
+}
+
+.map-med-tier.t1 {
+  background: #bfdbfe;
+  color: #2563eb;
+}
+
+.map-med-tier.t2 {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.map-med-row-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.map-med-row-stat {
+  font-size: 10px;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.map-med-row-stat em {
+  display: block;
+  font-style: normal;
+}
+
+.map-med-row-stat strong {
+  font-size: 14px;
+  color: #1e4b7b;
+}
+
+.map-med-row-stat strong.warn {
+  color: #2563eb;
+}
+
+.map-med-row-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+}
+
+.map-med-row-dot.busy {
+  background: #f59e0b;
+}
+
+@media (max-width: 1200px) {
+  .map-med-sidepanel {
+    width: 210px;
+    max-height: 42%;
+  }
+}
+
+/* 最后加载：首页残留圆角描边卡片一律去掉 */
+.dashboard .panel,
+.dashboard .panel:hover,
+.dashboard .metric,
+.dashboard .vehicle-panel,
+.dashboard .vehicle-totals > button,
+.dashboard .ambulance-ring,
+.dashboard .hex-icon,
+.dashboard-center .main-map,
+.dashboard-center .map-kpi,
+.dashboard-center .map-tools,
+.dashboard-center .map-legend,
+.dashboard-center .map-caption,
+.dashboard-center .center-caption,
+.map-med-tab,
+.map-med-sidepanel,
+.map-med-row,
+.map-med-row:hover,
+.map-med-row.active {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-image: none !important;
+}
+
+.dashboard-center .main-map.hx-net-well {
+  background: #f4f7fa !important;
+}
+
+.dashboard-center .main-map.hx-net-well .hx-demo-flag,
+.dashboard-center .main-map.hx-net-well #hx-netmap,
+.dashboard-center .main-map.hx-net-well #tm-hud {
+  display: none !important;
+}
+
+/* 去掉地图角标/demo 说明（大方 DataV、参考截图快照等） */
+.dashboard-center .map-caption,
+.dashboard-center .center-caption,
+.dashboard .map-tools .map-caption {
+  display: none !important;
+}
+
+/* 协作三维地图 #/map：GLB 与首页同步，画布铺满主内容区 */
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage,
+body.hx-page-map-only main.dashboard.screen .dashboard-center .hx-glb-map-overlay {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage {
+  bottom: 0 !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .hx-glb-map-react-slot {
+  display: none !important;
+}
+
+body.hx-page-map-only .api-source-notice {
+  display: none !important;
+}
+
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage canvas,
+body.hx-page-map-only .hx-glb-map-host--full .hx-glb-map-overlay canvas {
+  transform: none !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-kpi,
+body.hx-page-map-only .dashboard-center .map-med-tab,
+body.hx-page-map-only .dashboard-center .map-med-backdrop,
+body.hx-page-map-only .dashboard-center .map-med-sidepanel,
+body.hx-page-map-only .dashboard-center .map-collab-panel,
+body.hx-page-map-only .main-map.map-nodes-open .map-med-sidepanel {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.hx-page-map-only .main-map.map-nodes-open .map-med-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.hx-page-map-only .dashboard-center .region-switch.segmented {
+  position: absolute;
+  z-index: 11;
+  top: 10px;
+  left: 12px;
+}
+
+body.hx-page-map-only .dashboard-center .map-legend {
+  top: auto !important;
+  bottom: 92px !important;
+  right: 12px !important;
+  left: auto !important;
+  z-index: 13 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(30, 75, 123, 0.1) !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-tools {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 16px !important;
+  right: 12px !important;
+  left: auto !important;
+  z-index: 13 !important;
+}
+
+body.hx-page-map-only .hx-campus-info-panel {
+  bottom: 16px !important;
+  right: 16px !important;
+}
+
+.hx-map-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 125;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.hx-map-drawer-backdrop[hidden] {
+  display: none !important;
+}
+
+.hx-map-page-chrome {
+  position: absolute;
+  z-index: 30;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  min-height: 34px;
+}
+
+.hx-map-chrome-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.hx-map-chrome-left .hx-map-chrome-btn,
+.hx-map-chrome-left .hx-map-chrome-link,
+.hx-map-chrome-left button.hx-map-chrome-btn {
+  pointer-events: auto;
+}
+
+.hx-map-page-chrome .hx-map-chrome-btn,
+.hx-map-page-chrome .hx-map-chrome-link,
+.hx-map-page-chrome button.hx-map-chrome-btn {
+  pointer-events: auto;
+  font-family: inherit;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(30, 75, 123, 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.hx-map-page-chrome .hx-map-chrome-btn:hover,
+.hx-map-page-chrome .hx-map-chrome-link:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+
+.hx-map-chrome-title {
+  max-width: 42%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.hx-page-map-only .dashboard-center .region-switch.segmented {
+  top: 52px;
+  left: 12px;
+}
+
+body.hx-page-map-only .dashboard-center .main-map {
+  padding-top: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .dashboard-center .county-map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 240px !important;
+}
+
+body.hx-page-map-only .dashboard-center .hx-glb-map-overlay {
+  z-index: 20 !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-med-backdrop {
+  display: none !important;
+}
+
+body.hx-page-map-only .dashboard-center {
+  overflow: hidden !important;
+}
