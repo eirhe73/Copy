@@ -25,8 +25,6 @@
   var HOST_ID = 'hx-cw'
   var STYLE_ID = 'hx-cw-style'
   var BODY_FLAG = 'hx-cw-active'
-  var COUNTY_DEFAULT_SCOPE_KEY = 'huaxi-cw-scope-defaulted'
-
   var state = {
     ready: false,
     loading: false,
@@ -74,6 +72,17 @@
     return 'all'
   }
 
+  /**
+   * 基层会诊（p1）= API 工作台；远程会诊（p2）= React 科室待接诊卡片。
+   * 仅 #/consultations?tab=grassroots（或 scope=grassroots）挂载本脚本。
+   */
+  function shouldUseConsultWorkbench() {
+    var q = query()
+    if (q.get('workbench') === '0' || q.get('cw') === '0') return false
+    if (q.get('workbench') === '1' || q.get('cw') === '1') return true
+    return consultScopeTab() === 'grassroots'
+  }
+
   /** 曾用三级路由 → 合回单页 #/consultations */
   function migrateSubpathsToSinglePage() {
     var p = path()
@@ -110,20 +119,6 @@
     next.set('tab', 'grassroots')
     var qs = next.toString()
     location.replace(location.pathname + location.search + '#/consultations' + (qs ? '?' + qs : ''))
-  }
-
-  function maybeApplyCountyDefaultScope() {
-    if (path() !== ROUTE) return false
-    var q = query()
-    if (q.get('tab') || q.get('scope') || q.get('launch')) return false
-    try {
-      if (sessionStorage.getItem(COUNTY_DEFAULT_SCOPE_KEY) === '1') return false
-      sessionStorage.setItem(COUNTY_DEFAULT_SCOPE_KEY, '1')
-    } catch (e) {
-      return false
-    }
-    location.replace(location.pathname + location.search + '#/consultations?tab=grassroots')
-    return true
   }
 
   function isGrassrootsItem(it) {
@@ -325,10 +320,10 @@
       P + ' .record-tabs button{border:none;background:transparent;color:#64748b;padding:10px 14px;font-size:13px;font-family:inherit;cursor:pointer;border-radius:0;border-bottom:2px solid transparent;margin-bottom:-1px}',
       P + ' .record-tabs button:hover{color:#0f172a;background:#f8fafc}',
       P + ' .record-tabs button.active{color:#0284c7;border-bottom-color:#0284c7;background:#f8fafc;font-weight:600}',
+      P + ' #hx-cw-tabs.record-tabs button.active{color:#fff !important;background:#1e4b7b !important;border-bottom-color:#1e4b7b !important;-webkit-text-fill-color:#fff !important}',
+      P + ' #hx-cw-tabs.record-tabs button.active .n{background:rgba(255,255,255,.25) !important;color:#fff !important}',
       P + ' .record-tabs .n{display:inline-block;min-width:18px;margin-left:4px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;background:#f1f5f9;color:#475569;line-height:18px}',
       P + ' .record-tabs button.active .n{background:#e0f2fe;color:#0369a1}',
-      P + '-scope{margin:0 0 12px}',
-      P + '-scope-hint{margin:8px 0 0;font-size:12px;line-height:1.55;color:#64748b}',
       P + '-role{margin:12px 0 0;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;line-height:1.55;color:#334155}',
       P + '-role strong{display:block;font-size:14px;margin-bottom:4px;color:#0f172a}',
       P + '-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:12px 0 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569}',
@@ -472,15 +467,14 @@
       '<div class="' + HOST_ID + '-stack">' +
       '<header class="' + HOST_ID + '-hero patient-identity">' +
       '<div>' +
-      '<h1 id="hx-cw-title">远程会诊</h1>' +
-      '<span id="hx-cw-subtitle" class="' + HOST_ID + '-subtitle">基层上转与全县会诊队列</span>' +
+      '<h1 id="hx-cw-title">基层会诊</h1>' +
+      '<span id="hx-cw-subtitle" class="' + HOST_ID + '-subtitle">乡镇/村室上转队列</span>' +
       '</div>' +
       '<div class="' + HOST_ID + '-actions">' +
       '<button type="button" class="' + HOST_ID + '-btn ghost" data-act="refresh">刷新</button>' +
       '<button type="button" class="' + HOST_ID + '-btn primary" data-act="toggle-form">发起会诊</button>' +
       '</div></header>' +
       '<div class="' + HOST_ID + '-card">' +
-      '<div id="hx-cw-scope"></div>' +
       '<div id="hx-cw-chain"></div>' +
       '<div id="hx-cw-role"></div>' +
       '<div id="hx-cw-form-wrap" hidden>' + formHtml() + '</div>' +
@@ -713,11 +707,11 @@
     return '<a class="' + HOST_ID + '-btn' + (primary ? ' primary' : ' link') + '" href="' + esc(href) + '">' + esc(text) + '</a>'
   }
 
-  /** 「进入会诊室」统一为同一套按钮样式（不随状态在 link / 大蓝块之间切换） */
+  /** 「进入会诊室」→ episode；episode 页再「进入视频会诊」→ room */
   function opEnterRoom(it) {
     var label = '进入会诊室'
     var cls = HOST_ID + '-btn ' + HOST_ID + '-btn-enter'
-    var rh = roomHref(it)
+    var rh = consultEntryHref(it)
     if (rh) {
       return '<a class="' + cls + '" href="' + esc(rh) + '">' + esc(label) + '</a>'
     }
@@ -739,8 +733,7 @@
     return (hit && hit.patientId) || ''
   }
 
-  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
-  function roomHref(it) {
+  function consultToken(it) {
     if (!it) return ''
     var token =
       it.consultationToken ||
@@ -752,14 +745,31 @@
     if (!token && it.sessionId && state.scenarioBySession[it.sessionId]) {
       token = state.scenarioBySession[it.sessionId].token || ''
     }
-    // 会诊室 API 按 consult_rooms.token 查，勿用 sessionId 以免空白页
+    return token || ''
+  }
+
+  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
+  function roomHref(it) {
+    var token = consultToken(it)
     if (!token) return ''
-    return '/#/room/' + encodeURIComponent(token)
+    return '#/room/' + encodeURIComponent(token)
+  }
+
+  /** 列表入口：连续诊疗 episode（p3），episode 内再进 room（p4） */
+  function consultEntryHref(it) {
+    var pid = resolvePatientId(it)
+    var token = consultToken(it)
+    if (window.hxConsultEpisodeNav && window.hxConsultEpisodeNav.episodeHash) {
+      var ep = window.hxConsultEpisodeNav.episodeHash({ patientId: pid, token: token })
+      if (ep) return ep
+    }
+    return roomHref(it)
   }
 
   function ingestScenarioPack(pack) {
     if (!pack) return
     var st = (pack && pack.state) || pack || {}
+    window.hxConsultEpisodeNav?.indexFromScenario(st)
     state.scenarioBySession = {}
     state.scenarioPatientByName = {}
     ;(st.consultationRequests || []).forEach(function (cr) {
@@ -844,24 +854,10 @@
     })
   }
 
-  function grassrootsWaitCount() {
-    var n = 0
-    state.queue.forEach(function (it) {
-      if (isGrassrootsItem(it) && it.status === 'WAITING' && startableNow(it)) n++
-    })
-    return n
-  }
-
   function roleBannerHtml() {
-    if (state.scopeTab === 'grassroots') {
-      return (
-        '<strong>县域接诊 · 基层上转待办</strong>' +
-        '<span>本页切换「全县会诊」可看混排；上转意图在发起时已标注，此处只管接不接、怎么接。</span>'
-      )
-    }
     return (
-      '<strong>全县会诊</strong>' +
-      '<span>院前、县域、基层混排。日常建议先看「基层上转待办」Tab。</span>'
+      '<strong>县域接诊 · 基层上转待办</strong>' +
+      '<span>仅乡镇/村室来源的上转会诊；混排院前队列请用顶栏「远程会诊」。上转意图在发起时已标注。</span>'
     )
   }
 
@@ -921,25 +917,6 @@
     }
   }
 
-  function scopeHtml() {
-    var tab = state.scopeTab
-    var gWait = grassrootsWaitCount()
-    var gBadge = gWait ? '<span class="badge">' + gWait + '</span>' : ''
-    var hint =
-      tab === 'grassroots'
-        ? '仅显示基层/乡镇来源的上转会诊。'
-        : '全县混排；基层上转请切到左侧 Tab。'
-    return (
-      '<div class="' + HOST_ID + '-scope">' +
-      '<nav class="record-tabs" aria-label="会诊范围">' +
-      '<button type="button" class="' + (tab === 'grassroots' ? 'active' : '') +
-      '" data-act="scope" data-scope="grassroots">基层上转待办' + gBadge + '</button>' +
-      '<button type="button" class="' + (tab === 'all' ? 'active' : '') +
-      '" data-act="scope" data-scope="all">全县会诊</button>' +
-      '</nav><p class="' + HOST_ID + '-scope-hint">' + hint + '</p></div>'
-    )
-  }
-
   function tabsHtml() {
     var base = queueForScope()
     return QTABS.map(function (t) {
@@ -978,9 +955,16 @@
         : statusTag(it.status, it.statusLabel)
       var kind = consultKind(it)
       var pid = resolvePatientId(it)
+      var tok = it.consultationToken || it.token || ''
+      if (pid || tok) {
+        var epH =
+          window.hxConsultEpisodeNav &&
+          window.hxConsultEpisodeNav.episodeHash({ patientId: pid, token: tok })
+        if (epH) ops.push(opLink(epH, '连续诊疗'))
+      }
       if (pid) {
-        ops.push(opLink('/#/patient/' + encodeURIComponent(pid), '患者档案'))
-        ops.push(opLink('/#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
+        ops.push(opLink('#/patient/' + encodeURIComponent(pid), '患者档案'))
+        ops.push(opLink('#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
       }
       var cc = it.chiefComplaint || (p.chiefComplaint || '') || '—'
       var done = it.status === 'FINISHED'
@@ -1038,13 +1022,6 @@
     }
   }
 
-  function syncScopeFromQuery() {
-    var next = consultScopeTab()
-    if (state.scopeTab === next) return
-    state.scopeTab = next
-    paint()
-  }
-
   function maybeOpenLaunchForm() {
     var q = query()
     if (q.get('launch') !== '1' || state.launchFormOnce) return
@@ -1062,25 +1039,20 @@
     var d = $('hx-cw-doctors')
     var tb = $('hx-cw-tabs')
     var ctx = $('hx-cw-ctx')
-    var scope = $('hx-cw-scope')
     var role = $('hx-cw-role')
     var chain = $('hx-cw-chain')
     var title = $('hx-cw-title')
-    if (scope) scope.innerHTML = scopeHtml()
     if (role) {
       role.className = HOST_ID + '-role'
       role.innerHTML = roleBannerHtml()
     }
     if (chain) chain.innerHTML = chainHtml()
-    if (title) {
-      title.textContent = state.scopeTab === 'grassroots' ? '远程会诊 · 基层上转' : '远程会诊'
-    }
+    if (title) title.textContent = '基层会诊'
+    var reactH1 = document.querySelector('main.workspace .workspace-heading h1')
+    if (reactH1 && document.body.classList.contains(BODY_FLAG)) reactH1.textContent = '基层会诊'
     var sub = $('hx-cw-subtitle')
     if (sub) {
-      sub.textContent =
-        state.scopeTab === 'grassroots'
-          ? '基层上转待办 · 接不接、怎么接；上转意图已在发起时标注'
-          : '全县会诊混排 · 院前、县域、基层一表查看'
+      sub.textContent = '乡镇/村室上转队列 · 接不接、怎么接；上转意图在发起时已标注'
     }
     if (q) q.innerHTML = queueHtml()
     if (d) d.innerHTML = doctorsHtml()
@@ -1385,13 +1357,9 @@
         setMsg('会诊已发起' + (code ? '：' + code : '') +
           (data && data.rtcReady ? '，已接入远程会诊系统' : '，音视频服务未就绪，已生成会诊单'), data && data.rtcReady ? 'ok' : '')
       }
-      state.scopeTab = originRole === 'grassroots' ? 'grassroots' : 'all'
+      state.scopeTab = 'grassroots'
       var q = query()
-      if (originRole === 'grassroots') q.set('tab', 'grassroots')
-      else {
-        q.delete('tab')
-        q.delete('scope')
-      }
+      q.set('tab', 'grassroots')
       var qs = q.toString()
       location.hash = '#/consultations' + (qs ? '?' + qs : '')
       return loadAll()
@@ -1467,7 +1435,7 @@
 
   function enterRoom(sessionId) {
     var it = state.queue.filter(function (x) { return x.sessionId === sessionId })[0]
-    var rh = roomHref(it || { sessionId: sessionId })
+    var rh = consultEntryHref(it || { sessionId: sessionId })
     if (rh) {
       location.hash = rh.replace(/^\/#/, '#')
       setMsg('')
@@ -1519,21 +1487,6 @@
       }
       else if (act === 'accept-confirm') confirmAccept()
       else if (act === 'accept-cancel') closeAcceptModal()
-      else if (act === 'scope') {
-        var sc = btn.getAttribute('data-scope') || 'all'
-        var nextScope = sc === 'grassroots' ? 'grassroots' : 'all'
-        state.scopeTab = nextScope
-        paint()
-        var q = query()
-        if (nextScope === 'grassroots') q.set('tab', 'grassroots')
-        else {
-          q.delete('tab')
-          q.delete('scope')
-        }
-        var qs = q.toString()
-        var target = '#/consultations' + (qs ? '?' + qs : '')
-        if (location.hash !== target) location.hash = target
-      }
       else if (act === 'dt-clear') {
         state.schedule = null
         updateDtInput()
@@ -1600,13 +1553,15 @@
       if ($(HOST_ID) || document.body.classList.contains(BODY_FLAG)) unmount()
       return
     }
+    if (!shouldUseConsultWorkbench()) {
+      if ($(HOST_ID) || document.body.classList.contains(BODY_FLAG)) unmount()
+      return
+    }
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
     migrateLegacyGrassrootsUrl()
-    if (maybeApplyCountyDefaultScope()) return
-    state.scopeTab = consultScopeTab()
+    state.scopeTab = 'grassroots'
     syncDispatchFromQuery()
-    syncScopeFromQuery()
 
     var host = $(HOST_ID)
     if (!host) {
@@ -1632,11 +1587,19 @@
     if (!state.ready && !state.loading) loadAll()
   }
 
-  window.addEventListener('hashchange', migrateLegacyGrassrootsUrl)
+  function onConsultHashChange() {
+    migrateLegacyGrassrootsUrl()
+    if (path() !== ROUTE || !shouldUseConsultWorkbench()) return
+    state.scopeTab = 'grassroots'
+    syncDispatchFromQuery()
+    tick()
+  }
+
+  window.addEventListener('hashchange', onConsultHashChange)
   window.hxEnhance(tick, { wait: 300, observeRoot: true, afterNav: 120 })
-  // 兜底：布局变化（窗口缩放、字体加载、侧栏展开）时重算位置，并保证节点不丢
-  setInterval(tick, 900)
-  window.addEventListener('resize', tick)
+  window.addEventListener('resize', function () {
+    if (shouldUseConsultWorkbench()) tick()
+  })
   // 定时会诊到点自动翻转：本地时钟越过开始时间后，把"定时未开始"行刷成可进入
   // （只更新本地状态并重绘，不重新请求；改完 startable 计数归零即停）
   setInterval(function () {

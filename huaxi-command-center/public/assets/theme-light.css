@@ -3708,22 +3708,54 @@ body:has(.huaxi-dispatch-subnav) .app-shell {
 }
 
 /* ========== 浅色扫尾：会诊 / 监控 / 表单 / 质控 workspace ========== */
-main.meeting,
-main.meeting header {
+body:not(.hx-sidebar-shell) main.meeting,
+body:not(.hx-sidebar-shell) main.meeting header {
   background: #fff !important;
   color: #334155 !important;
 }
 
-main.meeting header a {
+body:not(.hx-sidebar-shell) main.meeting header a {
   color: #0369a1 !important;
 }
 
-main.meeting strong {
+body:not(.hx-sidebar-shell) main.meeting strong {
   color: #0f172a !important;
 }
 
-main.meeting small {
+body:not(.hx-sidebar-shell) main.meeting small {
   color: #64748b !important;
+}
+
+/* app.html · React 会诊室 p4：保留 bundle 深色全屏，勿用浅色扫尾 */
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting {
+  grid-column: 2 !important;
+  grid-row: 2 / -1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: auto !important;
+  background: #061321 !important;
+  color: #e2e8f0 !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting > header {
+  background: #10263c !important;
+  border-bottom: 1px solid #2a4b63 !important;
+  color: inherit !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting header a {
+  color: #93c5fd !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting strong {
+  color: #f1f5f9 !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting small {
+  color: #94a3b8 !important;
 }
 
 .doctor-queue {
@@ -5065,8 +5097,10 @@ main.dashboard.screen > .dashboard-right {
 
 main.dashboard.screen .dashboard-left {
   display: grid !important;
-  grid-template-rows: minmax(0, 1fr) 190px !important;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
   gap: 12px !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 main.dashboard.screen .dashboard-left.hx-panels-left-compact {
@@ -6875,12 +6909,21 @@ body.hx-home-more-open {
   border-radius: 8px !important;
 }
 
-main.meeting .video-pane,
-main.meeting .clinical-device-frame,
-main.meeting .video-state {
+body:not(.hx-sidebar-shell) main.meeting .video-pane,
+body:not(.hx-sidebar-shell) main.meeting .clinical-device-frame,
+body:not(.hx-sidebar-shell) main.meeting .video-state {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   color: #64748b !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .video-pane,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .clinical-device-frame,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .video-state,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .meeting-stage {
+  background: #0b1623 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
 }
 
 .workspace .filter-bar,
@@ -7217,34 +7260,86 @@ main.meeting .video-state {
 }
 
 .hx-consult-tabs {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
   margin: 0;
+  padding: 3px;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
 }
 
 .hx-consult-tab {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 5px 14px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 16px;
   font-size: 13px;
-  font-weight: 500;
-  color: #0369a1;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.25;
+  color: #334155;
   text-decoration: none;
-  background: #fff;
-  border: 1px solid #7dd3fc;
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 .hx-consult-tab:hover {
-  background: #e0f2fe;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .hx-consult-tab.is-active {
-  color: #fff;
-  background: #0284c7;
-  border-color: #0284c7;
+  color: #ffffff;
+  background: #1e4b7b;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  -webkit-text-fill-color: #ffffff;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab.is-active {
+  color: #ffffff !important;
+  background: #1e4b7b !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab.is-active:hover {
+  color: #ffffff !important;
+  background: #163a60 !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.hx-consult-scope-empty {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #475569;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+body.hx-consult-scope-grassroots .hx-consult-mode {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+}
+
+.consultation-queue article.hx-consult-scope-hidden {
+  display: none !important;
+}
+
+.consultation-queue.hx-consult-scope-section-empty {
+  display: none !important;
 }
 
 .hx-consult-pick-bar {
@@ -7352,6 +7447,18 @@ body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > .hx-con
   border: 0 !important;
   padding: 0 !important;
   margin: -1px !important;
+  pointer-events: none !important;
+}
+
+/* React 重绘后可能新增未标记节点，仍盖住基层会诊操作区 */
+body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > *:not(.workspace-heading):not(#hx-grassroots-consult-root) {
+  pointer-events: none !important;
+}
+
+body.hx-consult-grassroots-page #hx-grassroots-consult-root {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 .hx-gr-consult {
@@ -9304,6 +9411,16 @@ body.hx-cw-active {
   overflow: hidden;
 }
 
+body.hx-cw-active main.workspace > *:not(.workspace-heading) {
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
 body.hx-cw-active .workspace {
   border: 0 !important;
   box-shadow: none !important;
@@ -9864,6 +9981,38 @@ body.hx-consult-page .workspace-heading {
   padding-bottom: 12px !important;
   margin-bottom: 4px !important;
   border-bottom: 1px solid #e2e8f0 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  pointer-events: auto !important;
+}
+
+body.hx-consult-page .workspace-heading a,
+body.hx-consult-page .workspace-heading button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+body.hx-consult-page .consultation-grid > article footer a,
+body.hx-consult-page .consultation-grid > article footer button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* 远程会诊 p2：指定医生 / 确认分配 — 提高边框与字色对比 */
+body.hx-consult-page .consultation-queue select {
+  border: 1px solid #64748b !important;
+  color: #0f172a !important;
+  background: #fff !important;
+  min-height: 36px !important;
+  font-size: 13px !important;
+}
+
+body.hx-consult-page .consultation-queue button.primary:not(:disabled) {
+  background: #1e4b7b !important;
+  border-color: #1e4b7b !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  min-height: 36px !important;
 }
 
 body.hx-consult-page .consultation-grid {
@@ -9972,6 +10121,13 @@ body.hx-consult-page .consultation-queue .hx-consult-admit-actions {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 10px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  pointer-events: auto !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card {
+  pointer-events: auto !important;
 }
 
 body.hx-consult-page .consultation-queue .hx-consult-admit-label {

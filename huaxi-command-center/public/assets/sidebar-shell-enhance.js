@@ -22,6 +22,7 @@
         ['/patients', '急救事件'],
         ['/register', '患者登记'],
         ['/consultations', '远程会诊'],
+        ['/consultations?tab=grassroots', '基层会诊'],
         ['/transfers?scope=grassroots', '医院转诊'],
         ['/critical?mode=grassroots-remote', '基层远程监护'],
       ],
@@ -98,6 +99,37 @@
     return `#${link.startsWith('/') ? link : `/${link}`}`
   }
 
+  function isGrassrootsConsult() {
+    const q = hashQuery()
+    return q.get('tab') === 'grassroots' || q.get('scope') === 'grassroots'
+  }
+
+  /** 顶栏标题：以当前 hash 为准，避免仍显示上一页「实时出警」 */
+  function pageNavLabel() {
+    const p = hashPath()
+    if (p === '/consultations/pick') return '选择患者 · 发起远程会诊'
+    if (p === '/consultations') return isGrassrootsConsult() ? '基层会诊' : '远程会诊'
+    const labels = {
+      '/dispatch': '实时出警',
+      '/dispatch/list': '出警列表',
+      '/ambulances': '救护车列表',
+      '/patients': '急救事件',
+      '/register': '患者登记',
+      '/transfers': '医院转诊',
+      '/critical': '重症监护',
+      '/warning': '预警总览',
+      '/map': '协作三维地图',
+      '/': '县域指挥概览',
+    }
+    if (labels[p]) return labels[p]
+    if (p.startsWith('/critical')) return '重症监护'
+    if (p.startsWith('/warning')) return '预警总览'
+    if (p.startsWith('/medical-quality')) return '质控整改看板'
+    if (p.startsWith('/dr')) return '基层医声Dr.'
+    if (p.startsWith('/room/') || p.startsWith('/join/')) return '远程会诊室'
+    return null
+  }
+
   function linkMatches(link) {
     const [pathPart, queryPart] = link.split('?')
     const wantPath = pathPart.startsWith('/') ? pathPart : `/${pathPart}`
@@ -108,12 +140,21 @@
     if (link === '/dispatch') return curPath === '/dispatch'
     if (link === '/dispatch/list') return curPath === '/dispatch/list'
 
+    if (link === '/consultations?tab=grassroots' || (wantPath === '/consultations' && queryPart && queryPart.includes('tab=grassroots'))) {
+      return (
+        isGrassrootsConsult() &&
+        (curPath === '/consultations' || curPath === '/consultations/pick')
+      )
+    }
+
+    if (link === '/consultations' || wantPath === '/consultations') {
+      if (isGrassrootsConsult()) return false
+      return curPath === '/consultations' || curPath === '/consultations/pick'
+    }
+
     if (wantPath !== curPath && wantPath.replace(/^\//, '') !== curPath.replace(/^\//, '')) return false
 
     if (!queryPart) {
-      if (wantPath === '/consultations') {
-        return curPath === '/consultations' || curPath.indexOf('/consultations/') === 0
-      }
       return !hashQuery().toString()
     }
     const want = new URLSearchParams(queryPart)
@@ -162,12 +203,48 @@
       if (right) header.insertBefore(el, right)
       else header.appendChild(el)
     }
-    const active = menu.querySelector('.hx-nav-l2__link.active')
+    let next = ''
     if (isHome()) {
-      el.textContent = isMapPage() ? '协作三维地图' : '县域指挥概览'
-      return
+      next = isMapPage() ? '协作三维地图' : '县域指挥概览'
+    } else {
+      const fromPath = pageNavLabel()
+      if (fromPath) next = fromPath
+      else {
+        const active = menu.querySelector('.hx-nav-l2__link.active')
+        next = active?.dataset.navLabel || active?.textContent?.trim() || ''
+      }
     }
-    el.textContent = active?.dataset.navLabel || active?.textContent?.trim() || ''
+    if (el.textContent !== next) el.textContent = next
+  }
+
+  function syncRouteBodyClasses() {
+    const p = hashPath()
+    const consult =
+      p === '/consultations' || p === '/consultations/pick' || p.startsWith('/consultations/')
+    document.body.dataset.hxRoute = consult ? 'consultations' : p.replace(/^\//, '') || 'home'
+    document.body.classList.toggle('hx-route-consultations', consult)
+    document.body.classList.toggle(
+      'hx-route-grassroots-consult',
+      consult && isGrassrootsConsult() && p !== '/consultations/pick',
+    )
+  }
+
+  /** hash 与 React 重渲染后仍锁定会诊顶栏标题与侧栏高亮 */
+  function pinConsultRouteChrome(menu) {
+    syncRouteBodyClasses()
+    const p = hashPath()
+    if (!p.startsWith('/consultations')) return
+
+    let key = '/consultations'
+    if (p !== '/consultations/pick' && isGrassrootsConsult()) {
+      key = '/consultations?tab=grassroots'
+    }
+    menu.querySelectorAll('.hx-nav-l2__link').forEach((a) => {
+      const on = a.dataset.navHref === key
+      a.classList.toggle('active', on)
+      if (on) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
+    })
   }
 
   function syncActive(menu) {
@@ -178,6 +255,7 @@
     menu.querySelectorAll('.hx-nav-l2__link').forEach((a) => {
       a.classList.toggle('active', linkMatches(a.dataset.navHref || ''))
     })
+    pinConsultRouteChrome(menu)
     syncHeaderTitle(menu)
   }
 
@@ -200,15 +278,40 @@
     })
   }
 
+  function navigateSidebarHash(href) {
+    let target = href || ''
+    if (window.hxConsultEpisodeNav?.normalizeHash) {
+      target = window.hxConsultEpisodeNav.normalizeHash(target) || target
+    } else if (target.indexOf('/#/') === 0) {
+      target = target.slice(1)
+    }
+    if (!target.startsWith('#')) return
+    if (location.hash !== target) location.hash = target
+    else window.dispatchEvent(new HashChangeEvent('hashchange'))
+  }
+
+  function bindSidebarNav(menu) {
+    if (menu.dataset.navBound === '1') return
+    menu.dataset.navBound = '1'
+    menu.addEventListener(
+      'click',
+      (e) => {
+        const a = e.target instanceof Element ? e.target.closest('a.hx-nav-l2__link') : null
+        if (!a || !menu.contains(a)) return
+        const href = a.getAttribute('href') || ''
+        if (!href.startsWith('#') && href.indexOf('/#/') !== 0) return
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        navigateSidebarHash(href)
+      },
+      true,
+    )
+  }
+
   function buildMenu(menu) {
     if (menu.dataset.built === '9') return
     menu.dataset.built = '9'
     menu.innerHTML = ''
-
-    const section = document.createElement('p')
-    section.className = 'hx-sidebar-section'
-    section.textContent = '功能导航'
-    menu.appendChild(section)
 
     GROUPS.forEach((group, index) => {
       const wrap = document.createElement('div')
@@ -286,6 +389,7 @@
     if (!menu) return
 
     buildMenu(menu)
+    bindSidebarNav(menu)
     fillIcons(menu, shell)
     syncActive(menu)
   }

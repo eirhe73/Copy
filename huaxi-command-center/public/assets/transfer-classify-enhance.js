@@ -107,7 +107,14 @@
         visibleCount++
         return
       }
-      const cls = classifyRow(tr)
+      // 优先用 transfer-api-enhance.js 注入的 direction（最准）
+      // direction=DOWN → 本院转科室；direction=UP → 外院转诊
+      // 兼容旧逻辑：按机构名相等判断本院
+      const dir = tr.dataset.direction
+      let cls = null
+      if (dir === 'DOWN') cls = 'internal'
+      else if (dir === 'UP') cls = 'external'
+      else cls = classifyRow(tr) // 兜底：转出机构===接收机构 → internal
       if (!cls) {
         tr.style.display = ''
         visibleCount++
@@ -171,6 +178,11 @@
     applyFilter()
     applyProcessBar()
   }
+
+  // 监听 transfer-api-enhance.js 注入完成事件，重新执行过滤
+  window.addEventListener('hx-transfers-loaded', () => {
+    if (isTransferPage()) tickTransferPage()
+  })
 
   /* ---------- 患者详情页：申请转诊表单增加类型选择 ---------- */
 

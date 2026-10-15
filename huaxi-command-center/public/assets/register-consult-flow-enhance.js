@@ -1,5 +1,5 @@
 /**
- * 院前就地登记 · 发起远程会诊：任务号+主诉必填；无姓名时 confirm 后可继续
+ * 院前（dispatch.html / 出警 embed）：发起远程会诊 — 弹窗走顶层，跳转改顶层 hash
  */
 ;(function () {
   function readDhForm(form) {
@@ -16,6 +16,32 @@
       name: field('姓名'),
       chiefComplaint: field('主诉'),
       vehiclePlate: field('车牌'),
+      vehicleId: '',
+    }
+  }
+
+  function readCtxFromDesk(desk) {
+    if (!desk) return null
+    const lead = desk.querySelector('.dh-lead')
+    const leadText = (lead?.textContent || '').trim()
+    const taskFromLead = leadText.match(/任务\s*(120[-\w]+)/i)
+    let task120Id = taskFromLead ? taskFromLead[1] : ''
+    let chiefComplaint = ''
+    desk.querySelectorAll('.dh-desk-meta div').forEach(function (row) {
+      const dt = (row.querySelector('dt')?.textContent || '').trim()
+      const dd = (row.querySelector('dd')?.textContent || '').trim()
+      if (dt.indexOf('主诉') >= 0) chiefComplaint = dd
+    })
+    if (!task120Id) {
+      const m = (desk.textContent || '').match(/120[-\w]+/i)
+      if (m) task120Id = m[0]
+    }
+    return {
+      task120Id,
+      eventId: '',
+      name: '',
+      chiefComplaint,
+      vehiclePlate: '',
       vehicleId: '',
     }
   }
@@ -38,10 +64,22 @@
     return s ? `/app.html#/consultations?${s}&launch=1` : '/app.html#/consultations?tab=grassroots'
   }
 
-  function dialog(opts) {
-    if (typeof window.__hxConsultDialog === 'function') {
-      return window.__hxConsultDialog(opts)
+  function dialogHost() {
+    try {
+      var top = window.top || window
+      if (top !== window && typeof top.__hxConsultDialog === 'function') {
+        return top.__hxConsultDialog.bind(top)
+      }
+    } catch (e) {
+      /* ignore */
     }
+    if (typeof window.__hxConsultDialog === 'function') return window.__hxConsultDialog
+    return null
+  }
+
+  function dialog(opts) {
+    var host = dialogHost()
+    if (host) return host(opts)
     if (opts.variant === 'alert') {
       window.alert([opts.body, opts.lead].filter(Boolean).join('\n\n'))
       return Promise.resolve(true)
@@ -49,7 +87,69 @@
     return Promise.resolve(window.confirm([opts.body, opts.lead].filter(Boolean).join('\n\n')))
   }
 
+  function normalizeAppHash(href) {
+    var h = href || ''
+    if (h.indexOf('/#/') === 0) return h.slice(1)
+    return h
+  }
+
+  function shouldLeaveLinkAlone(link) {
+    if (!/\/app\.html$/i.test(location.pathname)) return false
+    var href = normalizeAppHash(link.getAttribute('href') || '')
+    if (href.charAt(0) !== '#') return false
+    if (
+      link.closest(
+        '.hx-gr-consult, #hx-grassroots-consult-root, #hx-consult-pick-root, .hx-sidebar-menu, nav.subnav, .hx-consult-tabs, .hx-consult-mode, .hx-consult-tab',
+      )
+    ) {
+      return true
+    }
+    if (/^#\/(episode|room|patient|consultations|transfers|organizations|dr|dispatch)/.test(href)) {
+      return true
+    }
+    return false
+  }
+
+  function navigateConsult(href) {
+    var raw = normalizeAppHash(href || '/app.html#/consultations')
+    if (raw.charAt(0) === '#' && /\/app\.html$/i.test(location.pathname)) {
+      location.assign(location.pathname + location.search + raw)
+      return
+    }
+    if (raw.charAt(0) === '#') {
+      var topForHash = window.top || window
+      try {
+        if (/app\.html$/i.test(topForHash.location.pathname)) {
+          topForHash.location.assign(topForHash.location.pathname + topForHash.location.search + raw)
+          return
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      raw = '/app.html' + raw
+    }
+    var path = raw.indexOf('/') === 0 ? raw : '/' + raw
+    var hashIdx = path.indexOf('#')
+    var hashPart = hashIdx >= 0 ? path.slice(hashIdx) : ''
+    var topWin = window.top || window
+    if (window.parent !== window && topWin !== window) {
+      try {
+        var onApp = /app\.html$/i.test(topWin.location.pathname)
+        if (hashPart && onApp) {
+          topWin.location.assign(topWin.location.pathname + topWin.location.search + hashPart)
+          return
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      topWin.location.href = location.origin + path
+      return
+    }
+    window.location.href = location.origin + path
+  }
+
   async function tryLaunch(ctx) {
+    if (!ctx) return false
     const block = blockReason(ctx)
     if (block) {
       await dialog({
@@ -71,13 +171,7 @@
       })
       if (!ok) return false
     }
-    var href = consultUrl(ctx)
-    var topWin = window.top || window
-    if (window.parent !== window && topWin !== window) {
-      topWin.location.href = location.origin + href
-    } else {
-      window.location.href = href
-    }
+    navigateConsult(consultUrl(ctx))
     return true
   }
 
@@ -85,27 +179,42 @@
 
   document.addEventListener(
     'click',
-    (event) => {
-      const t = event.target
+    function (event) {
+      var t = event.target
       if (!(t instanceof Element)) return
-      const link = t.closest('a[href*="consultations"], a[href*="#/consultations"]')
-      const btn = t.closest('button')
-      const isConsultBtn =
-        btn &&
-        /发起远程会诊|发起会诊/.test(btn.textContent || '') &&
-        !btn.closest('.modal')
-      if (!link && !isConsultBtn) return
+      if (t.closest('.hx-consult-dialog')) return
+      if (t.closest('.hx-sidebar-menu a.hx-nav-l2__link')) return
 
-      const form = (link || btn)?.closest('.dh-form, form')
-      if (!form) return
-      if (form.classList.contains('dh-form') && btn && /发起远程会诊|发起会诊/.test(btn.textContent || '')) {
+      var btn = t.closest('button')
+      var link = t.closest('a[href*="consultations"], a[href*="#/consultations"]')
+      var isConsultBtn =
+        btn && /发起远程会诊|发起会诊/.test((btn.textContent || '').trim()) && !btn.closest('.modal')
+
+      if (!isConsultBtn && !link) return
+
+      var inDispatch = (btn || link)?.closest('.dh-app, .dh-desk, .dh-form, .dh-page')
+      if (!inDispatch && !link) return
+
+      var form = (btn || link)?.closest('.dh-form, form')
+      var desk = btn?.closest('.dh-desk')
+      var ctx = form ? readDhForm(form) : readCtxFromDesk(desk)
+
+      if (link && !ctx) {
+        if (shouldLeaveLinkAlone(link)) return
+        var href = link.getAttribute('href') || ''
+        if (!inDispatch && href.indexOf('app.html') < 0 && normalizeAppHash(href).charAt(0) !== '#') return
+        event.preventDefault()
+        navigateConsult(href || '/app.html#/consultations')
         return
       }
 
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      const ctx = readDhForm(form)
-      if (ctx) void tryLaunch(ctx)
+      if (!ctx && isConsultBtn) return
+
+      if (isConsultBtn || (link && form)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        void tryLaunch(ctx)
+      }
     },
     true,
   )
