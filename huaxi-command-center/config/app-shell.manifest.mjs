@@ -4,7 +4,7 @@
  */
 export const APP_SHELL_VERSION = {
   themeLight: '20260315u',
-  sidebarLayout: '32',
+  sidebarLayout: '33',
   mapPresentation: '20260315map4',
   reactBundle: 'app-shell-2',
 }
@@ -52,8 +52,8 @@ export const mapScripts = [
   { src: '/assets/enhance/dispatch-hub-bridge.js?v=6', defer: true },
   { src: '/assets/enhance/nav-ia-enhance.js?v=13', defer: true },
   { src: '/assets/enhance/dispatch-subnav-parity-enhance.js?v=2', defer: true },
-  { src: '/assets/enhance/sidebar-shell-enhance.js?v=25', defer: true },
-  { src: '/assets/enhance/command-map-page-enhance.js?v=11', defer: true },
+  { src: '/assets/enhance/sidebar-shell-enhance.js?v=26', defer: true },
+  { src: '/assets/enhance/command-map-page-enhance.js?v=12', defer: true },
 ]
 
 export const enhanceScripts = [
@@ -85,7 +85,7 @@ export const enhanceScripts = [
   { src: '/assets/enhance/consult-context-enhance.js?v=10', defer: true },
   { src: '/assets/enhance/consult-list-polish-enhance.js?v=5', defer: true },
   { src: '/assets/enhance/consult-queue-actions-enhance.js?v=1', defer: true },
-  { src: '/assets/enhance/consult-workbench-enhance.js?v=37', defer: true },
+  { src: '/assets/enhance/consult-workbench-enhance.js?v=38', defer: true },
   { src: '/assets/enhance/consult-patient-pick-enhance.js?v=11', defer: true },
   { src: '/assets/enhance/grassroots-consult-enhance.js?v=11', defer: true },
   { src: '/assets/enhance/nav-back-enhance.js', defer: true },

@@ -114,8 +114,8 @@
 
     if (p === '/map') {
       pendingMap = true
+      goHomeHash()
       if (!hasDashboard()) {
-        goHomeHash()
         ensureHomeThenMap()
         return
       }

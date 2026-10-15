@@ -717,7 +717,18 @@ body.hx-sidebar-shell .hx-ambulances-page .hx-amb-empty {
   color: #64748b;
 }
 
-/* 指挥中枢 · 协作三维地图独立页（#/map）— 主内容区铺满 */
+/* 指挥中枢 · 协作三维地图全屏 — 主内容区铺满（勿留空侧栏列） */
+body.hx-sidebar-shell.hx-page-map-only {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only > #root {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 body.hx-sidebar-shell.hx-page-map-only #hx-panel-toggles,
 body.hx-sidebar-shell.hx-page-map-only .huaxi-demo-links {
   display: none !important;
