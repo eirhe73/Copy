@@ -5,7 +5,7 @@
 export const APP_SHELL_VERSION = {
   themeLight: '20261015bed3',
   sidebarLayout: '38',
-  mapPresentation: '20260315map4',
+  mapPresentation: '20260315map12',
   reactBundle: 'app-shell-3',
 }
 
@@ -47,15 +47,14 @@ export const reactEntry = {
 export const mapScripts = [
   { src: '/assets/enhance/map-threemaps-enhance.js', defer: true },
   { src: '/assets/enhance/map-light-3d-enhance.js', defer: true },
-  { src: '/assets/enhance/map-hospital-glb-enhance.js?v=30', type: 'module' },
   { src: '/assets/backend/app-integrated-nav.js?v=1' },
   { src: '/assets/enhance/monitoring-off-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/dispatch-hub-bridge.js?v=6', defer: true },
   { src: '/assets/enhance/nav-ia-enhance.js?v=13', defer: true },
   { src: '/assets/enhance/dispatch-subnav-parity-enhance.js?v=2', defer: true },
-  { src: '/assets/enhance/sidebar-shell-enhance.js?v=26', defer: true },
+  { src: '/assets/enhance/sidebar-shell-enhance.js?v=27', defer: true },
   { src: '/assets/enhance/breadcrumb-nav-enhance.js?v=8', defer: true },
-  { src: '/assets/enhance/command-map-page-enhance.js?v=12', defer: true },
+  { src: '/assets/enhance/command-map-page-enhance.js?v=14', defer: true },
 ]
 
 export const enhanceScripts = [

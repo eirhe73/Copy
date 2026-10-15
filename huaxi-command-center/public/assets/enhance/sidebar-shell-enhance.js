@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 侧栏：分组标题 + 子菜单常显，子项直接点击（无折叠）
  */
 ;(function () {
@@ -60,12 +60,13 @@
       ],
     },
     {
-      id: 'dr',
-      title: '基层医声Dr.',
-      links: [
-        ['/dr?view=videos', '视频展示'],
-      ],
-    },
+        id: 'dr',
+        title: '基层医声Dr.',
+        links: [
+          ['/dr?view=videos', '视频展示'],
+          ['/dr?view=saved', '我的收藏'],
+        ],
+      },
   ]
 
   const GROUPS = [HOME, ...PLATES]
@@ -83,7 +84,7 @@
   function isHome() {
     if (document.body.classList.contains('hx-page-map-only')) return true
     const p = hashPath()
-    return p === '/' || p === ''
+    return p === '/' || p === '' || p === '/map'
   }
 
   function isMapPage() {

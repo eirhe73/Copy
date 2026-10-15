@@ -66,16 +66,21 @@ export function attachCampusGlb(
 }
 
 /** 首页：单圈淡光，不用三层波纹 */
-export function addCampusBasePlate(g: THREE.Group, _t: MapThree, tier: number) {
-  const r = 0.12 + tier * 0.025
-  const c = tierLegendColor(tier)
+export function addCampusBasePlate(
+  g: THREE.Group,
+  _t: MapThree,
+  tier: number,
+  ringColor?: number,
+) {
+  const r = 0.14 + tier * 0.028
+  const c = ringColor ?? tierLegendColor(tier)
   g.add(
     new THREE.Mesh(
-      new THREE.RingGeometry(r * 0.55, r, 48),
+      new THREE.RingGeometry(r * 0.5, r, 48),
       new THREE.MeshBasicMaterial({
         color: c,
         transparent: true,
-        opacity: 0.38,
+        opacity: 0.62,
         side: THREE.DoubleSide,
         depthWrite: false,
       }),
@@ -83,11 +88,11 @@ export function addCampusBasePlate(g: THREE.Group, _t: MapThree, tier: number) {
   )
   g.add(
     new THREE.Mesh(
-      new THREE.RingGeometry(r * 1.02, r * 1.14, 48),
+      new THREE.RingGeometry(r * 1.02, r * 1.2, 48),
       new THREE.MeshBasicMaterial({
         color: c,
         transparent: true,
-        opacity: 0.14,
+        opacity: 0.28,
         side: THREE.DoubleSide,
         depthWrite: false,
       }),
