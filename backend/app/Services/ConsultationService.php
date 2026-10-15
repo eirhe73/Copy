@@ -27,6 +27,8 @@ class ConsultationService extends Service
     public function __construct(
         private readonly ConsultRtcService $rtc,
         private readonly ConsultRoomService $rooms,
+        private readonly PatientService $patients,
+        private readonly OrganizationService $organizations,
     ) {
     }
 
@@ -88,21 +90,27 @@ class ConsultationService extends Service
             ->sortByDesc(fn (ConsultSession $s) => (int) $s->status === 1)
             ->take(self::RTC_PROBE_LIMIT);
 
+        if ($candidates->isEmpty()) {
+            return;
+        }
+
+        // 一次并行探活全部候选房间，避免逐个外呼把队列请求线性拖慢
+        $states = $this->rtc->probeStates(
+            $candidates->map(fn (ConsultSession $s) => (string) $s->room->rtc_session_id)->all()
+        );
+
         foreach ($candidates as $session) {
-            $state = $this->rtc->roomState((string) $session->room->rtc_session_id);
+            $state = $states[(string) $session->room->rtc_session_id] ?? null;
 
             if ($state === 'ENDED') {
                 $this->rooms->closeByRtc($session->room);
                 // closeByRtc 内部操作的是 room->session（另一个模型实例），
                 // 这里让调用方持有的实例同步刷新，否则详情/入院会话会返回过期状态
                 $session->refresh();
-                continue;
             }
 
-            // 会诊系统不可达：本次不再继续探活，避免队列请求被跨系统超时拖慢
-            if ($state === null) {
-                break;
-            }
+            // 单个房间探活失败（含系统不可达）只跳过该条：并行结果互不影响，
+            // 其余房间照常对账
         }
     }
 
@@ -116,6 +124,12 @@ class ConsultationService extends Service
         $chiefComplaint = $data['chiefComplaint'] ?? '';
         $gender = $data['gender'] ?? null;
         $age = (int) ($data['age'] ?? 0);
+
+        // 定时时间统一转 UTC 裸时间落库：模型 datetime cast 直接 format 原时区墙钟值，
+        // 传 "+08:00" 这类带偏移的 ISO 串会丢掉偏移（15:00+08 被存成 15:00，偏差 8 小时）
+        if (! empty($data['scheduledAt'])) {
+            $data['scheduledAt'] = \Carbon\Carbon::parse($data['scheduledAt'])->utc()->format('Y-m-d H:i:s');
+        }
 
         $patient = null;
         if (! empty($patientId)) {
@@ -356,6 +370,35 @@ class ConsultationService extends Service
             'status' => self::STATUS_NAMES[$session->status] ?? 'UNKNOWN',
             'statusLabel' => self::STATUS_LABELS[$session->status] ?? '',
             'participants' => $this->participantsOf($session),
+        ];
+    }
+
+    /**
+     * 会诊工作台首屏聚合：队列 + 发起会诊表单所需的患者/机构/科室/医生
+     *
+     * 本地开发用 php -S 单进程跑后端时 HTTP 请求会串行排队，前端拆 5 个请求
+     * 只能拿到串行总耗时；这里一次请求带齐全部首屏数据。
+     */
+    public function workspace(array $params): array
+    {
+        $queue = $this->index($params);
+        $doctors = $this->doctors([]);
+        $patients = $this->patients->index(['pageNum' => 1, 'pageSize' => 200]);
+        $orgs = $this->organizations->list([]);
+        $depts = Department::query()
+            ->orderBy('org_id')
+            ->orderBy('dept_code')
+            ->get(['dept_code', 'dept_name'])
+            ->map(fn (Department $d) => ['dept_code' => $d->dept_code, 'dept_name' => $d->dept_name])
+            ->values()
+            ->all();
+
+        return [
+            'queue' => $queue,
+            'doctors' => $doctors['doctors'] ?? [],
+            'patients' => $patients,
+            'organizations' => $orgs,
+            'departments' => ['list' => $depts],
         ];
     }
 

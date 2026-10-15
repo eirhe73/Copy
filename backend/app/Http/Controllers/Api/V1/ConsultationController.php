@@ -21,6 +21,12 @@ class ConsultationController extends Controller
         return Result::success('获取成功', $this->service->index($request->query()));
     }
 
+    /** 会诊工作台首屏聚合（队列 + 发起表单数据），减少 php -S 单进程下的串行请求排队 */
+    public function workspace(Request $request): array
+    {
+        return Result::success('获取成功', $this->service->workspace($request->query()));
+    }
+
     /** 发起会诊 */
     public function store(StoreConsultationRequest $request): array
     {

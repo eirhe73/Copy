@@ -5,9 +5,9 @@
  * 其 /#/consultations 页面用的是 scenario.json 的演示数据，按钮也没有绑定真实逻辑。
  *
  * 做法：在本路由下用真实后端接口渲染一个可用的会诊工作台，替换掉演示内容。
- *   - 会诊队列（接诊 / 进入远程会诊系统）
- *   - 发起会诊（选患者、目标医院科室、指定医生）
- *   - 可选接诊医生列表
+ *   - 页头：标题 + 刷新 / 发起会诊（收起表单）
+ *   - 发起会诊表单（常驻展开：患者、主诉、目标医院科室、指定医生、定时开始）
+ *   - 会诊队列（全量单表：改诊=确认接诊 / 进入远程会诊系统）
  *
  * 三个踩过的坑，改这里前先看：
  * 1) 宿主节点挂在 document.body 上，不插进 <main class="workspace">。
@@ -37,14 +37,12 @@
     msg: '',
     msgKind: '',
     schedule: null, // Date|null 定时开始时间
-    qtab: 'wait',   // 队列状态 Tab：wait/incall/sched/done/all
-    scopeTab: 'grassroots', // 页内 Tab：grassroots | all（全县）
+    scopeTab: 'all', // 页内视图：grassroots（基层上转）| all（全县）
     dataSource: 'api', // api | demo
     dispatch: null, // {task,plate,complaint}|null 120 调度跳转带入的任务上下文
     scenarioBySession: {}, // sessionId -> scenario consultationRequest
     scenarioPatientByName: {}, // 姓名 -> patientId（API 队列缺 patientId 时补链）
     pendingAccept: null, // sessionId | null 接诊确认弹层
-    launchFormOnce: false,
   }
 
   /** 基层上转来源识别（与 grassroots-consult-enhance 一致） */
@@ -73,14 +71,16 @@
   }
 
   /**
-   * 基层会诊（p1）= API 工作台；远程会诊（p2）= React 科室待接诊卡片。
-   * 仅 #/consultations?tab=grassroots（或 scope=grassroots）挂载本脚本。
+   * 挂载判定：
+   * - 默认由本工作台接管 #/consultations（远程会诊全量视图，表格式）
+   * - #/consultations?tab=grassroots（或 scope=grassroots）走基层会诊视图
+   * - 显式开关：?workbench=0 / ?cw=0 交回 React 原生页；?workbench=1 / ?cw=1 强制工作台
    */
   function shouldUseConsultWorkbench() {
     var q = query()
     if (q.get('workbench') === '0' || q.get('cw') === '0') return false
     if (q.get('workbench') === '1' || q.get('cw') === '1') return true
-    return consultScopeTab() === 'grassroots'
+    return true
   }
 
   /** 曾用三级路由 → 合回单页 #/consultations */
@@ -133,6 +133,19 @@
       .join(' ')
     if (!src) return false
     return GRASSROOTS_SOURCE_HINTS.some(function (k) {
+      return src.indexOf(k) >= 0
+    })
+  }
+
+  /** 患者所属机构是否基层（乡镇/村室/卫生院），用于发起时自动判定发起方（不含县级医院） */
+  var GRASSROOTS_ORG_HINTS = [
+    '船石', '连界', '神界', '村卫生', '卫生室', '卫生院', '卫生站', '新场镇', 'chuanshi', 'lianjie',
+  ]
+
+  function isGrassrootsPatient(p) {
+    var src = [p && p.institutionName, p && p.departmentName].filter(Boolean).join(' ')
+    if (!src) return false
+    return GRASSROOTS_ORG_HINTS.some(function (k) {
       return src.indexOf(k) >= 0
     })
   }
@@ -251,25 +264,6 @@
     return run()
   }
 
-  /** 限制并发的批量执行，避免一次性打满后端 */
-  function mapLimited(items, limit, worker) {
-    var results = new Array(items.length)
-    var next = 0
-    function run() {
-      if (next >= items.length) return Promise.resolve()
-      var i = next++
-      return Promise.resolve(worker(items[i], i)).then(function (v) {
-        results[i] = v
-        return run()
-      })
-    }
-    var runners = []
-    for (var k = 0; k < Math.min(limit, items.length); k++) runners.push(run())
-    return Promise.all(runners).then(function () {
-      return results
-    })
-  }
-
   // ---------- 样式 ----------
 
   function ensureStyle() {
@@ -279,72 +273,49 @@
     style.id = STYLE_ID
     style.textContent = [
       // 宿主挂在 body 下，用固定定位覆盖工作区；原演示内容整体隐藏。
-      // 盒子外观全部去掉（透明背景、无内边距），滚动条也不显示（滚轮仍可滚动）。
       'body.' + BODY_FLAG + ' .workspace > *{display:none !important}',
-      '#' + HOST_ID + '{position:fixed;z-index:30;overflow:auto;background:#eef2f6;padding:12px 14px 16px;box-sizing:border-box;display:none;scrollbar-width:thin;scrollbar-color:#94a3b8 #eef2f6}',
+      '#' + HOST_ID + '{position:fixed;z-index:30;overflow:auto;background:#fff;padding:8px 22px 26px;box-sizing:border-box;display:none;scrollbar-width:thin;scrollbar-color:#cbd5e1 #fff}',
       '#' + HOST_ID + '::-webkit-scrollbar{width:8px;height:8px}',
-      '#' + HOST_ID + '::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}',
-      P + '-stack{display:flex;flex-direction:column;gap:12px;min-height:100%}',
-      P + '-hero{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:16px 18px;background:#fff;border:1px solid #e2e8f0;border-radius:10px}',
-      P + '-hero h1{margin:0 0 4px;font-size:20px;font-weight:600;color:#0f172a;letter-spacing:.01em}',
-      P + '-subtitle{display:block;font-size:13px;color:#64748b;line-height:1.45}',
+      '#' + HOST_ID + '::-webkit-scrollbar-thumb{background:#dbe3ec;border-radius:4px}',
+      P + '-stack{display:flex;flex-direction:column;gap:16px;min-height:100%}',
+      // ---------- 页头（平铺：标题 + 操作按钮） ----------
+      P + '-hero{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 0 0}',
+      P + '-hero h1{margin:0;font-size:19px;font-weight:600;color:#0f172a;letter-spacing:.01em}',
       P + '-actions{display:flex;flex-wrap:wrap;gap:8px;flex-shrink:0}',
-      P + '-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px 16px}',
-      P + '-section-head{margin:0 0 10px;padding-bottom:8px;border-bottom:1px solid #f1f5f9}',
-      P + '-section-head h3{margin:0;font-size:15px;font-weight:600;color:#0f172a}',
-      P + '-btn{border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:6px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500}',
+      P + '-btn{border:1px solid #cdd7e1;background:#fff;color:#334155;border-radius:6px;padding:7px 16px;font-size:13px;cursor:pointer;font-family:inherit;line-height:1.4;font-weight:500}',
       P + '-btn:hover:not(:disabled){border-color:#94a3b8;background:#f8fafc}',
       P + '-btn:disabled{opacity:.5;cursor:not-allowed}',
+      P + '-btn.sm{padding:4px 12px;font-size:12px;border-radius:5px}',
       P + '-btn.primary{background:#1e4b7b;border-color:#1e4b7b;color:#fff}',
       P + '-btn.primary:hover:not(:disabled){background:#163a60;border-color:#163a60}',
-      P + '-btn.ghost{background:#f8fafc;border-color:#e2e8f0;color:#1e4b7b}',
-      P + '-btn.ghost:hover:not(:disabled){background:#f1f5f9;border-color:#cbd5e1}',
+      P + '-btn.ghost{background:#fff;border-color:#cdd7e1;color:#334155}',
+      P + '-btn.ghost:hover:not(:disabled){background:#f8fafc;border-color:#94a3b8}',
       P + '-btn.link{border:none;background:none;color:#0284c7;padding:4px 6px;text-decoration:none;font-weight:500}',
       P + '-btn.link:hover{text-decoration:underline;background:none;color:#0369a1}',
-      P + '-btn-enter{display:inline-flex;align-items:center;justify-content:center;min-height:30px;padding:5px 12px;font-size:12px;font-weight:600;line-height:1.3;background:#1e4b7b;border:1px solid #1e4b7b;color:#fff!important;border-radius:6px;text-decoration:none!important;cursor:pointer;white-space:nowrap;box-sizing:border-box}',
+      P + '-btn-enter{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:4px 12px;font-size:12px;font-weight:600;line-height:1.3;background:#1e4b7b;border:1px solid #1e4b7b;color:#fff!important;border-radius:5px;text-decoration:none!important;cursor:pointer;white-space:nowrap;box-sizing:border-box}',
       P + '-btn-enter:hover{background:#163a60;border-color:#163a60;color:#fff!important}',
       P + '-ops{display:flex;flex-wrap:wrap;gap:6px;align-items:center}',
-      P + ' .business-table{border:1px solid #e2e8f0;border-radius:8px;overflow:auto;max-height:min(52vh,520px);background:#fff}',
-      P + ' .business-table table{width:100%;border-collapse:collapse;font-size:13px;margin:0}',
-      P + ' .business-table th{background:#f8fafc;color:#475569;font-weight:600;text-align:left;padding:10px 12px;border-bottom:1px solid #e2e8f0;white-space:nowrap;font-size:12px}',
-      P + ' .business-table td{padding:10px 12px;border-bottom:1px solid #f1f5f9;color:#334155;vertical-align:middle}',
-      P + ' .business-table tr:last-child td{border-bottom:none}',
-      P + ' .business-table td small{display:block;color:#64748b;font-size:12px;margin-top:2px}',
-      P + '-tag{display:inline-block;padding:1px 7px;border-radius:3px;font-size:12px;border:1px solid transparent}',
-      P + '-tag.waiting{background:#fef3c7;color:#92400e;border-color:#fde68a}',
-      P + '-tag.calling{background:#dbeafe;color:#1e40af;border-color:#bfdbfe}',
-      P + '-tag.finished{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}',
-      P + '-tag.sched{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}',
-      // ---------- 与患者档案一致的 record-tabs ----------
-      P + ' .record-tabs{display:flex;flex-wrap:wrap;gap:0;margin:0 0 12px;background:#fff;border-bottom:1px solid #e2e8f0}',
-      P + ' .record-tabs button{border:none;background:transparent;color:#64748b;padding:10px 14px;font-size:13px;font-family:inherit;cursor:pointer;border-radius:0;border-bottom:2px solid transparent;margin-bottom:-1px}',
-      P + ' .record-tabs button:hover{color:#0f172a;background:#f8fafc}',
-      P + ' .record-tabs button.active{color:#0284c7;border-bottom-color:#0284c7;background:#f8fafc;font-weight:600}',
-      P + ' #hx-cw-tabs.record-tabs button.active{color:#fff !important;background:#1e4b7b !important;border-bottom-color:#1e4b7b !important;-webkit-text-fill-color:#fff !important}',
-      P + ' #hx-cw-tabs.record-tabs button.active .n{background:rgba(255,255,255,.25) !important;color:#fff !important}',
-      P + ' .record-tabs .n{display:inline-block;min-width:18px;margin-left:4px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:600;background:#f1f5f9;color:#475569;line-height:18px}',
-      P + ' .record-tabs button.active .n{background:#e0f2fe;color:#0369a1}',
-      P + '-role{margin:12px 0 0;padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:13px;line-height:1.55;color:#334155}',
-      P + '-role strong{display:block;font-size:14px;margin-bottom:4px;color:#0f172a}',
-      P + '-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:12px 0 0;padding:10px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;color:#475569}',
-      P + '-chain.muted{color:#64748b}',
+      // ---------- 120 调度带入的任务上下文条 ----------
+      P + '-ctxstrip{display:flex;gap:8px;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:6px;padding:6px 10px;font-size:12px}',
+      P + '-chain{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#475569;margin-top:8px}',
       P + '-chain .label{font-weight:600;color:#334155;margin-right:4px}',
       P + '-chain .on{font-weight:600;color:#1d4ed8}',
       P + '-chain .meta{margin-left:auto;color:#64748b}',
       P + '-chain a{color:#0369a1;text-decoration:none;font-weight:500}',
       P + '-chain a:hover{text-decoration:underline}',
-      P + ' .record-tabs .badge{display:inline-block;min-width:18px;margin-left:6px;padding:0 6px;border-radius:999px;font-size:11px;font-weight:700;background:#dc2626;color:#fff;line-height:18px;vertical-align:middle}',
-      P + '-intent{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid transparent}',
-      P + '-intent.transfer{background:#fef3c7;color:#92400e;border-color:#fde68a}',
-      P + '-intent.only{background:#f1f5f9;color:#475569;border-color:#e2e8f0}',
-      P + ' tr.' + HOST_ID + '-done td{opacity:.55}',
-      // ---------- 120 调度带入的任务上下文条 ----------
-      P + '-ctxstrip{display:flex;gap:8px;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:4px;padding:6px 10px;font-size:12px;margin-bottom:10px}',
-      P + '-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px 16px;margin-bottom:14px}',
-      P + '-field{display:flex;flex-direction:column;gap:4px}',
+      // ---------- 提示条 ----------
+      P + '-msg{font-size:12px}',
+      P + '-msg:empty{display:none}',
+      P + '-msg.err{color:#b91c1c}',
+      P + '-msg.ok{color:#15803d}',
+      P + '-msg.info{color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px}',
+      // ---------- 发起会诊表单（常驻展开，三列网格） ----------
+      P + '-form{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 18px}',
+      P + '-field{display:flex;flex-direction:column;gap:5px}',
       P + '-field label{font-size:12px;color:#64748b}',
-      P + '-field input,' + P + '-field select,' + P + '-field textarea{font-family:inherit;font-size:13px;color:#1e293b;border:1px solid #cbd5e1;border-radius:4px;padding:6px 8px;background:#fff;width:100%;box-sizing:border-box}',
-      P + '-field input:focus,' + P + '-field select:focus{outline:none;border-color:#1d4ed8}',
+      P + '-field input,' + P + '-field select,' + P + '-field textarea{font-family:inherit;font-size:13px;color:#1e293b;border:1px solid #cdd7e1;border-radius:6px;padding:7px 10px;background:#fff;width:100%;box-sizing:border-box;min-height:34px}',
+      P + '-field input:focus,' + P + '-field select:focus{outline:none;border-color:#1d4ed8;box-shadow:0 0 0 2px rgba(29,78,216,.08)}',
+      P + '-form-foot{grid-column:1/-1;display:flex;gap:8px;align-items:center}',
       // ---------- 定时选择器（自定义面板，替代原生 datetime-local） ----------
       P + '-dt{position:relative}',
       P + '-dt input{cursor:pointer;padding-right:52px}',
@@ -368,12 +339,38 @@
       P + '-day:disabled{color:#cbd5e1;cursor:not-allowed;background:none;box-shadow:none}',
       P + '-time{display:flex;gap:8px;align-items:center;margin-top:8px}',
       P + '-time b{font-size:12px;color:#64748b;font-weight:400;white-space:nowrap}',
-      P + '-time select{flex:1;font-family:inherit;font-size:12px;color:#1e293b;border:1px solid #cbd5e1;border-radius:4px;padding:4px 6px;background:#fff;min-width:0}',
+      P + '-time select{flex:1;font-family:inherit;font-size:12px;color:#1e293b;border:1px solid #cdd7e1;border-radius:4px;padding:4px 6px;background:#fff;min-width:0}',
       P + '-foot{display:flex;gap:6px;align-items:center;margin-top:10px}',
       P + '-foot .sp{flex:1}',
-      P + '-form-origin-hint{grid-column:1/-1;margin:0;font-size:12px;color:#64748b;line-height:1.45}',
-      P + '-kpi{margin:0 0 8px;font-size:12px;color:#64748b}',
-      P + '-kpi strong{color:#0f172a;font-size:15px}',
+      // ---------- 基层上转提示（基层会诊视图） ----------
+      P + '-role{padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:13px;line-height:1.55;color:#334155}',
+      P + '-role strong{display:block;font-size:13px;margin-bottom:2px;color:#0c4a6e}',
+      // ---------- 会诊队列（全量单表） ----------
+      P + '-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}',
+      P + '-section-head h3{margin:0;font-size:15px;font-weight:600;color:#0f172a}',
+      P + '-qcount{font-size:12px;color:#94a3b8}',
+      P + ' .business-table{border:1px solid #e6ebf2;border-radius:10px;overflow:auto;background:#fff}',
+      P + ' .business-table table{width:100%;border-collapse:collapse;font-size:13px;margin:0}',
+      P + ' .business-table th{background:#f7f9fc;color:#64748b;font-weight:500;text-align:left;padding:9px 14px;border-bottom:1px solid #e6ebf2;white-space:nowrap;font-size:12px}',
+      P + ' .business-table td{padding:11px 14px;border-bottom:1px solid #f1f4f8;color:#334155;vertical-align:middle}',
+      P + ' .business-table tr:last-child td{border-bottom:none}',
+      P + ' .business-table tbody tr:hover td{background:#fafcfe}',
+      P + ' .business-table td small{display:block;color:#94a3b8;font-size:12px;margin-top:2px}',
+      // 状态标签：待接诊蓝 / 会诊中绿 / 已结束灰 / 定时紫
+      P + '-tag{display:inline-block;padding:2px 9px;border-radius:5px;font-size:12px;border:1px solid transparent;white-space:nowrap}',
+      P + '-tag.waiting{background:#e9f1fe;color:#1d4ed8;border-color:#c8dbfd}',
+      P + '-tag.calling{background:#e6f7f0;color:#047857;border-color:#a9efd2}',
+      P + '-tag.finished{background:#f1f5f9;color:#64748b;border-color:#e2e8f0}',
+      P + '-tag.sched{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}',
+      P + '-kind{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid transparent}',
+      P + '-kind.grass{background:#ecfdf5;color:#047857;border-color:#6ee7b7}',
+      P + '-kind.county{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}',
+      P + '-kind.pre{background:#fff7ed;color:#c2410c;border-color:#fed7aa}',
+      P + '-intent{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid transparent}',
+      P + '-intent.transfer{background:#fef3c7;color:#92400e;border-color:#fde68a}',
+      P + '-intent.only{background:#f1f5f9;color:#475569;border-color:#e2e8f0}',
+      P + '-empty{color:#94a3b8;font-size:13px;padding:14px 2px}',
+      // ---------- 接诊确认弹层 ----------
       P + '-modal{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;padding:16px}',
       P + '-modal[hidden]{display:none!important}',
       P + '-modal-back{position:absolute;inset:0;background:rgba(15,23,42,.45)}',
@@ -384,29 +381,12 @@
       P + '-modal-body dt{color:#64748b;margin:0}',
       P + '-modal-body dd{margin:0;color:#0f172a}',
       P + '-modal-foot{display:flex;justify-content:flex-end;gap:8px}',
-      P + '-form-foot{grid-column:1/-1;display:flex;gap:8px;align-items:center}',
-      P + '-msg{font-size:12px}',
-      P + '-msg.err{color:#b91c1c}',
-      P + '-msg.ok{color:#15803d}',
-      P + '-msg.info{color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;margin-bottom:10px}',
-      P + '-kind{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid transparent}',
-      P + '-kind.grass{background:#ecfdf5;color:#047857;border-color:#6ee7b7}',
-      P + '-kind.county{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}',
-      P + '-kind.pre{background:#fff7ed;color:#c2410c;border-color:#fed7aa}',
-      P + '-doctors-fold{margin-top:12px;font-size:13px;color:#64748b;border-top:1px solid #f1f5f9;padding-top:10px}',
-      P + '-doctors-fold summary{cursor:pointer;font-weight:600;color:#475569}',
-      P + '-doctors-fold[open] summary{margin-bottom:8px}',
-      P + '-empty{color:#94a3b8;font-size:13px;padding:10px 2px}',
       '@media(max-width:900px){' + P + '-form{grid-template-columns:1fr}}',
     ].join('\n')
     document.head.appendChild(style)
   }
 
   // ---------- 模板 ----------
-
-  function field(label, control) {
-    return '<div class="' + HOST_ID + '-field"><label for="' + label + '">' + label + '</label>' + control + '</div>'
-  }
 
   function options(list, valueOf, labelOf, placeholder) {
     var html = placeholder ? '<option value="">' + esc(placeholder) + '</option>' : ''
@@ -419,28 +399,20 @@
   function formHtml() {
     return (
       '<div class="' + HOST_ID + '-form">' +
-      '<div class="' + HOST_ID + '-field"><label>发起方</label><select id="hx-cw-f-origin">' +
-      '<option value="grassroots">基层上转（乡镇/村室）</option>' +
-      '<option value="county" selected>县内会诊</option>' +
-      '<option value="prehospital">院前 120</option></select></div>' +
-      '<div class="' + HOST_ID + '-field"><label>上转意图</label><select id="hx-cw-f-intent">' +
-      '<option value="consult_only">仅会诊</option>' +
-      '<option value="consult_transfer">会诊 + 转诊</option></select></div>' +
-      '<p class="' + HOST_ID + '-form-origin-hint span-2">上转意图在进队列前写清；会诊页只处理「接不接、怎么接」。</p>' +
-      '<div class="' + HOST_ID + '-field"><label>患者</label><select id="hx-cw-f-patient"></select></div>' +
-      '<div class="' + HOST_ID + '-field"><label>主诉</label><input id="hx-cw-f-complaint" type="text" placeholder="如：胸痛2小时"></div>' +
-      '<div class="' + HOST_ID + '-field"><label>目标医院</label><select id="hx-cw-f-hospital"></select></div>' +
-      '<div class="' + HOST_ID + '-field"><label>目标科室</label><select id="hx-cw-f-dept"></select></div>' +
-      '<div class="' + HOST_ID + '-field"><label>指定接诊医生</label><select id="hx-cw-f-doctor"></select></div>' +
-      '<div class="' + HOST_ID + '-field"><label>备注</label><input id="hx-cw-f-note" type="text" placeholder="选填"></div>' +
-      '<div class="' + HOST_ID + '-field"><label>定时开始（选填）</label>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-patient">患者选择</label><select id="hx-cw-f-patient"></select></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-complaint">主诉</label><input id="hx-cw-f-complaint" type="text" placeholder="如：胸痛2小时"></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-hospital">目标医院</label><select id="hx-cw-f-hospital"></select></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-dept">目标科室</label><select id="hx-cw-f-dept"></select></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-doctor">指定接诊医生</label><select id="hx-cw-f-doctor"></select></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-note">备注</label><input id="hx-cw-f-note" type="text" placeholder="选填"></div>' +
+      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-schedule">定时开始（可选）</label>' +
       '<div class="' + HOST_ID + '-dt">' +
-      '<input id="hx-cw-f-schedule" type="text" readonly placeholder="选填 · 留空立即开始">' +
+      '<input id="hx-cw-f-schedule" type="text" readonly placeholder="选填，到点立即可开始">' +
       '<span class="' + HOST_ID + '-dt-clear" id="hx-cw-f-dt-clear" data-act="dt-clear" title="清除定时">&times;</span>' +
       '<span class="' + HOST_ID + '-dt-icon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>' +
       '</div></div>' +
       '<div class="' + HOST_ID + '-form-foot">' +
-      '<button type="button" class="' + HOST_ID + '-btn primary" data-act="submit">提交会诊</button>' +
+      '<button type="button" class="' + HOST_ID + '-btn primary" data-act="submit">发起会诊</button>' +
       '<button type="button" class="' + HOST_ID + '-btn" data-act="toggle-form">取消</button>' +
       '<span class="' + HOST_ID + '-msg" id="hx-cw-form-msg"></span>' +
       '</div></div>'
@@ -465,36 +437,31 @@
     return (
       acceptModalHtml() +
       '<div class="' + HOST_ID + '-stack">' +
-      '<header class="' + HOST_ID + '-hero patient-identity">' +
-      '<div>' +
-      '<h1 id="hx-cw-title">基层会诊</h1>' +
-      '<span id="hx-cw-subtitle" class="' + HOST_ID + '-subtitle">乡镇/村室上转队列</span>' +
-      '</div>' +
+      '<header class="' + HOST_ID + '-hero">' +
+      '<h1 id="hx-cw-title">' + (state.scopeTab === 'grassroots' ? '基层会诊' : '远程会诊') + '</h1>' +
       '<div class="' + HOST_ID + '-actions">' +
       '<button type="button" class="' + HOST_ID + '-btn ghost" data-act="refresh">刷新</button>' +
-      '<button type="button" class="' + HOST_ID + '-btn primary" data-act="toggle-form">发起会诊</button>' +
+      '<button type="button" class="' + HOST_ID + '-btn primary" data-act="toggle-form">收起表单</button>' +
       '</div></header>' +
-      '<div class="' + HOST_ID + '-card">' +
-      '<div id="hx-cw-chain"></div>' +
-      '<div id="hx-cw-role"></div>' +
-      '<div id="hx-cw-form-wrap" hidden>' + formHtml() + '</div>' +
-      '<details class="' + HOST_ID + '-doctors-fold" id="hx-cw-doctors-fold">' +
-      '<summary id="hx-cw-doctors-summary">可选接诊医生（发起时在表单中指定）</summary>' +
-      '<div id="hx-cw-doctors"></div></details>' +
       '<div id="hx-cw-ctx"></div>' +
       '<div class="' + HOST_ID + '-msg" id="hx-cw-msg"></div>' +
+      '<div id="hx-cw-form-wrap">' + formHtml() + '</div>' +
+      '<div id="hx-cw-role" class="' + HOST_ID + '-role" hidden></div>' +
+      '<section>' +
+      '<div class="' + HOST_ID + '-section-head">' +
+      '<h3>会诊队列</h3>' +
+      '<span class="' + HOST_ID + '-qcount" id="hx-cw-qcount"></span>' +
       '</div>' +
-      '<div class="' + HOST_ID + '-card">' +
-      '<div class="' + HOST_ID + '-section-head"><h3>会诊队列</h3></div>' +
-      '<div class="record-tabs" id="hx-cw-tabs"></div>' +
       '<div id="hx-cw-queue"></div>' +
-      '</div></div>'
+      '</section></div>'
     )
   }
 
+  var STATUS_LABEL = { WAITING: '待接诊', IN_CALL: '会诊中', FINISHED: '已结束' }
+
   function statusTag(status, label) {
     var cls = status === 'WAITING' ? 'waiting' : status === 'IN_CALL' ? 'calling' : 'finished'
-    return '<span class="' + HOST_ID + '-tag ' + cls + '">' + esc(label || status || '') + '</span>'
+    return '<span class="' + HOST_ID + '-tag ' + cls + '">' + esc(label || STATUS_LABEL[status] || status || '') + '</span>'
   }
 
   /** ISO 时间 → 浏览器本地时区的 "M月D日 HH:MM" */
@@ -699,22 +666,18 @@
 
   function opBtn(act, id, text, primary) {
     var mod = primary ? ' primary' : act === 'accept' ? ' ghost' : ' link'
-    return '<button type="button" class="' + HOST_ID + '-btn' + mod +
+    return '<button type="button" class="' + HOST_ID + '-btn sm' + mod +
       '" data-act="' + act + '" data-id="' + esc(id) + '">' + esc(text) + '</button>'
   }
 
   function opLink(href, text, primary) {
-    return '<a class="' + HOST_ID + '-btn' + (primary ? ' primary' : ' link') + '" href="' + esc(href) + '">' + esc(text) + '</a>'
+    return '<a class="' + HOST_ID + '-btn sm' + (primary ? ' primary' : ' link') + '" href="' + esc(href) + '">' + esc(text) + '</a>'
   }
 
-  /** 「进入会诊室」→ episode；episode 页再「进入视频会诊」→ room */
+  /** 「进入会诊室」→ 直接取入会链接跳远程会诊系统会议室，不再经 episode/本地 room 中转 */
   function opEnterRoom(it) {
     var label = '进入会诊室'
     var cls = HOST_ID + '-btn ' + HOST_ID + '-btn-enter'
-    var rh = consultEntryHref(it)
-    if (rh) {
-      return '<a class="' + cls + '" href="' + esc(rh) + '">' + esc(label) + '</a>'
-    }
     return (
       '<button type="button" class="' + cls + '" data-act="join" data-id="' + esc(it.sessionId) + '">' +
       esc(label) +
@@ -746,24 +709,6 @@
       token = state.scenarioBySession[it.sessionId].token || ''
     }
     return token || ''
-  }
-
-  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
-  function roomHref(it) {
-    var token = consultToken(it)
-    if (!token) return ''
-    return '#/room/' + encodeURIComponent(token)
-  }
-
-  /** 列表入口：连续诊疗 episode（p3），episode 内再进 room（p4） */
-  function consultEntryHref(it) {
-    var pid = resolvePatientId(it)
-    var token = consultToken(it)
-    if (window.hxConsultEpisodeNav && window.hxConsultEpisodeNav.episodeHash) {
-      var ep = window.hxConsultEpisodeNav.episodeHash({ patientId: pid, token: token })
-      if (ep) return ep
-    }
-    return roomHref(it)
   }
 
   function ingestScenarioPack(pack) {
@@ -861,15 +806,10 @@
     )
   }
 
+  /** 患者链路仅在 120 调度带入任务上下文时展示（院前链：出警 → 远程会诊 → 转诊 → 重症） */
   function chainHtml() {
     var dd = state.dispatch
-    if (!dd || !dd.task) {
-      return (
-        '<div class="' + HOST_ID + '-chain muted">' +
-        '<span class="label">患者链路</span>院前登记 → 远程会诊 → 转诊协同 → 入院/重症' +
-        '</div>'
-      )
-    }
+    if (!dd || !dd.task) return ''
     return (
       '<nav class="' + HOST_ID + '-chain" aria-label="患者链路">' +
       '<span class="label">院前链</span>' +
@@ -896,63 +836,46 @@
     return ORG_LABEL[id] || id || '—'
   }
 
-  // ---------- 队列状态 Tab ----------
-
-  var QTABS = [
-    { k: 'wait', label: '待接诊' },
-    { k: 'incall', label: '会诊中' },
-    { k: 'sched', label: '定时' },
-    { k: 'done', label: '已结束' },
-    { k: 'all', label: '全部' },
-  ]
-
-  /** 单条会诊单归属哪个 Tab（定时未到点的 WAITING 单归"定时"，其余 WAITING 归"待接诊"） */
-  function qtabMatch(it, k) {
-    switch (k) {
-      case 'wait': return it.status === 'WAITING' && startableNow(it)
-      case 'incall': return it.status === 'IN_CALL'
-      case 'sched': return it.status !== 'FINISHED' && !!it.scheduledAt && !startableNow(it)
-      case 'done': return it.status === 'FINISHED'
-      default: return true
-    }
-  }
-
-  function tabsHtml() {
-    var base = queueForScope()
-    return QTABS.map(function (t) {
-      var n = 0
-      base.forEach(function (it) { if (qtabMatch(it, t.k)) n++ })
-      return '<button type="button" class="' + (state.qtab === t.k ? 'active' : '') +
-        '" data-act="qtab" data-qtab="' + t.k + '">' + t.label + '<span class="n">' + n + '</span></button>'
-    }).join('')
-  }
-
   function queueHtml() {
     var scoped = queueForScope()
-    var rows0 = scoped.filter(function (it) { return qtabMatch(it, state.qtab) })
     if (state.loading && !state.queue.length) return '<div class="' + HOST_ID + '-empty">加载中…</div>'
-    if (!rows0.length) {
+    if (!scoped.length) {
       if (state.scopeTab === 'grassroots' && state.queue.length) {
         return '<div class="' + HOST_ID + '-empty">当前筛选下暂无基层上转会诊单（全县共 ' + state.queue.length + ' 条）</div>'
       }
-      return '<div class="' + HOST_ID + '-empty">' + (scoped.length ? '该状态下暂无会诊单' : '暂无会诊单') + '</div>'
+      return '<div class="' + HOST_ID + '-empty">暂无会诊单</div>'
     }
-    var rows = rows0.map(function (it) {
+    var rows = scoped.map(function (it) {
       var p = it.patient || {}
       var who = esc(p.name || '—')
       if (p.age) who += ' · ' + esc(p.age) + '岁'
       var ops = []
       var scheduledLater = it.scheduledAt && !startableNow(it)
-      // 定时未到点：状态列显示"定时·开始时间"，不出现"进入会诊室"
-      if (!scheduledLater && it.status === 'WAITING' && state.dataSource === 'api') {
-        ops.push(opBtn('accept', it.sessionId, '接诊'))
+      // 待接诊（含定时未到点）提供「改诊」：点击后走确认接诊流程，由当前账号认领会诊
+      if (it.status === 'WAITING' && state.dataSource === 'api') {
+        ops.push(opBtn('accept', it.sessionId, '改诊'))
       }
+      // 定时未到点：状态列显示"定时·开始时间"，不出现"进入会诊室"
       if (!scheduledLater && (it.status === 'WAITING' || it.status === 'IN_CALL')) {
         ops.push(opEnterRoom(it))
       }
       var statusHtml = scheduledLater
         ? '<span class="' + HOST_ID + '-tag sched">定时 · ' + esc(fmtLocal(it.scheduledAt)) + ' 开始</span>'
         : statusTag(it.status, it.statusLabel)
+      // 远程会诊（全量）默认视图：7 列布局
+      if (state.scopeTab !== 'grassroots') {
+        return (
+          '<tr>' +
+          '<td>' + esc(it.consultCode || it.sessionId) + '</td>' +
+          '<td>' + who + '</td>' +
+          '<td>' + esc(it.sourceHospital || '—') + (it.sourceDepartment ? '<small>' + esc(it.sourceDepartment) + '</small>' : '') + '</td>' +
+          '<td>' + esc(it.targetHospital || '—') + (it.targetDepartment ? '<small>' + esc(it.targetDepartment) + '</small>' : '') + '</td>' +
+          '<td>' + esc(it.nominatedDoctorName || '—') + '</td>' +
+          '<td>' + statusHtml + '</td>' +
+          '<td><div class="' + HOST_ID + '-ops">' + (ops.length ? ops.join('') : '<span style="color:#94a3b8">—</span>') + '</div></td>' +
+          '</tr>'
+        )
+      }
       var kind = consultKind(it)
       var pid = resolvePatientId(it)
       var tok = it.consultationToken || it.token || ''
@@ -967,9 +890,8 @@
         ops.push(opLink('#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
       }
       var cc = it.chiefComplaint || (p.chiefComplaint || '') || '—'
-      var done = it.status === 'FINISHED'
       return (
-        '<tr' + (done ? ' class="' + HOST_ID + '-done"' : '') + '>' +
+        '<tr>' +
         '<td><span class="' + HOST_ID + '-kind ' + kind.cls + '">' + esc(kind.label) + '</span>' +
         '<small>' + esc(it.consultCode || it.sessionId) + '</small></td>' +
         '<td>' + who + '</td>' +
@@ -984,25 +906,10 @@
     }).join('')
     return (
       '<div class="business-table table-scroll"><table><thead><tr>' +
-      '<th>类型 / 单号</th><th>患者</th><th>来源</th><th>目标</th><th>主诉</th><th>上转意图</th><th>状态</th><th>操作</th>' +
+      (state.scopeTab === 'grassroots'
+        ? '<th>类型 / 单号</th><th>患者</th><th>来源</th><th>目标</th><th>主诉</th><th>上转意图</th><th>状态</th><th>操作</th>'
+        : '<th>会诊单号</th><th>患者</th><th>来源</th><th>目标</th><th>指定医生</th><th>状态</th><th>操作</th>') +
       '</tr></thead><tbody>' + rows + '</tbody></table></div>'
-    )
-  }
-
-  function doctorsHtml() {
-    if (!state.doctors.length) return '<div class="' + HOST_ID + '-empty">暂无医生</div>'
-    var rows = state.doctors.map(function (d) {
-      return (
-        '<tr>' +
-        '<td>' + esc(d.name || '—') + '</td>' +
-        '<td>' + esc(d.institutionName || '—') + '</td>' +
-        '<td>' + esc(d.departmentName || '—') + '</td>' +
-        '</tr>'
-      )
-    }).join('')
-    return (
-      '<div class="business-table table-scroll"><table><thead><tr><th>姓名</th><th>所属机构</th><th>科室</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>'
     )
   }
 
@@ -1022,12 +929,10 @@
     }
   }
 
+  /** 120 跳转带 launch=1：表单已常驻展开，只清理 URL 参数 */
   function maybeOpenLaunchForm() {
     var q = query()
-    if (q.get('launch') !== '1' || state.launchFormOnce) return
-    state.launchFormOnce = true
-    var wrap = $('hx-cw-form-wrap')
-    if (wrap && wrap.hidden) toggleForm()
+    if (q.get('launch') !== '1') return
     q.delete('launch')
     var qs = q.toString()
     var target = '#/consultations' + (qs ? '?' + qs : '')
@@ -1036,40 +941,32 @@
 
   function paint() {
     var q = $('hx-cw-queue')
-    var d = $('hx-cw-doctors')
-    var tb = $('hx-cw-tabs')
     var ctx = $('hx-cw-ctx')
     var role = $('hx-cw-role')
-    var chain = $('hx-cw-chain')
+    var count = $('hx-cw-qcount')
     var title = $('hx-cw-title')
-    if (role) {
-      role.className = HOST_ID + '-role'
-      role.innerHTML = roleBannerHtml()
-    }
-    if (chain) chain.innerHTML = chainHtml()
-    if (title) title.textContent = '基层会诊'
+    var grassroots = state.scopeTab === 'grassroots'
+    var titleText = grassroots ? '基层会诊' : '远程会诊'
+    if (title) title.textContent = titleText
     var reactH1 = document.querySelector('main.workspace .workspace-heading h1')
-    if (reactH1 && document.body.classList.contains(BODY_FLAG)) reactH1.textContent = '基层会诊'
-    var sub = $('hx-cw-subtitle')
-    if (sub) {
-      sub.textContent = '乡镇/村室上转队列 · 接不接、怎么接；上转意图在发起时已标注'
+    if (reactH1 && document.body.classList.contains(BODY_FLAG)) reactH1.textContent = titleText
+    if (role) {
+      role.hidden = !grassroots
+      role.innerHTML = grassroots ? roleBannerHtml() : ''
     }
-    if (q) q.innerHTML = queueHtml()
-    if (d) d.innerHTML = doctorsHtml()
-    var dsum = $('hx-cw-doctors-summary')
-    if (dsum) {
-      dsum.textContent =
-        '可选接诊医生（' + (state.doctors.length || 0) + ' 人 · 发起会诊时在表单中指定）'
-    }
-    if (tb) tb.innerHTML = tabsHtml()
-    maybeOpenLaunchForm()
     if (ctx) {
       var dd = state.dispatch
       ctx.innerHTML = dd
         ? '<div class="' + HOST_ID + '-ctxstrip">任务上下文：任务 ' + esc(dd.task || '—') +
-          ' · ' + esc(dd.plate || '—') + (dd.complaint ? ' · 主诉 ' + esc(dd.complaint) : '') + '</div>'
+          ' · ' + esc(dd.plate || '—') + (dd.complaint ? ' · 主诉 ' + esc(dd.complaint) : '') + '</div>' + chainHtml()
         : ''
     }
+    if (count) {
+      var n = queueForScope().length
+      count.textContent = n ? '共 ' + n + ' 单' : ''
+    }
+    if (q) q.innerHTML = queueHtml()
+    maybeOpenLaunchForm()
     syncForm()
   }
 
@@ -1084,21 +981,6 @@
           break
         }
       }
-    }
-  }
-
-  function syncFormOriginDefaults() {
-    var origin = $('hx-cw-f-origin')
-    var intent = $('hx-cw-f-intent')
-    if (!origin || !intent) return
-    if (state.dispatch && state.dispatch.task) {
-      origin.value = 'prehospital'
-      intent.value = 'consult_only'
-      return
-    }
-    if (state.scopeTab === 'grassroots') {
-      origin.value = 'grassroots'
-      if (intent.value === 'consult_only') intent.value = 'consult_transfer'
     }
   }
 
@@ -1220,24 +1102,19 @@
     state.loading = true
     paint()
     var t = Date.now()
-    var tasks = [
-      ['/consultations', { status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 50, _t: t }],
-      ['/consultations/doctors', { _t: t }],
-      ['/patients', { pageNum: 1, pageSize: 200, _t: t }],
-      ['/organizations', { _t: t }],
-      ['/departments', { _t: t }],
-    ]
-    return mapLimited(tasks, 2, function (task) {
-      return call('GET', task[0], task[1]).catch(function () { return null })
-    }).then(function (res) {
-      var queueRaw = res[0]
+    // 首屏只发一个聚合请求（队列+患者/机构/科室/医生）：
+    // 本地 php -S 后端是单进程，HTTP 请求会串行排队，拆多个请求只会拿到总耗时之和
+    return call('GET', '/consultations/workspace', {
+      status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 50, _t: t,
+    }).catch(function () { return null }).then(function (ws) {
+      var queueRaw = ws && ws.queue
       if (queueRaw) {
         state.queue = listOf(queueRaw)
         state.dataSource = 'api'
-        if (res[1] && res[1].doctors) state.doctors = res[1].doctors
-        if (res[2]) state.patients = listOf(res[2])
-        if (res[3]) state.orgs = listOf(res[3])
-        if (res[4]) state.depts = uniqBy(listOf(res[4]), 'dept_name')
+        if (ws.doctors) state.doctors = ws.doctors
+        if (ws.patients) state.patients = listOf(ws.patients)
+        if (ws.organizations) state.orgs = listOf(ws.organizations)
+        if (ws.departments) state.depts = uniqBy(listOf(ws.departments), 'dept_name')
         state.ready = true
         setMsg('')
         return fetchScenarioPack().then(function (pack) {
@@ -1276,7 +1153,6 @@
     wrap.hidden = !wrap.hidden
     if (!wrap.hidden) {
       syncForm()
-      syncFormOriginDefaults()
       // 120 调度带入的任务上下文预填：主诉、备注（不覆盖医生已输入的内容）
       var dd = state.dispatch
       if (dd) {
@@ -1322,8 +1198,11 @@
 
     state.busy = true
     setFormMsg('提交中…')
-    var originRole = ($('hx-cw-f-origin') || {}).value || 'county'
-    var transferIntent = ($('hx-cw-f-intent') || {}).value || 'consult_only'
+    // 发起方/上转意图不再做成表单项：由 120 任务上下文与患者所属机构自动判定
+    var originRole = 'county'
+    if (state.dispatch && state.dispatch.task) originRole = 'prehospital'
+    else if (isGrassrootsPatient(patient)) originRole = 'grassroots'
+    var transferIntent = originRole === 'grassroots' ? 'consult_transfer' : 'consult_only'
     var noteExtra = '[发起方:' + originRole + '][意图:' + transferIntent + ']'
     call('POST', '/consultations', null, {
       patientId: pid,
@@ -1348,20 +1227,12 @@
       updateDtInput()
       dpClose()
       var code = (data && data.consultCode) || ''
-      // 切到新单所在的 Tab，避免用户停在"已结束"看不到刚发起的会诊
       if (data && data.scheduledAt && !data.startable) {
-        state.qtab = 'sched'
         setMsg('会诊已定时：' + code + '，' + fmtLocal(data.scheduledAt) + ' 开始，到点后可在队列点击进入会诊室', 'ok')
       } else {
-        state.qtab = 'wait'
         setMsg('会诊已发起' + (code ? '：' + code : '') +
           (data && data.rtcReady ? '，已接入远程会诊系统' : '，音视频服务未就绪，已生成会诊单'), data && data.rtcReady ? 'ok' : '')
       }
-      state.scopeTab = 'grassroots'
-      var q = query()
-      q.set('tab', 'grassroots')
-      var qs = q.toString()
-      location.hash = '#/consultations' + (qs ? '?' + qs : '')
       return loadAll()
     }).catch(function (e) {
       setFormMsg((e && e.message) || '发起失败', 'err')
@@ -1434,13 +1305,6 @@
   }
 
   function enterRoom(sessionId) {
-    var it = state.queue.filter(function (x) { return x.sessionId === sessionId })[0]
-    var rh = consultEntryHref(it || { sessionId: sessionId })
-    if (rh) {
-      location.hash = rh.replace(/^\/#/, '#')
-      setMsg('')
-      return
-    }
     if (state.busy) return setMsg('上一步操作还在进行，请稍候', 'err')
     state.busy = true
     setMsg('正在获取入会链接…')
@@ -1452,8 +1316,11 @@
         window.open(url, '_blank', 'noopener')
       })
       .catch(function () {
-        location.hash = '#/room/' + encodeURIComponent(sessionId)
-        setMsg('已打开本系统会诊室；外接 RTC 未就绪时将显示演示画面。', 'info')
+        // 外接 RTC 未就绪或接口失败：回退本系统会诊室占位页（演示队列也落到这里）
+        var it = state.queue.filter(function (x) { return x.sessionId === sessionId })[0]
+        var tok = consultToken(it) || sessionId
+        location.hash = '#/room/' + encodeURIComponent(tok)
+        setMsg('外接会诊系统暂不可用，已打开本系统会诊室。', 'info')
       })
       .then(function () {
         state.busy = false
@@ -1481,10 +1348,6 @@
       else if (act === 'submit') submitForm()
       else if (act === 'accept') accept(id)
       else if (act === 'join') enterRoom(id)
-      else if (act === 'qtab') {
-        state.qtab = btn.getAttribute('data-qtab') || 'all'
-        paint()
-      }
       else if (act === 'accept-confirm') confirmAccept()
       else if (act === 'accept-cancel') closeAcceptModal()
       else if (act === 'dt-clear') {
@@ -1500,12 +1363,6 @@
         })[0]
         var box = $('hx-cw-f-complaint')
         if (p && box && !box.value) box.value = p.chiefComplaint || ''
-      }
-      if (ev.target && ev.target.id === 'hx-cw-f-origin') {
-        var intentEl = $('hx-cw-f-intent')
-        if (intentEl && ev.target.value === 'grassroots' && intentEl.value === 'consult_only') {
-          intentEl.value = 'consult_transfer'
-        }
       }
     })
   }
@@ -1540,7 +1397,6 @@
     if (el) el.remove()
     dpClose()
     state.ready = false
-    state.launchFormOnce = false
   }
 
   function tick() {
@@ -1560,7 +1416,7 @@
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
     migrateLegacyGrassrootsUrl()
-    state.scopeTab = 'grassroots'
+    state.scopeTab = consultScopeTab()
     syncDispatchFromQuery()
 
     var host = $(HOST_ID)
@@ -1590,7 +1446,7 @@
   function onConsultHashChange() {
     migrateLegacyGrassrootsUrl()
     if (path() !== ROUTE || !shouldUseConsultWorkbench()) return
-    state.scopeTab = 'grassroots'
+    state.scopeTab = consultScopeTab()
     syncDispatchFromQuery()
     tick()
   }
