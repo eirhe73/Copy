@@ -178,6 +178,11 @@ function mountGlbMap() {
   }
 }
 
+function reactMapSceneActive(mainMap: HTMLElement) {
+  const slot = mainMap.querySelector('.county-map .command-map-canvas.map-stage')
+  return !!(slot && slot.querySelector('canvas'))
+}
+
 function mountGlbMapInner() {
   if (!onGlbMapRoute()) {
     teardown(findMainMap())
@@ -190,6 +195,13 @@ function mountGlbMapInner() {
 
   const mainMap = findMainMap()
   if (!mainMap) return
+
+  if (reactMapSceneActive(mainMap)) {
+    teardown(mainMap)
+    applyFullPageClasses(mainMap)
+    pulseResize()
+    return
+  }
 
   const region = readRegion()
   const county = takeoverCountyMap(mainMap) ?? mainMap
@@ -225,8 +237,9 @@ function mountGlbMapInner() {
     themeId: 'light',
     region,
     variant: 'command',
-    layout: 'dashboard',
-    campusDisplayScale: 1.22,
+    layout: isMapFullPage() ? 'fullscreen' : 'dashboard',
+    useCampusGlb: false,
+    campusDisplayScale: 1.18,
   })
   mountedKey = key
   pulseResize()

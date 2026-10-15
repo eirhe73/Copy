@@ -39,7 +39,7 @@ function buildBlock() {
   for (const s of backendScripts) lines.push(tagScript(s))
   lines.push(`    <!-- ${reactEntry.comment} -->`)
   lines.push(tagScript(reactEntry))
-  lines.push('    <!-- 协作三维地图由 command-map-page + map-hospital-glb 增强，勿与 map-medical-overlay 双开 -->')
+  lines.push('    <!-- 协作三维地图：command-map-page + React MapScene（勿与 map-medical-overlay 双开） -->')
   for (const s of mapScripts) lines.push(tagScript(s))
   for (const s of enhanceScripts) lines.push(tagScript(s))
   lines.push('    <!-- APP_SHELL:HEAD:END -->')

@@ -17,13 +17,17 @@ export function MapLegend() {
   )
 }
 
+function dispatchMapZoom(dir: 'in' | 'out') {
+  window.dispatchEvent(new CustomEvent('hx-map-camera-zoom', { detail: { dir } }))
+}
+
 export function MapTools() {
   return (
     <div className="map-tools" aria-label="地图工具">
-      <button type="button" className="icon-btn" title="放大">
+      <button type="button" className="icon-btn" title="放大" onClick={() => dispatchMapZoom('in')}>
         +
       </button>
-      <button type="button" className="icon-btn" title="缩小">
+      <button type="button" className="icon-btn" title="缩小" onClick={() => dispatchMapZoom('out')}>
         −
       </button>
       <span className="north" aria-hidden="true">

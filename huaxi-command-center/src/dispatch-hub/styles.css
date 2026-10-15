@@ -262,6 +262,12 @@ body {
   background: #fff;
 }
 
+.dh-date-btn--active {
+  border-color: #1e4b7b;
+  background: #1e4b7b;
+  color: #fff;
+}
+
 .dh-date-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;

@@ -19,7 +19,7 @@
         ['/dispatch', '实时出警'],
         ['/dispatch/list', '出警列表'],
         ['/ambulances', '救护车列表'],
-        ['/patients', '患者列表'],
+        ['/patients', '急救事件'],
         ['/register', '患者登记'],
         ['/consultations', '远程会诊'],
         ['/consultations?tab=grassroots', '基层会诊'],
@@ -63,6 +63,7 @@
       title: '基层医声Dr.',
       links: [
         ['/dr?view=videos', '视频展示'],
+        ['/dr?view=saved', '我的收藏'],
       ],
     },
   ]
@@ -82,7 +83,7 @@
   function isHome() {
     if (document.body.classList.contains('hx-page-map-only')) return true
     const p = hashPath()
-    return p === '/' || p === ''
+    return p === '/' || p === '' || p === '/map'
   }
 
   function isMapPage() {
@@ -112,7 +113,7 @@
       '/dispatch': '实时出警',
       '/dispatch/list': '出警列表',
       '/ambulances': '救护车列表',
-      '/patients': '患者列表',
+      '/patients': '急救事件',
       '/register': '患者登记',
       '/transfers': '医院转诊',
       '/critical': '重症监护',
@@ -138,6 +139,7 @@
     if (link === '/') return (curPath === '/' || curPath === '') && !isMapPage()
     if (link === '/dispatch') return curPath === '/dispatch'
     if (link === '/dispatch/list') return curPath === '/dispatch/list'
+    if (link === '/dispatch/events') return curPath === '/dispatch/events'
 
     if (link === '/consultations?tab=grassroots' || (wantPath === '/consultations' && queryPart && queryPart.includes('tab=grassroots'))) {
       return (
