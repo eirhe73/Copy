@@ -104,5 +104,5 @@ export const enhanceScripts = [
   { src: '/assets/enhance/backend-spa-wire-enhance.js', defer: true },
   { src: '/assets/enhance/auth-logout-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/transfer-classify-enhance.js?v=1', defer: true },
-  { src: '/assets/enhance/transfer-api-enhance.js?v=1', defer: true },
+  { src: '/assets/enhance/transfer-api-enhance.js?v=2', defer: true },
 ]
