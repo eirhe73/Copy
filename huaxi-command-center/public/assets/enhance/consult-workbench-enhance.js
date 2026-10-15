@@ -1275,10 +1275,11 @@
     return call('GET', '/consultations/workspace', {
       status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 100, _t: t,
     }).catch(function () { return null }).then(function (ws) {
-      var queueRaw = ws && ws.queue
-      if (queueRaw) {
-        state.queue = listOf(queueRaw)
-        state.queueTotal = Number(queueRaw.total) || state.queue.length
+      if (ws && typeof ws === 'object') {
+        var queueRaw = ws.queue
+        state.queue = queueRaw ? listOf(queueRaw) : []
+        state.queueTotal =
+          queueRaw && queueRaw.total != null ? Number(queueRaw.total) : state.queue.length
         state.dataSource = 'api'
         if (ws.doctors) state.doctors = ws.doctors
         if (ws.patients) state.patients = listOf(ws.patients)
@@ -1305,8 +1306,16 @@
       })
     }).then(function () {
       state.loading = false
+      // P3 工作台：#/consultations 固定走表格工作台，加载失败也不退回 React P2 卡片页
+      if (path() === ROUTE && shouldUseConsultWorkbench() && !state.ready) {
+        state.ready = true
+        if (!state.queue) state.queue = []
+        if (!state.patients) state.patients = []
+        if (!state.msg) {
+          setMsg('会诊数据加载不完整，可点「刷新」重试；发起会诊表单仍可使用。', 'info')
+        }
+      }
       paint()
-      if (!state.ready && !state.queue.length) unmount()
     })
   }
 
