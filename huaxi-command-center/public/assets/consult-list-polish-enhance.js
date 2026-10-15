@@ -41,6 +41,9 @@
     const wrap = document.createElement('div')
     wrap.className = 'hx-consult-admit-actions'
 
+    const insertBeforeNode = sel || btn
+    if (!insertBeforeNode || !insertBeforeNode.parentElement) return
+
     if (sel) {
       const label = document.createElement('label')
       label.className = 'hx-consult-admit-label'
@@ -51,12 +54,12 @@
       }
       label.setAttribute('for', sel.id)
       wrap.appendChild(label)
-      wrap.appendChild(sel)
     }
-    if (btn) wrap.appendChild(btn)
 
-    const anchor = sel || btn
-    anchor.parentElement.insertBefore(wrap, anchor)
+    // 先把 wrap 插进 article，再移入控件（原先先移 select 会导致 wrap 挂到 detached 子树，按钮点不动）
+    art.insertBefore(wrap, insertBeforeNode)
+    if (sel) wrap.appendChild(sel)
+    if (btn) wrap.appendChild(btn)
   }
 
   function render() {

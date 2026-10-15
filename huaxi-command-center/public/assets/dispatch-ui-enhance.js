@@ -81,7 +81,7 @@
           return
         }
         ctx.chiefComplaint = (sel?.querySelector('p, .complaint')?.textContent || '').trim().slice(0, 120)
-        if (!window.__hxTryConsultLaunch(ctx)) return
+        void window.__hxTryConsultLaunch(ctx)
         return
       }
       location.hash = '#/consultations'

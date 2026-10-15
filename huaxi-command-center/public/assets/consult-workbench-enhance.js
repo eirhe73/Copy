@@ -74,6 +74,18 @@
     return 'all'
   }
 
+  /** 默认用 React 会诊页（队列卡片 + 视频连线）；仅显式开启时用本工作台接 API */
+  function shouldUseConsultWorkbench() {
+    var q = query()
+    if (q.get('workbench') === '1' || q.get('cw') === '1') return true
+    try {
+      if (localStorage.getItem('huaxi-consult-workbench') === '1') return true
+    } catch (e) {
+      /* ignore */
+    }
+    return false
+  }
+
   /** 曾用三级路由 → 合回单页 #/consultations */
   function migrateSubpathsToSinglePage() {
     var p = path()
@@ -715,7 +727,7 @@
 
   /** 「进入会诊室」统一为同一套按钮样式（不随状态在 link / 大蓝块之间切换） */
   function opEnterRoom(it) {
-    var label = '进入会诊室'
+    var label = '进入视频会诊'
     var cls = HOST_ID + '-btn ' + HOST_ID + '-btn-enter'
     var rh = roomHref(it)
     if (rh) {
@@ -754,12 +766,13 @@
     }
     // 会诊室 API 按 consult_rooms.token 查，勿用 sessionId 以免空白页
     if (!token) return ''
-    return '/#/room/' + encodeURIComponent(token)
+    return '#/room/' + encodeURIComponent(token)
   }
 
   function ingestScenarioPack(pack) {
     if (!pack) return
     var st = (pack && pack.state) || pack || {}
+    window.hxConsultEpisodeNav?.indexFromScenario(st)
     state.scenarioBySession = {}
     state.scenarioPatientByName = {}
     ;(st.consultationRequests || []).forEach(function (cr) {
@@ -978,9 +991,16 @@
         : statusTag(it.status, it.statusLabel)
       var kind = consultKind(it)
       var pid = resolvePatientId(it)
+      var tok = it.consultationToken || it.token || ''
+      if (pid || tok) {
+        var epH =
+          window.hxConsultEpisodeNav &&
+          window.hxConsultEpisodeNav.episodeHash({ patientId: pid, token: tok })
+        if (epH) ops.push(opLink(epH, '连续诊疗'))
+      }
       if (pid) {
-        ops.push(opLink('/#/patient/' + encodeURIComponent(pid), '患者档案'))
-        ops.push(opLink('/#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
+        ops.push(opLink('#/patient/' + encodeURIComponent(pid), '患者档案'))
+        ops.push(opLink('#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
       }
       var cc = it.chiefComplaint || (p.chiefComplaint || '') || '—'
       var done = it.status === 'FINISHED'
@@ -1600,6 +1620,10 @@
       if ($(HOST_ID) || document.body.classList.contains(BODY_FLAG)) unmount()
       return
     }
+    if (!shouldUseConsultWorkbench()) {
+      if ($(HOST_ID) || document.body.classList.contains(BODY_FLAG)) unmount()
+      return
+    }
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
     migrateLegacyGrassrootsUrl()
@@ -1634,9 +1658,9 @@
 
   window.addEventListener('hashchange', migrateLegacyGrassrootsUrl)
   window.hxEnhance(tick, { wait: 300, observeRoot: true, afterNav: 120 })
-  // 兜底：布局变化（窗口缩放、字体加载、侧栏展开）时重算位置，并保证节点不丢
-  setInterval(tick, 900)
-  window.addEventListener('resize', tick)
+  window.addEventListener('resize', function () {
+    if (shouldUseConsultWorkbench()) tick()
+  })
   // 定时会诊到点自动翻转：本地时钟越过开始时间后，把"定时未开始"行刷成可进入
   // （只更新本地状态并重绘，不重新请求；改完 startable 计数归零即停）
   setInterval(function () {

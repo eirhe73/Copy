@@ -152,7 +152,14 @@ body.hx-sidebar-shell .hx-sidebar-menu {
   overflow-y: auto;
   overflow-x: hidden;
   padding: 6px 10px 14px;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+body.hx-sidebar-shell .hx-sidebar-menu::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 body.hx-sidebar-shell .hx-sidebar-menu > .hx-sidebar-section {
@@ -550,7 +557,30 @@ body.hx-sidebar-shell.hx-sidebar-home .center-metrics .metric label {
   line-height: 1.35 !important;
 }
 
-body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left,
+body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  gap: 8px !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  align-content: stretch !important;
+}
+
+body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left .vehicle-panel,
+body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left .current-panel {
+  min-height: 0 !important;
+  height: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left .panel-body {
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+
 body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-center,
 body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-right {
   grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
@@ -1212,4 +1242,37 @@ body.hx-sidebar-shell main.department-overview.screen .hx-dept-beds-grid {
 
 body.hx-sidebar-shell main.department-overview.screen .hx-dept-bed-card {
   padding: 10px 12px !important;
+}
+
+/* 远程会诊路由：侧栏高亮与顶栏标题以 hash 为准（防仍亮「实时出警」） */
+body.hx-sidebar-shell.hx-route-consultations:not(.hx-route-grassroots-consult)
+  .hx-nav-l2__link[data-nav-href='/dispatch'],
+body.hx-sidebar-shell.hx-route-consultations:not(.hx-route-grassroots-consult)
+  .hx-nav-l2__link[data-nav-href='/dispatch/list'] {
+  background: transparent !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+body.hx-sidebar-shell.hx-route-consultations:not(.hx-route-grassroots-consult)
+  .hx-nav-l2__link[data-nav-href='/consultations'] {
+  background: var(--hx-nav-accent-bg, rgba(16, 185, 129, 0.12)) !important;
+  color: var(--hx-nav-accent, #059669) !important;
+  font-weight: 600 !important;
+}
+
+body.hx-sidebar-shell.hx-route-grassroots-consult
+  .hx-nav-l2__link[data-nav-href='/consultations'],
+body.hx-sidebar-shell.hx-route-grassroots-consult
+  .hx-nav-l2__link[data-nav-href='/dispatch'] {
+  background: transparent !important;
+  color: #64748b !important;
+  font-weight: 500 !important;
+}
+
+body.hx-sidebar-shell.hx-route-grassroots-consult
+  .hx-nav-l2__link[data-nav-href='/consultations?tab=grassroots'] {
+  background: var(--hx-nav-accent-bg, rgba(16, 185, 129, 0.12)) !important;
+  color: var(--hx-nav-accent, #059669) !important;
+  font-weight: 600 !important;
 }
