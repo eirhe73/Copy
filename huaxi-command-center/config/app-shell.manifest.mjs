@@ -23,13 +23,14 @@ export const backendScripts = [
   { src: '/assets/backend/boot-recover.js?v=2' },
   { src: '/assets/backend/backend-api-config.js' },
   { src: '/assets/backend/backend-auth-gate.js?v=2' },
-  { src: '/assets/backend/backend-api-bridge.js?v=12' },
+  { src: '/assets/backend/backend-api-bridge.js?v=13' },
   { src: '/assets/backend/backend-api-catalog.js' },
   { src: '/assets/backend/backend-api-catalog-gaps.js' },
   { src: '/assets/backend/backend-api-bindings-merge.js' },
   { src: '/assets/backend/backend-api-samples.js' },
-  { src: '/assets/backend/backend-full-sync.js' },
-  { src: '/assets/backend/backend-scenario-live-merge.js' },
+  { src: '/assets/backend/backend-full-sync.js?v=2' },
+  { src: '/assets/backend/backend-patient-scenario-map.js?v=1' },
+  { src: '/assets/backend/backend-scenario-live-merge.js?v=3' },
   { src: '/assets/backend/backend-write-proxy.js' },
   { src: '/assets/backend/backend-api-write-dock.js', defer: true },
 ]
@@ -58,6 +59,7 @@ export const mapScripts = [
 
 export const enhanceScripts = [
   { src: '/assets/enhance/ambulances-page-enhance.js?v=1', defer: true },
+  { src: '/assets/enhance/patients-list-api-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/dispatch-vue-embed-enhance.js?v=3', defer: true },
   { src: '/assets/enhance/consult-launch-dialog-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/consult-episode-nav.js?v=4', defer: true },

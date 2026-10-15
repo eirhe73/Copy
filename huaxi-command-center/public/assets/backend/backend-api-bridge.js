@@ -694,7 +694,11 @@
       return backendJson(m, path.startsWith('/') ? path : `/${path}`, body)
     },
     list(path, query) {
-      return getJson(path, { per_page: 50, ...query }).then(asList)
+      const q = { ...(query || {}) }
+      if (q.pageSize == null && q.per_page != null) q.pageSize = q.per_page
+      if (q.pageSize == null) q.pageSize = 50
+      if (q.pageNum == null && q.page != null) q.pageNum = q.page
+      return getJson(path, q).then(asList)
     },
     health() {
       const tryUrls = [`${apiV1()}/health`, `${apiBase()}/health`, `${apiBase()}/v1/health`]
