@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 侧栏：分组标题 + 子菜单常显，子项直接点击（无折叠）
  */
 ;(function () {
@@ -18,7 +18,6 @@
       links: [
         ['/dispatch', '实时出警'],
         ['/dispatch/list', '出警列表'],
-        ['/dispatch/events', '事件列表'],
         ['/ambulances', '救护车列表'],
         ['/patients', '急救事件'],
         ['/register', '患者登记'],
@@ -113,7 +112,6 @@
     const labels = {
       '/dispatch': '实时出警',
       '/dispatch/list': '出警列表',
-      '/dispatch/events': '事件列表',
       '/ambulances': '救护车列表',
       '/patients': '急救事件',
       '/register': '患者登记',

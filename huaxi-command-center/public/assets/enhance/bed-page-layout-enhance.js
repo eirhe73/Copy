@@ -14,7 +14,7 @@
   ]
   const BODY_FLAG = 'hx-bed-layout-active'
   const LAYOUT_KEY = 'hxBedLayoutVer'
-  const LAYOUT_VER = '7'
+  const LAYOUT_VER = '6'
 
   const INSTIT_NAMES = {
     weiyuan: '威远县人民医院',
@@ -434,10 +434,9 @@
   }
 
   function needsFullRebuild(main) {
+    const p1 = main.querySelector(':scope > .hx-bed-p1')
     const p2 = main.querySelector(':scope > .hx-bed-p2')
-    const p1InP2 = p2?.querySelector(':scope > .hx-bed-p1')
-    const p1Top = main.querySelector(':scope > .hx-bed-p1')
-    if (!p2 || !p1InP2 || p1Top || main.dataset[LAYOUT_KEY] !== LAYOUT_VER) return true
+    if (!p1 || !p2 || main.dataset[LAYOUT_KEY] !== LAYOUT_VER) return true
     if (main.querySelector(':scope > aside:not([hidden])')) return true
     if (main.querySelector(':scope > .bed-center:not([hidden])')) return true
     if (main.querySelector(':scope > .bed-right:not([hidden])')) return true
@@ -485,8 +484,9 @@
       content.appendChild(pane)
     }
 
-    p2.append(nav, p1, content)
+    p2.append(nav, content)
     main.prepend(p2)
+    main.prepend(p1)
 
     return { p1, p2, nav, content }
   }
@@ -497,9 +497,8 @@
       createShell(main)
     }
 
+    const p1 = main.querySelector(':scope > .hx-bed-p1')
     const p2 = main.querySelector(':scope > .hx-bed-p2')
-    const p1 = p2?.querySelector(':scope > .hx-bed-p1')
-    if (!p1 || !p2) return { p1: null, p2: null }
     const p1Right = p1.querySelector('.hx-bed-p1-video')
     const content = p2.querySelector('.hx-bed-record-content')
     const bedCenter = main.querySelector(':scope > .bed-center')
