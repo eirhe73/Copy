@@ -1,5 +1,6 @@
 {
   "updatedAt": "2026-10-15T10:18:00+08:00",
+  "institutionId": "weiyuan",
   "hospitalName": "威远县人民医院",
   "campus": "本部",
   "shift": {
@@ -54,6 +55,7 @@
   "quickLinks": [
     { "label": "预警明细", "href": "#/warning" },
     { "label": "危急值闭环", "href": "#/warning?view=labs" },
+    { "label": "ICU 重症监护", "href": "#/critical?org=weiyuan" },
     { "label": "远程会诊", "href": "#/consultations?tab=grassroots" }
   ]
 }

@@ -8294,6 +8294,139 @@ body.hx-consult-grassroots-page #hx-grassroots-consult-root {
   overflow: auto !important;
 }
 
+/* 路由已切到重症时，勿再露出残留的科室监控 main（enhance 曾改 DOM 时的兜底） */
+.app-shell:has(main.critical-screen.screen) main.department-overview.screen {
+  display: none !important;
+}
+
+.app-shell:has(main.department-overview.screen):not(:has(main.critical-screen.screen)) main.critical-screen.screen {
+  display: none !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type .panel {
+  margin: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type .panel-title {
+  padding: 10px 12px 6px !important;
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type .panel-body {
+  padding: 8px 10px 10px !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type .warning-counts b {
+  color: #0d9488 !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type a.hx-dm-bed-link {
+  color: #0f766e !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+}
+
+body.hx-ia-departments-view main.department-overview.screen > aside:first-of-type a.hx-dm-bed-link:hover {
+  text-decoration: underline !important;
+}
+
+body.hx-ia-departments-view .hx-dm-hh--append {
+  margin-top: 10px !important;
+  padding-top: 10px !important;
+  border-top: 1px solid #e2e8f0 !important;
+}
+
+body.hx-ia-departments-view .hx-dm-panel-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 6px !important;
+  margin: 0 0 8px !important;
+  font-size: 11px !important;
+  color: #64748b !important;
+}
+
+body.hx-ia-departments-view .hx-dm-panel-stats span {
+  text-align: center !important;
+  padding: 6px 4px !important;
+  background: #f8fafc !important;
+  border: 1px solid #eef2f6 !important;
+  border-radius: 6px !important;
+  line-height: 1.25 !important;
+}
+
+body.hx-ia-departments-view .hx-dm-panel-stats b {
+  display: block !important;
+  margin-top: 2px !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+body.hx-ia-departments-view .department-totals {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 10px !important;
+  padding: 0 0 12px !important;
+  margin: 0 0 12px !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+}
+
+body.hx-ia-departments-view .department-totals strong {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 2px !important;
+  padding: 12px 8px !important;
+  font-size: 24px !important;
+  line-height: 1.1 !important;
+  background: #fff !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+body.hx-ia-departments-view .department-totals small {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #64748b !important;
+}
+
+body.hx-ia-departments-view .department-matrix {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)) !important;
+  gap: 10px !important;
+  margin-bottom: 12px !important;
+}
+
+body.hx-ia-departments-view .hx-dm-mini-table {
+  margin: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+body.hx-ia-departments-view .hx-dm-mini-table table {
+  width: 100% !important;
+}
+
+body.hx-ia-departments-view .hx-dm-mini-table tbody tr {
+  border-bottom: 1px solid #f1f5f9 !important;
+}
+
+body.hx-ia-departments-view .hx-dm-mini-table tbody tr:last-child {
+  border-bottom: none !important;
+}
+
 /* 科室监控（桌面）：隐藏 React 内嵌的「手机通知」演示，请用侧栏「手机通知演示」入口 */
 body.hx-ia-departments-view main.department-overview.screen > aside:last-of-type .panel:last-child,
 body.hx-ia-departments-view main.department-overview.screen .panel[data-hx-desktop-hidden='1'] {
@@ -8381,6 +8514,81 @@ body.hx-ia-sub-hospitals-view main.warning-screen.screen {
 }
 
 /* 科室监控 · 内嵌科室床位 */
+body.hx-ia-departments-view .hx-dept-linkage-bar {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px 12px !important;
+  margin: 0 0 12px !important;
+  padding: 10px 12px !important;
+  background: linear-gradient(90deg, #ecfdf5 0%, #f0f9ff 100%) !important;
+  border: 1px solid #99f6e4 !important;
+  border-radius: 10px !important;
+  font-size: 13px !important;
+}
+
+body.hx-ia-departments-view .hx-dept-linkage-tag {
+  font-weight: 700 !important;
+  color: #0f766e !important;
+  padding: 2px 8px !important;
+  background: #fff !important;
+  border-radius: 6px !important;
+  border: 1px solid #5eead4 !important;
+}
+
+body.hx-ia-departments-view a.hx-dept-linkage-go {
+  color: #0369a1 !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  padding: 4px 10px !important;
+  background: #fff !important;
+  border-radius: 6px !important;
+  border: 1px solid #bae6fd !important;
+}
+
+body.hx-ia-departments-view a.hx-dept-linkage-go:hover {
+  background: #e0f2fe !important;
+}
+
+body.hx-ia-departments-view .hx-dept-linkage-tip {
+  flex: 1 1 200px !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+body.hx-ia-departments-view .hx-dept-matrix-icu {
+  margin: 6px 0 0 !important;
+  font-size: 12px !important;
+}
+
+body.hx-ia-departments-view .hx-dept-matrix-icu a {
+  color: #0d9488 !important;
+  font-weight: 600 !important;
+}
+
+body.hx-ia-departments-view .hx-dm-pending-ops {
+  display: inline !important;
+  margin-left: 4px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+body.hx-ia-departments-view .hx-dm-pending-ops a {
+  color: #0369a1 !important;
+  font-weight: 600 !important;
+}
+
+body.hx-ia-departments-view .hx-dm-link-hint {
+  margin-left: 8px !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  color: #0d9488 !important;
+}
+
+body.hx-ia-departments-view #hx-dept-beds-panel {
+  display: none !important;
+}
+
 .hx-dept-beds-panel {
   margin-top: 18px;
   padding-top: 16px;
@@ -8464,7 +8672,7 @@ body.hx-ia-sub-hospitals-view main.warning-screen.screen {
 
 /* 科室监控 ·  enrich（dept-monitor-context.json） */
 body.hx-ia-departments-view .hx-dept-monitor-banner {
-  padding: 10px 12px 12px;
+  padding: 12px 14px 10px;
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -8502,36 +8710,60 @@ body.hx-ia-departments-view .hx-dept-monitor-time {
 }
 
 body.hx-ia-departments-view .hx-dept-monitor-kpis {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   margin-bottom: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
 }
 
 body.hx-ia-departments-view .hx-dm-kpi {
-  padding: 8px 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  display: grid;
+  grid-template-columns: minmax(7.5em, 1fr) auto minmax(6.5em, auto);
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  background: #fff;
+  border: none;
+  border-bottom: 1px solid #eef2f6;
+  border-radius: 0;
+}
+
+body.hx-ia-departments-view .hx-dm-kpi:last-child {
+  border-bottom: none;
 }
 
 body.hx-ia-departments-view .hx-dm-kpi-label {
   display: block;
-  font-size: 11px;
-  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 body.hx-ia-departments-view .hx-dm-kpi-val {
   display: block;
-  font-size: 18px;
+  font-size: 17px;
   line-height: 1.2;
   color: #0f172a;
-  margin: 2px 0;
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
 }
 
 body.hx-ia-departments-view .hx-dm-kpi small {
-  font-size: 10px;
+  display: block;
+  font-size: 11px;
   color: #94a3b8;
+  margin: 0;
+  text-align: right;
+  white-space: nowrap;
 }
 
 body.hx-ia-departments-view .hx-dm-kpi--danger .hx-dm-kpi-val {
@@ -8782,14 +9014,118 @@ body.hx-ia-departments-view .hx-dm-pending-go {
   white-space: nowrap;
 }
 
+body.hx-ia-departments-view .hx-dm-pending-ops {
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+body.hx-ia-departments-view .hx-dm-pending-ops a {
+  color: #0369a1;
+  text-decoration: none;
+  margin-right: 4px;
+}
+
+body.hx-ia-departments-view .hx-dm-pending-ops a:hover {
+  text-decoration: underline;
+}
+
+body.hx-ia-departments-view .hx-dm-kpi--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+body.hx-ia-departments-view .hx-dm-kpi--link:hover {
+  background: rgba(255, 255, 255, 0.65) !important;
+}
+
+body.hx-ia-departments-view .hx-dm-bed-link {
+  color: #0369a1;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+body.hx-ia-departments-view .hx-dm-bed-link:hover {
+  text-decoration: underline;
+}
+
+body.hx-ia-departments-view .hx-dm-row-actions {
+  display: inline-flex;
+  gap: 6px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+body.hx-ia-departments-view .hx-dm-row-actions a {
+  color: #0369a1;
+  text-decoration: none;
+}
+
+body.hx-ia-departments-view .hx-dm-row-actions a:hover {
+  text-decoration: underline;
+}
+
+body.hx-ia-departments-view .hx-dm-focus-link {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: inherit;
+  text-decoration: none;
+}
+
+body.hx-ia-departments-view .hx-dm-focus-link:hover b {
+  color: #0369a1;
+}
+
+body.hx-ia-departments-view .hx-dm-mini-actions {
+  white-space: nowrap;
+}
+
+main.critical-screen .critical-toolbar .hx-critical-dept-link {
+  margin-left: 10px;
+  padding: 0 12px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0369a1 !important;
+  background: #f0f9ff !important;
+  border: 1px solid #bae6fd !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+main.critical-screen .critical-toolbar .hx-critical-dept-link:hover {
+  background: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+}
+
+main.critical-screen .critical-bed.hx-critical-bed--focus {
+  outline: 2px solid #0284c7 !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15) !important;
+}
+
 body.hx-ia-departments-view .hx-dm-pending-row--danger td:nth-child(2) {
   color: #b91c1c;
   font-weight: 600;
 }
 
 @media (max-width: 1100px) {
-  body.hx-ia-departments-view .hx-dept-monitor-kpis {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  body.hx-ia-departments-view main.department-overview.screen {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas:
+      'dept-top'
+      'dept-center'
+      'dept-left'
+      'dept-right' !important;
+  }
+
+  body.hx-ia-departments-view .hx-dm-kpi {
+    grid-template-columns: minmax(0, 1fr) auto minmax(5em, auto);
   }
 
   body.hx-ia-departments-view .hx-dept-today-focus {

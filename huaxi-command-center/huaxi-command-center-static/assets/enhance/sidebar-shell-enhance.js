@@ -36,7 +36,6 @@
         ['/warning?view=departments', '科室监控'],
         ['/patients?focus=1', '重点关注'],
         ['/messages', '预警通知'],
-        ['/quality', '运行统计'],
       ],
     },
     {
@@ -56,16 +55,13 @@
       title: '智能医疗质控',
       links: [
         ['/medical-quality', '质控整改看板'],
-        ['/medical-quality/reports', '业务统计'],
+        ['/medical-quality/reports', '质控统计'],
       ],
     },
     {
       id: 'dr',
       title: '基层医声Dr.',
-      links: [
-        ['/dr?view=videos', '视频展示'],
-        ['/dr?view=saved', '我的收藏'],
-      ],
+      links: [['/dr?view=videos', '视频展示']],
     },
   ]
 
@@ -170,9 +166,9 @@
   function activeGroupId() {
     if (isHome()) return HOME.id
     const path = hashPath()
-    if (path.startsWith('/medical-quality')) return 'quality'
+    if (path === '/quality' || path.startsWith('/medical-quality')) return 'quality'
     if (path.startsWith('/dr')) return 'dr'
-    if (path.startsWith('/warning') || path === '/messages' || path === '/quality') return 'warning'
+    if (path.startsWith('/warning') || path === '/messages') return 'warning'
     if (path.startsWith('/critical') && hashQuery().get('mode') === 'grassroots-remote') return 'dispatch'
     if (
       path.startsWith('/critical') ||
@@ -282,6 +278,10 @@
   }
 
   function navigateSidebarHash(href) {
+    if (window.hxIntegratedNav?.spaGo) {
+      window.hxIntegratedNav.spaGo(href)
+      return
+    }
     let target = href || ''
     if (window.hxConsultEpisodeNav?.normalizeHash) {
       target = window.hxConsultEpisodeNav.normalizeHash(target) || target
@@ -302,29 +302,28 @@
         const a = e.target instanceof Element ? e.target.closest('a.hx-nav-l2__link') : null
         if (!a || !menu.contains(a)) return
         const href = a.getAttribute('href') || ''
-        if (!href.startsWith('#') && href.indexOf('/#/') !== 0) return
-        e.preventDefault()
-        e.stopImmediatePropagation()
         const key = a.dataset.navHref || ''
         if (key === '/map' || href.replace(/^#/, '').split('?')[0] === '/map') {
+          e.preventDefault()
           if (typeof window.hxMapPage?.enter === 'function') {
             window.hxMapPage.enter()
-          } else {
-            document.body.classList.add('hx-page-map-only')
-            window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
-            if (location.hash !== '#/') location.hash = '#/'
+          } else if (location.hash !== '#/') {
+            location.hash = '#/'
           }
           return
         }
-        navigateSidebarHash(href)
+        if (href.startsWith('#') || href.indexOf('/#/') === 0) {
+          e.preventDefault()
+          navigateSidebarHash(href)
+        }
       },
-      true,
+      false,
     )
   }
 
   function buildMenu(menu) {
-    if (menu.dataset.built === '9') return
-    menu.dataset.built = '9'
+    if (menu.dataset.built === '10') return
+    menu.dataset.built = '10'
     menu.innerHTML = ''
 
     GROUPS.forEach((group, index) => {

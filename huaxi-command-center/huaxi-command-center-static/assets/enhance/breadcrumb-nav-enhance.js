@@ -43,7 +43,6 @@
         ['/warning?view=departments', '科室监控'],
         ['/patients?focus=1', '重点关注'],
         ['/messages', '预警通知'],
-        ['/quality', '运行统计'],
       ],
     },
     {
@@ -67,7 +66,7 @@
       hub: { link: '/medical-quality', label: '质控整改看板' },
       links: [
         ['/medical-quality', '质控整改看板'],
-        ['/medical-quality/reports', '业务统计'],
+        ['/medical-quality/reports', '质控统计'],
       ],
     },
     {
@@ -86,7 +85,7 @@
     { path: '/critical', query: { view: 'wards' }, parentLink: '/critical', parentLabel: '重症监护', label: '床位全景' },
     { path: '/critical', query: { mode: 'town' }, parentLink: '/critical', parentLabel: '重症监护', label: '乡镇监护' },
     { path: '/critical', query: { mode: 'grassroots-remote' }, parentLink: '/dispatch', parentLabel: '实时出警', label: '基层远程监护', groupId: 'dispatch' },
-    { path: '/medical-quality/reports', query: null, parentLink: '/medical-quality', parentLabel: '质控整改看板', label: '业务统计' },
+    { path: '/medical-quality/reports', query: null, parentLink: '/medical-quality', parentLabel: '质控整改看板', label: '质控统计' },
   ]
 
   const GROUPS_USE_HUB = { dispatch: true, warning: false, critical: false, quality: false }
@@ -119,6 +118,7 @@
   function skipShell() {
     const p = hashPath()
     if (/^\/phone/.test(p)) return true
+    if (isMapPage()) return true
     if (!document.body.classList.contains('hx-sidebar-shell')) return true
     if (!document.querySelector('.app-shell')) return true
     return false
@@ -170,7 +170,8 @@
     if (path === '/patients' && q.get('focus') === '1') return 'warning'
     if (path.startsWith('/medical-quality')) return 'quality'
     if (path.startsWith('/dr')) return 'dr'
-    if (path.startsWith('/warning') || path === '/messages' || path === '/quality') return 'warning'
+    if (path.startsWith('/warning') || path === '/messages') return 'warning'
+    if (path === '/quality' || path.startsWith('/medical-quality')) return 'quality'
     if (path.startsWith('/critical') && q.get('mode') === 'grassroots-remote') return 'dispatch'
     if (
       path.startsWith('/critical') ||
@@ -520,10 +521,12 @@
     if (href.replace(/^#/, '').split('?')[0] === '/map') {
       if (typeof window.hxMapPage?.enter === 'function') {
         window.hxMapPage.enter()
-        return
       }
-      document.body.classList.add('hx-page-map-only')
-      window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
+      return
+    }
+    if (window.hxIntegratedNav?.spaGo) {
+      window.hxIntegratedNav.spaGo(href)
+      return
     }
     if (location.hash !== href) location.hash = href
     else window.dispatchEvent(new HashChangeEvent('hashchange'))
@@ -671,6 +674,9 @@
   }
 
   window.addEventListener('hashchange', function () {
+    setTimeout(mount, 0)
+  })
+  window.addEventListener('hx-map-page', function () {
     setTimeout(mount, 0)
   })
   window.hxEnhance(mount, { wait: 280, observeRoot: true, afterNav: 100 })
