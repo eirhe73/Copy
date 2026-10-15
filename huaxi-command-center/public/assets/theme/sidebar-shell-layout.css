@@ -109,6 +109,106 @@ body.hx-sidebar-shell.hx-sidebar-home .command-header .hx-sidebar-page-title {
   font-weight: 500;
 }
 
+/* 顶栏下 · 多页签（已打开页面，可点回、可关闭） */
+body.hx-sidebar-shell.hx-nav-tabs-active .app-shell.hx-sidebar-ready > main,
+body.hx-sidebar-shell.hx-nav-tabs-active .app-shell.hx-sidebar-ready > #hx-ambulances-page {
+  margin-top: 36px;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs {
+  position: fixed;
+  top: var(--hx-topbar-h);
+  left: var(--hx-sidebar-w);
+  right: 0;
+  z-index: 12050;
+  display: flex;
+  align-items: stretch;
+  min-height: 36px;
+  max-height: 36px;
+  margin: 0;
+  padding: 0 8px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs[hidden] {
+  display: none !important;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__scroll {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+  padding: 4px 0;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__item {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  max-width: 132px;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__item.is-active {
+  background: #fff;
+  border-bottom-color: #fff;
+  box-shadow: 0 -1px 0 #fff;
+  z-index: 1;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__tab {
+  border: none;
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  color: #475569;
+  padding: 6px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__item.is-active .hx-nav-tabs__tab {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__tab:hover {
+  color: #1d4ed8;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__close {
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 8px 0 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__close:hover {
+  color: #ef4444;
+}
+
+body.hx-sidebar-shell.hx-nav-tabs-active .command-header .hx-sidebar-page-title {
+  display: none !important;
+}
+
+
 body.hx-sidebar-shell nav.subnav {
   display: none !important;
 }
