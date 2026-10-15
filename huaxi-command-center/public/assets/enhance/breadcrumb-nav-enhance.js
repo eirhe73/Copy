@@ -430,6 +430,16 @@
         parsed.tabs.forEach(function (t, i) {
           if (t.lastAt == null) t.lastAt = now - i
         })
+        parsed.tabs = parsed.tabs.filter(function (t) {
+          const p = (t.hash || '').replace(/^#/, '').split('?')[0] || '/'
+          return p !== '/coordination' && t.label !== '任务协同'
+        })
+        if (!parsed.tabs.length) {
+          parsed.tabs = [{ id: 'tab-home', hash: '#/', label: '首页', pinned: true, lastAt: Date.now() }]
+          parsed.active = 'tab-home'
+        } else if (!parsed.tabs.some(function (t) { return t.id === parsed.active })) {
+          parsed.active = parsed.tabs[parsed.tabs.length - 1].id
+        }
         while (parsed.tabs.length > MAX_TABS) {
           evictOneTab(parsed.tabs, parsed.active)
         }
@@ -474,8 +484,11 @@
   function registerTabForHash() {
     if (suppressTabRegister) return loadTabState()
     const hash = currentHash()
+    const pathOnly = hash.replace(/^#/, '').split('?')[0] || '/'
+    if (pathOnly === '/coordination') return loadTabState()
     const key = tabKey(hash)
     const label = pageTabLabel()
+    if (label === '任务协同') return loadTabState()
     const state = loadTabState()
     const now = Date.now()
     let hit = null
@@ -547,12 +560,13 @@
         const on = t.id === state.active
         const closeBtn = t.pinned
           ? ''
-          : '<button type="button" class="hx-nav-tabs__close" data-hx-tab-close="' +
+          : '<span class="hx-nav-tabs__close" role="button" tabindex="-1" data-hx-tab-close="' +
             esc(t.id) +
-            '" aria-label="关闭">×</button>'
+            '" aria-label="关闭"></span>'
         return (
           '<div class="hx-nav-tabs__item' +
           (on ? ' is-active' : '') +
+          (t.pinned ? ' is-pinned' : '') +
           '" role="presentation">' +
           '<button type="button" class="hx-nav-tabs__tab" role="tab" aria-selected="' +
           (on ? 'true' : 'false') +
@@ -561,9 +575,11 @@
           '" data-hx-tab-hash="' +
           esc(t.hash) +
           '">' +
+          '<span class="hx-nav-tabs__label">' +
           esc(t.label) +
-          '</button>' +
+          '</span>' +
           closeBtn +
+          '</button>' +
           '</div>'
         )
       })
@@ -572,19 +588,37 @@
     if (inner && inner.innerHTML !== html) inner.innerHTML = html
   }
 
+  function tabStripHost() {
+    return document.querySelector('.app-shell.hx-sidebar-ready .command-header .header-left')
+  }
+
+  function placeTabStrip(strip) {
+    const host = tabStripHost()
+    if (!host || !strip) return false
+    const time = host.querySelector('time')
+    if (time) {
+      if (strip.parentElement !== host || strip.previousElementSibling !== time) {
+        time.insertAdjacentElement('afterend', strip)
+      }
+    } else if (strip.parentElement !== host) {
+      host.appendChild(strip)
+    }
+    return true
+  }
+
   function ensureTabStrip() {
     let strip = document.getElementById('hx-nav-tabs')
-    if (strip && strip.parentElement !== document.body) {
-      document.body.appendChild(strip)
+    if (strip) {
+      placeTabStrip(strip)
+      return strip
     }
-    if (strip) return strip
     strip = document.createElement('div')
     strip.id = 'hx-nav-tabs'
     strip.className = 'hx-nav-tabs'
     strip.setAttribute('role', 'navigation')
     strip.setAttribute('aria-label', '已打开页面')
     strip.innerHTML = '<div class="hx-nav-tabs__scroll"></div>'
-    document.body.appendChild(strip)
+    if (!placeTabStrip(strip)) return null
     strip.addEventListener('click', function (e) {
       const t = e.target
       if (!(t instanceof Element)) return
@@ -623,9 +657,9 @@
 
     if (!document.querySelector('.app-shell')) return
 
-    ensureTabStrip()
-    const stripEl = document.getElementById('hx-nav-tabs')
-    if (stripEl) stripEl.hidden = false
+    const stripEl = ensureTabStrip()
+    if (!stripEl) return
+    stripEl.hidden = false
     const state = registerTabForHash()
     renderTabStrip(state)
     document.body.classList.add('hx-nav-tabs-active')
