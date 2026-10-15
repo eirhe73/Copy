@@ -18,6 +18,7 @@
       links: [
         ['/dispatch', '实时出警'],
         ['/dispatch/list', '出警列表'],
+        ['/dispatch/events', '事件列表'],
         ['/ambulances', '救护车列表'],
         ['/patients', '患者列表'],
         ['/register', '患者登记'],
@@ -111,6 +112,7 @@
     const labels = {
       '/dispatch': '实时出警',
       '/dispatch/list': '出警列表',
+      '/dispatch/events': '事件列表',
       '/ambulances': '救护车列表',
       '/patients': '患者列表',
       '/register': '患者登记',
@@ -138,6 +140,7 @@
     if (link === '/') return (curPath === '/' || curPath === '') && !isMapPage()
     if (link === '/dispatch') return curPath === '/dispatch'
     if (link === '/dispatch/list') return curPath === '/dispatch/list'
+    if (link === '/dispatch/events') return curPath === '/dispatch/events'
 
     if (link === '/consultations?tab=grassroots' || (wantPath === '/consultations' && queryPart && queryPart.includes('tab=grassroots'))) {
       return (
