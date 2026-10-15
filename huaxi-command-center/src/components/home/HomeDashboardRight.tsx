@@ -34,15 +34,22 @@ export function HomeDashboardRight({ results }: Props) {
           {!live?.ok ? (
             <p className="api-muted">{live?.error ?? '加载中…'}</p>
           ) : events.length ? (
-            events.slice(0, 8).map((ev) => (
-              <Link key={String(ev.id)} to={`/patient/${ev.id ?? ''}`} className="event-feed-item">
-                <time>{String(ev.startedAt ?? ev.createdAt ?? '').slice(11, 19) || '—'}</time>
-                <span>
-                  {String(ev.source === '120' ? '120信息同步' : '现场信息登记')}，{String(ev.destination ?? ev.institutionId ?? '接入')}
-                  {String(ev.chiefComplaint ?? ev.title ?? '') ? `，主诉：${String(ev.chiefComplaint ?? ev.title)}` : ''}
-                </span>
-              </Link>
-            ))
+            events.slice(0, 8).map((ev) => {
+              const time = String(ev.startedAt ?? ev.createdAt ?? '').slice(11, 19) || '—'
+              const channel =
+                ev.source === '120' || ev.scorePlan === 'CHANNEL_120' ? '120信息同步' : '现场信息登记'
+              const dest = String(ev.destination ?? ev.pickupAddress ?? ev.institutionId ?? '接入')
+              const chief = String(ev.chiefComplaint ?? ev.title ?? '').trim()
+              return (
+                <Link key={String(ev.id)} to={`/patient/${ev.id ?? ''}`} className="event-feed-item">
+                  <time>{time}</time>
+                  <span>
+                    <em>{channel}</em>，{dest}
+                    {chief ? `，主诉：${chief}` : ''}
+                  </span>
+                </Link>
+              )
+            })
           ) : (
             <p className="api-muted">暂无进行中的调度事件</p>
           )}

@@ -5278,6 +5278,54 @@ main.dashboard.screen .dashboard-right .event-feed span {
   color: #475569 !important;
 }
 
+main.dashboard.screen .dashboard-right .event-feed .event-feed-item,
+main.dashboard.screen .dashboard-right .event-feed a.event-feed-item {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 10px 8px !important;
+  min-height: 0 !important;
+  flex-shrink: 0 !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  font-size: 13px !important;
+  line-height: 1.65 !important;
+  color: #475569 !important;
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid #eef2f6 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  box-sizing: border-box !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed .event-feed-item:last-child,
+main.dashboard.screen .dashboard-right .event-feed a.event-feed-item:last-child {
+  border-bottom: none !important;
+}
+
+main.dashboard.screen .dashboard-right .event-feed .event-feed-item:hover,
+main.dashboard.screen .dashboard-right .event-feed a.event-feed-item:hover {
+  background: #f8fafc !important;
+  color: #334155 !important;
+}
+
+main.dashboard.screen .dashboard-left .current-panel .current-metrics {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 10px 12px !important;
+  padding: 4px 2px 8px !important;
+}
+
+main.dashboard.screen .dashboard-left .current-panel .current-metrics .metric {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+}
+
 main.dashboard.screen.hx-panels-no-map {
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr) !important;
 }
