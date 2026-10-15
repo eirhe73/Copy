@@ -5,6 +5,7 @@
   const DISPATCH_KEEP = [
     '实时出警',
     '出警列表',
+    '事件列表',
     '患者列表',
     '救护车列表',
     '患者登记',
@@ -61,10 +62,9 @@
     location.replace(`${location.pathname}${location.search}#/dispatch`)
   }
 
-  const DR_SUB = [
-    ['#/dr?view=videos', '视频展示'],
-    ['#/dr?view=saved', '我的收藏'],
-  ]
+const DR_SUB = [
+  ['#/dr?view=videos', '视频展示'],
+]
 
   function clearDrSubnav(nav) {
     nav.querySelectorAll('a[data-ia-dr]').forEach((el) => el.remove())
@@ -94,8 +94,7 @@
       a.textContent = label
       a.hidden = false
       const active =
-        (label === '视频展示' && (view === 'videos' || view === 'sop' || view === 'drugs' || !view)) ||
-        (label === '我的收藏' && view === 'saved')
+        (label === '视频展示' && (view === 'videos' || view === 'sop' || view === 'drugs' || !view))
       a.classList.toggle('active', active)
       a.setAttribute('aria-current', active ? 'page' : 'false')
     })
