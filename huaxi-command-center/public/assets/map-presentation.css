@@ -142,6 +142,105 @@ main.dashboard.screen .dashboard-center .hx-glb-map-overlay canvas {
   white-space: nowrap;
   pointer-events: none;
   transform: translate(-50%, -118%);
+  transition:
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+.hx-campus-map-label--selected {
+  transform: translate(-50%, -122%) scale(1.04);
+  box-shadow: 0 10px 22px rgba(30, 75, 123, 0.22);
+}
+
+main.dashboard.screen .dashboard-center .hx-glb-map-overlay .hx-campus-info-panel {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 12;
+  width: min(240px, 88%);
+  padding: 12px 14px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 12px 32px rgba(30, 75, 123, 0.14);
+  pointer-events: auto;
+}
+
+.hx-campus-info-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hx-campus-info-tier {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: #f1f5f9;
+}
+
+.hx-campus-info-close {
+  border: 0;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.hx-campus-info-close:hover {
+  color: #475569;
+}
+
+.hx-campus-info-name {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  line-height: 1.35;
+}
+
+.hx-campus-info-stats {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.hx-campus-info-stats > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.hx-campus-info-stats dt {
+  margin: 0;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.hx-campus-info-stats dd {
+  margin: 0;
+  font-weight: 700;
+  color: #1e4b7b;
+}
+
+.hx-campus-info-stats dd.is-tight {
+  color: #d97706;
+}
+
+.hx-campus-info-hint {
+  margin: 10px 0 0;
+  font-size: 10px;
+  color: #94a3b8;
+  line-height: 1.4;
 }
 
 /* 进入首页时 3D 县界略放大，减少中央留白 */

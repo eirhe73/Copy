@@ -8,7 +8,8 @@ import {
   attachCampusGlb,
   loadCampusTemplates,
 } from '../lib/hospitalCampusOnMap'
-import { tierLegendHex } from '../lib/hospitalCampusStyle'
+import { createCampusInfoPanel, type CollabNodeDetail } from '../lib/campusMapInfoPanel'
+import { campusUnifiedColor, campusUnifiedHex } from '../lib/hospitalCampusStyle'
 import type { GeoJson } from './geo'
 import {
   buildShapeFromPoints,
@@ -20,13 +21,7 @@ import {
   snapLngLatToRing,
 } from './geo'
 
-type CollabNode = {
-  id: string
-  name: string
-  tier: 0 | 1 | 2
-  lng: number
-  lat: number
-}
+type CollabNode = CollabNodeDetail
 
 type CollabLink = { from: string; to: string }
 
@@ -212,8 +207,60 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       }
 
       const posById = new Map<string, THREE.Vector3>()
+      const nodeById = new Map<string, CollabNode>()
+      const markerByNodeId = new Map<string, THREE.Group>()
+      const pickables: THREE.Object3D[] = []
+      let selectedNodeId: string | null = null
+
+      let infoPanel: ReturnType<typeof createCampusInfoPanel> | null = null
+
+      function tagPickables(root: THREE.Object3D, nodeId: string) {
+        root.traverse((obj) => {
+          if (!(obj instanceof THREE.Mesh)) return
+          obj.userData.nodeId = nodeId
+          pickables.push(obj)
+        })
+      }
+
+      function setNodeSelected(nodeId: string | null) {
+        selectedNodeId = nodeId
+        for (const [id, grp] of markerByNodeId) {
+          const on = id === nodeId
+          grp.scale.setScalar(on ? 1.06 : 1)
+          const label = grp.userData.labelEl as HTMLElement | undefined
+          label?.classList.toggle('hx-campus-map-label--selected', on)
+          grp.traverse((obj) => {
+            if (!(obj instanceof THREE.Mesh) || !obj.material) return
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
+            for (const m of mats) {
+              if (!(m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhongMaterial)) continue
+              const base = (m.userData.baseEmissiveIntensity as number) ?? 0.2
+              m.emissiveIntensity = on ? base + 0.22 : base
+            }
+          })
+        }
+        if (nodeId) {
+          const node = nodeById.get(nodeId)
+          if (node && infoPanel) {
+            infoPanel.show(node)
+            window.dispatchEvent(
+              new CustomEvent('hx-map-node-select', {
+                detail: { id: node.id, name: node.name, region },
+              }),
+            )
+          }
+        } else {
+          infoPanel?.hide()
+          window.dispatchEvent(new CustomEvent('hx-map-node-select', { detail: null }))
+        }
+      }
+
+      if (variant === 'command') {
+        infoPanel = createCampusInfoPanel(mount, { onClose: () => setNodeSelected(null) })
+      }
 
       for (const node of nodes) {
+        nodeById.set(node.id, node)
         let lng = node.lng
         let lat = node.lat
         if (!pointInLngLatRing(lng, lat, lngLatRing)) {
@@ -224,7 +271,8 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         }
         const pt = projectLngLat(lng, lat, center, scale, cosLat)
         let h: number = tierMarkerHeight(node.tier)
-        const markerColor = t.markerByTier[node.tier] ?? t.markerByTier[0]
+        const markerColor = campusUnifiedColor()
+        const markerHex = campusUnifiedHex()
         const g = new THREE.Group()
         g.position.set(pt.x, pt.y, 0.58)
 
@@ -282,11 +330,11 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         const labelEl = document.createElement('div')
         if (variant === 'command') {
           labelEl.className = usedCampus ? 'hx-campus-map-label' : 'hx-command-map-label'
+          labelEl.dataset.nodeId = node.id
           if (usedCampus) {
             labelEl.textContent = shortNodeName(node.name)
-            const tierColor = tierLegendHex(node.tier)
-            labelEl.style.color = tierColor
-            labelEl.style.borderColor = `${tierColor}66`
+            labelEl.style.color = markerHex
+            labelEl.style.borderColor = `${markerHex}55`
           } else {
             labelEl.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${node.name}</span>`
           }
@@ -300,6 +348,9 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         label.position.set(0, 0, h + (usedCampus ? 0.2 : 0.08))
         g.add(label)
 
+        g.userData.labelEl = labelEl
+        tagPickables(g, node.id)
+        markerByNodeId.set(node.id, g)
         mapGroup.add(g)
         const linkZ = 0.58 + Math.min(h, 0.45)
         posById.set(node.id, new THREE.Vector3(pt.x, pt.y, linkZ))
@@ -336,6 +387,57 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       mapGroup.rotation.x = -Math.PI / 2
       mapGroup.position.z = 0.15
       mapGroup.scale.setScalar(view.mapScale)
+
+      if (variant === 'command' && pickables.length) {
+        const raycaster = new THREE.Raycaster()
+        const pointer = new THREE.Vector2()
+        let dragStart: { x: number; y: number } | null = null
+
+        const pickNodeId = (clientX: number, clientY: number) => {
+          const rect = renderer.domElement.getBoundingClientRect()
+          pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+          pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+          raycaster.setFromCamera(pointer, camera)
+          mapGroup.updateMatrixWorld(true)
+          const hits = raycaster.intersectObjects(pickables, false)
+          for (const hit of hits) {
+            let o: THREE.Object3D | null = hit.object
+            while (o) {
+              const id = o.userData.nodeId as string | undefined
+              if (id) return id
+              o = o.parent
+            }
+          }
+          return null
+        }
+
+        const onPointerDown = (ev: PointerEvent) => {
+          dragStart = { x: ev.clientX, y: ev.clientY }
+        }
+        const onPointerUp = (ev: PointerEvent) => {
+          if (!dragStart) return
+          const dx = ev.clientX - dragStart.x
+          const dy = ev.clientY - dragStart.y
+          dragStart = null
+          if (dx * dx + dy * dy > 36) return
+          const id = pickNodeId(ev.clientX, ev.clientY)
+          setNodeSelected(id && id === selectedNodeId ? null : id)
+        }
+        const onKeyDown = (ev: KeyboardEvent) => {
+          if (ev.key === 'Escape') setNodeSelected(null)
+        }
+
+        renderer.domElement.style.cursor = 'grab'
+        renderer.domElement.addEventListener('pointerdown', onPointerDown)
+        renderer.domElement.addEventListener('pointerup', onPointerUp)
+        window.addEventListener('keydown', onKeyDown)
+        cleanups.push(() => {
+          renderer.domElement.removeEventListener('pointerdown', onPointerDown)
+          renderer.domElement.removeEventListener('pointerup', onPointerUp)
+          window.removeEventListener('keydown', onKeyDown)
+          infoPanel?.panel.remove()
+        })
+      }
 
       const t0 = performance.now()
       const animate = (now: number) => {
