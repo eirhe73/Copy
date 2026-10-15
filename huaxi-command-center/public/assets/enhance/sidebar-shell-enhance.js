@@ -363,25 +363,27 @@
     })
   }
 
-  function apply() {
-    const shell = document.querySelector('.app-shell')
-    if (!shell || skipShell()) {
-      document.body.classList.remove('hx-sidebar-shell')
-      shell?.classList.remove('hx-sidebar-ready')
-      return
-    }
+  function teardownSidebarShell() {
+    document.body.classList.remove('hx-sidebar-shell', 'hx-sidebar-home', 'hx-sidebar-map-view')
+    document.querySelector('.app-shell')?.classList.remove('hx-sidebar-ready')
+    document.querySelector('body > aside.hx-sidebar')?.remove()
+    document.querySelectorAll('.app-shell > aside.hx-sidebar').forEach((el) => el.remove())
+  }
 
-    document.body.classList.add('hx-sidebar-shell')
-    shell.classList.add('hx-sidebar-ready')
-    try {
-      localStorage.setItem('huaxi-integrated-nav', '1')
-    } catch {
-      /* ignore */
-    }
-    document.body.classList.toggle('hx-sidebar-home', isHome())
-    document.body.classList.toggle('hx-sidebar-map-view', isMapPage())
+  function watchForAppShell() {
+    const root = document.getElementById('root')
+    if (!root || root.dataset.hxSidebarWatch === '1') return
+    root.dataset.hxSidebarWatch = '1'
+    const obs = new MutationObserver(() => {
+      if (skipShell()) return
+      if (document.querySelector('.app-shell')) apply()
+    })
+    obs.observe(root, { childList: true, subtree: true })
+  }
 
-    let aside = shell.querySelector(':scope > aside.hx-sidebar')
+  function getOrCreateSidebarAside() {
+    document.querySelectorAll('.app-shell > aside.hx-sidebar').forEach((el) => el.remove())
+    let aside = document.querySelector('body > aside.hx-sidebar')
     if (!aside) {
       aside = document.createElement('aside')
       aside.className = 'hx-sidebar'
@@ -391,8 +393,34 @@
         '<div class="hx-sidebar-brand__mark" aria-hidden="true"></div>' +
         '<div class="hx-sidebar-brand__text"><strong>华西指挥</strong><small>县域急危重症</small></div></div>' +
         '<nav class="hx-sidebar-menu" aria-label="模块菜单"></nav>'
-      shell.insertBefore(aside, shell.firstChild)
+      const root = document.getElementById('root')
+      if (root) document.body.insertBefore(aside, root)
+      else document.body.prepend(aside)
     }
+    return aside
+  }
+
+  function apply() {
+    if (skipShell()) {
+      teardownSidebarShell()
+      return
+    }
+
+    const shell = document.querySelector('.app-shell')
+    if (!shell) return
+
+    document.body.classList.add('hx-sidebar-shell')
+    document.documentElement.dataset.hxUi = 'sidebar-v25'
+    shell.classList.add('hx-sidebar-ready')
+    try {
+      localStorage.setItem('huaxi-integrated-nav', '1')
+    } catch {
+      /* ignore */
+    }
+    document.body.classList.toggle('hx-sidebar-home', isHome())
+    document.body.classList.toggle('hx-sidebar-map-view', isMapPage())
+
+    const aside = getOrCreateSidebarAside()
 
     const menu = aside.querySelector('.hx-sidebar-menu')
     if (!menu) return
@@ -404,9 +432,12 @@
     suppressReactPlateSubNav(shell)
   }
 
-  apply()
+  watchForAppShell()
   window.hxEnhance(() => apply(), { wait: 200, afterNav: 100 })
   window.addEventListener('hashchange', () => apply())
   window.addEventListener('hx-map-page', () => apply())
+  window.addEventListener('DOMContentLoaded', () => apply())
+  setTimeout(() => apply(), 80)
   setTimeout(() => apply(), 600)
+  setTimeout(() => apply(), 1800)
 })()

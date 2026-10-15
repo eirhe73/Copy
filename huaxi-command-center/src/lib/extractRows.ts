@@ -36,6 +36,49 @@ export function summarizeFieldValue(value: unknown): string {
   return s.length > 120 ? `${s.slice(0, 117)}…` : s
 }
 
+/** 表格列 / 键值行：API 字段 → 中文表头（源码壳 RouteApiWorkspace 用） */
+const FIELD_LABELS: Record<string, string> = {
+  id: '编号',
+  name: '姓名',
+  title: '标题',
+  status: '状态',
+  stage: '阶段',
+  level: '级别',
+  ownerName: '责任人',
+  institutionId: '机构',
+  departmentId: '科室',
+  createdAt: '创建时间',
+  updatedAt: '更新时间',
+  at: '时间',
+  patientId: '患者编号',
+  patientName: '患者姓名',
+  vehicleId: '车辆编号',
+  phone: '电话',
+  gender: '性别',
+  age: '年龄',
+  diagnosis: '诊断',
+  type: '类型',
+  category: '分类',
+  code: '编码',
+  description: '说明',
+  remark: '备注',
+  count: '数量',
+  total: '合计',
+  message: '消息',
+  content: '内容',
+}
+
+export function labelForField(key: string): string {
+  if (FIELD_LABELS[key]) return FIELD_LABELS[key]
+  if (/^[a-z][a-zA-Z0-9]*$/.test(key) && key.length > 2) {
+    return key
+      .replace(/([A-Z])/g, ' $1')
+      .replace(/_/g, ' ')
+      .trim()
+  }
+  return key
+}
+
 export function labelForApiPath(path: string): string {
   const clean = path.replace(/^\//, '').split('?')[0] ?? path
   const parts = clean.split('/').filter(Boolean)

@@ -1,4 +1,4 @@
-/** 与 public/assets/backend-api-catalog.js → HX_ROUTE_BINDINGS 同步 */
+/** 与 public/assets/backend/backend-api-catalog.js → HX_ROUTE_BINDINGS 同步 */
 
 export type ApiBinding = { method: 'GET' | 'POST' | 'PUT' | 'DELETE'; path: string }
 
