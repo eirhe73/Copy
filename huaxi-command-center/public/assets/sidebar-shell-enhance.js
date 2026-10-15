@@ -111,7 +111,9 @@
     if (wantPath !== curPath && wantPath.replace(/^\//, '') !== curPath.replace(/^\//, '')) return false
 
     if (!queryPart) {
-      if (wantPath === '/consultations') return true
+      if (wantPath === '/consultations') {
+        return curPath === '/consultations' || curPath.indexOf('/consultations/') === 0
+      }
       return !hashQuery().toString()
     }
     const want = new URLSearchParams(queryPart)
@@ -148,6 +150,26 @@
     return HOME.id
   }
 
+  function syncHeaderTitle(menu) {
+    const header = document.querySelector('.command-header')
+    if (!header) return
+    let el = header.querySelector('#hx-sidebar-page-title')
+    if (!el) {
+      el = document.createElement('p')
+      el.id = 'hx-sidebar-page-title'
+      el.className = 'hx-sidebar-page-title'
+      const right = header.querySelector('.header-right')
+      if (right) header.insertBefore(el, right)
+      else header.appendChild(el)
+    }
+    const active = menu.querySelector('.hx-nav-l2__link.active')
+    if (isHome()) {
+      el.textContent = hashPath() === '/map' ? '协作三维地图' : '县域指挥概览'
+      return
+    }
+    el.textContent = active?.dataset.navLabel || active?.textContent?.trim() || ''
+  }
+
   function syncActive(menu) {
     const activeId = activeGroupId()
     menu.querySelectorAll('.hx-nav-group').forEach((wrap) => {
@@ -156,6 +178,7 @@
     menu.querySelectorAll('.hx-nav-l2__link').forEach((a) => {
       a.classList.toggle('active', linkMatches(a.dataset.navHref || ''))
     })
+    syncHeaderTitle(menu)
   }
 
   function clonePlateIcon(shell, index) {
@@ -178,8 +201,8 @@
   }
 
   function buildMenu(menu) {
-    if (menu.dataset.built === '7') return
-    menu.dataset.built = '7'
+    if (menu.dataset.built === '9') return
+    menu.dataset.built = '9'
     menu.innerHTML = ''
 
     const section = document.createElement('p')
@@ -244,6 +267,7 @@
       /* ignore */
     }
     document.body.classList.toggle('hx-sidebar-home', isHome())
+    document.body.classList.toggle('hx-sidebar-map-view', isMapPage())
 
     let aside = shell.querySelector(':scope > aside.hx-sidebar')
     if (!aside) {

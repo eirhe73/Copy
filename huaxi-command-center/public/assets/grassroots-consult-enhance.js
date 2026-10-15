@@ -52,6 +52,7 @@
   }
 
   function isGrassrootsPage() {
+    if (path() === '/consultations/grassroots') return true
     if (path() !== '/consultations') return false
     const q = query()
     return q.get('tab') === 'grassroots' || q.get('scope') === 'grassroots'
@@ -337,7 +338,7 @@
       <div class="hx-gr-consult-toolbar">
         <p class="hx-gr-consult-lead">乡镇、村卫生室发起会诊时<strong>选择接收医院</strong>（县域 / 市级 / 上级）；各院在本页各自待接诊队列中接诊，指挥中心可按医院筛选。</p>
         <div class="hx-gr-consult-toolbar__links">
-          <a href="/#/organizations?tier=grassroots">协作机构</a>
+          <a href="/#/organizations?tier=township">协作机构</a>
           <a href="/#/transfers?scope=grassroots">转诊上行</a>
           <a href="/#/dr">基层 Dr.</a>
         </div>
@@ -467,7 +468,7 @@
 
   async function render(opts) {
     const force = opts && opts.force
-    if (!isGrassrootsPage()) {
+    if (!isGrassrootsPage() || document.body.classList.contains('hx-cw-active')) {
       teardown()
       return
     }

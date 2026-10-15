@@ -64,6 +64,26 @@
     btn.className = 'primary huaxi-dispatch-consult'
     btn.textContent = '发起远程会诊'
     btn.addEventListener('click', () => {
+      const ctx = {
+        task120Id: new URLSearchParams(location.hash.split('?')[1] || '').get('task') || '',
+        chiefComplaint: '',
+        name: '',
+      }
+      const sel = document.querySelector('.dispatch-active article.on, .dispatch-active article.selected')
+      const taskEl = sel?.querySelector('[class*="task"], small, .meta')
+      if (!ctx.task120Id && taskEl) {
+        const m = (taskEl.textContent || '').match(/120[-\w]+/i)
+        if (m) ctx.task120Id = m[0]
+      }
+      if (window.__hxTryConsultLaunch) {
+        if (!ctx.task120Id) {
+          window.alert('请先在左侧选择出警任务，或在「出警列表 / 就地登记」中发起远程会诊。')
+          return
+        }
+        ctx.chiefComplaint = (sel?.querySelector('p, .complaint')?.textContent || '').trim().slice(0, 120)
+        if (!window.__hxTryConsultLaunch(ctx)) return
+        return
+      }
       location.hash = '#/consultations'
     })
     actions.prepend(btn)

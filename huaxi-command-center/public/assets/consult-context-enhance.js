@@ -66,8 +66,18 @@
     document.getElementById('hx-nav-back')?.remove()
   }
 
+  function isConsultModule() {
+    var p = path()
+    return p === '/consultations' || p.indexOf('/consultations/') === 0
+  }
+
   function renderConsultTabs() {
-    if (path() !== '/consultations') {
+    if (!isConsultModule()) {
+      document.getElementById('hx-consult-mode')?.remove()
+      return
+    }
+    // 侧栏三级 + 工作台接管：不再插页内 Tab
+    if (document.body.classList.contains('hx-cw-active')) {
       document.getElementById('hx-consult-mode')?.remove()
       return
     }
@@ -98,7 +108,7 @@
   }
 
   function renderDispatchStrip() {
-    if (path() !== '/consultations') {
+    if (!isConsultModule()) {
       document.getElementById('hx-consult-context')?.remove()
       removeNavBack()
       return
@@ -135,7 +145,7 @@
   }
 
   function render() {
-    if (path() !== '/consultations') {
+    if (!isConsultModule()) {
       document.getElementById('hx-consult-context')?.remove()
       document.getElementById('hx-consult-mode')?.remove()
       removeNavBack()
