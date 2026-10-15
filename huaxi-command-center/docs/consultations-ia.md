@@ -1,14 +1,10 @@
-# 远程会诊 · 单页工作台
+# 远程会诊 vs 基层会诊 · 两套 UI（产品定稿）
 
-**入口**：侧栏一项「远程会诊」→ `#/consultations`（enhance 接管 React 演示列表）。
+| 菜单 | Hash | 界面 (用户口径) | 实现 |
+|------|------|-----------------|------|
+| **远程会诊** | `#/consultations` | **p2**：React「科室待接诊」卡片、指定医生、确认分配 | `index-BA_IO3dC.js` + `consult-list-polish` / `consult-queue-actions` |
+| **基层会诊** | `#/consultations?tab=grassroots` | **p1**：API 工作台表格、发起会诊（无页内「全县/基层」Tab，混排走远程会诊） | `consult-workbench-enhance.js` |
 
-**页内结构（同一屏）**
-
-1. **范围 Tab**：基层上转待办 | 全县会诊（`?tab=grassroots` / 无 tab 或全县）
-2. **发起会诊**：右上角按钮展开表单（120 跳转可用 `?launch=1` 自动展开）
-3. **队列状态 Tab**：待接诊 / 会诊中 / 定时 / 已结束 / 全部
-4. **接诊**：确认弹层后 `POST .../accept`（当前登录用户认领）
-
-**兼容**：`#/consultations/grassroots|county|new` 会自动重定向回本页并带上对应 tab / launch。
-
-**不在此页**：会诊室 `#/room/:token`、选患者 `#/consultations/pick`、档案 / 转诊链跳转。
+- 顶栏/侧栏在两项之间切换 hash，**不在页内再插一套重复 Tab**。
+- 120「发起远程会诊」→ `#/consultations?task&…&launch=1`（**远程会诊 p2**，无 `tab=grassroots`）。
+- 会诊室、选患者：`#/room/…`、`#/consultations/pick?tab=grassroots&…` 不变。

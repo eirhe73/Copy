@@ -99,7 +99,7 @@
     if (href.charAt(0) !== '#') return false
     if (
       link.closest(
-        '.hx-gr-consult, #hx-grassroots-consult-root, #hx-consult-pick-root, .hx-sidebar-menu, nav.subnav, .hx-consult-tabs, .hx-consult-mode',
+        '.hx-gr-consult, #hx-grassroots-consult-root, #hx-consult-pick-root, .hx-sidebar-menu, nav.subnav, .hx-consult-tabs, .hx-consult-mode, .hx-consult-tab',
       )
     ) {
       return true
@@ -183,6 +183,7 @@
       var t = event.target
       if (!(t instanceof Element)) return
       if (t.closest('.hx-consult-dialog')) return
+      if (t.closest('.hx-sidebar-menu a.hx-nav-l2__link')) return
 
       var btn = t.closest('button')
       var link = t.closest('a[href*="consultations"], a[href*="#/consultations"]')
