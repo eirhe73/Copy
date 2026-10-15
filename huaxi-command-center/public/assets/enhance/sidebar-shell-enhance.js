@@ -63,7 +63,6 @@
       title: '基层医声Dr.',
       links: [
         ['/dr?view=videos', '视频展示'],
-        ['/dr?view=saved', '我的收藏'],
       ],
     },
   ]
