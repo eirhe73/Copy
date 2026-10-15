@@ -104,7 +104,7 @@
     document.querySelectorAll('.dh-video').forEach((el) => normalizeBlock(el, 'vehicle'))
 
     document.querySelectorAll('.video-pane, .video-state, .clinical-device-frame').forEach((el) => {
-      if (el.closest('.critical-grid')) return
+      if (el.closest('.critical-grid, .town-monitor')) return
       const t = (el.textContent || '').trim()
       if (!t && !el.querySelector('video, iframe, canvas')) normalizeBlock(el, 'bed')
       else if (/未接|占位|摄像头|画面/.test(t) && !el.querySelector('.hx-video-placeholder__title')) {
