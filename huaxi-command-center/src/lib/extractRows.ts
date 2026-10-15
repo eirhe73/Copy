@@ -1,6 +1,15 @@
 import { asList } from './apiClient'
 
-const NESTED_LIST_KEYS = ['events', 'vehicles', 'items', 'records', 'todos', 'list', 'data'] as const
+const NESTED_LIST_KEYS = [
+  'events',
+  'ambulances',
+  'vehicles',
+  'items',
+  'records',
+  'todos',
+  'list',
+  'data',
+] as const
 
 export function rowsFromPayload(payload: unknown): Record<string, unknown>[] {
   const list = asList(payload)

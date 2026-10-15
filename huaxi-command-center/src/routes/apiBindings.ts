@@ -9,6 +9,7 @@ export const ROUTE_API_BINDINGS: Record<string, ApiBinding[]> = {
     { method: 'GET', path: '/ambulances' },
     { method: 'GET', path: '/vehicles/gps' },
     { method: 'GET', path: '/beds/overview' },
+    { method: 'GET', path: '/critical/beds?pageNum=1&pageSize=1' },
     { method: 'GET', path: '/warnings/summary' },
     { method: 'GET', path: '/warnings?pageNum=1&pageSize=15' },
     { method: 'GET', path: '/critical/alerts' },

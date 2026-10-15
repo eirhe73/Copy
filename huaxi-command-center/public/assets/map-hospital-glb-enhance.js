@@ -20487,26 +20487,34 @@ function Cv(e) {
 	return t.length <= 12 ? t : `${t.slice(0, 11)}…`;
 }
 function wv(e, t) {
-	let { themeId: n, region: r = "weiyuan", variant: i = "default", campusDisplayScale: a = i === "command" ? 1.18 : 1 } = t, o = i === "command" ? {
+	let { themeId: n, region: r = "weiyuan", variant: i = "default", campusDisplayScale: a = i === "command" ? 1.18 : 1, layout: o = "dashboard" } = t, s = i === "command" ? o === "fullscreen" ? {
+		...Sv,
+		fov: 32,
+		camX: .2,
+		camY: .36,
+		camZ: .98,
+		mapScale: 1.12,
+		minDistRatio: .52
+	} : {
 		...Sv,
 		camZ: 1.12,
 		mapScale: 1,
 		minDistRatio: .62
-	} : Sv, s = Ng(n).three, c = !1, l = 0, u = [];
+	} : Sv, c = Ng(n).three, l = !1, u = 0, d = [];
 	return (async () => {
 		try {
 			let t = await fetch(`/maps/${r}.json`);
 			if (!t.ok) throw Error("地图加载失败");
 			let n = await t.json();
-			if (c) return;
-			let d, f, p = await (async () => {
+			if (l) return;
+			let o, f, p = await (async () => {
 				let e = await fetch("/api/gis-collab.json", { cache: "no-store" });
 				if (!e.ok) throw Error("协同数据加载失败");
 				let t = await e.json();
 				return t[r] ?? t.weiyuan;
 			})();
-			if (d = p.nodes, f = p.links, c) return;
-			let m = pv(n)[0], h = hv(m), g = m, _ = o.geoScale / (h.maxLat - h.minLat), v = Math.cos(h.centerLat * (Math.PI / 180)), y = {
+			if (o = p.nodes, f = p.links, l) return;
+			let m = pv(n)[0], h = hv(m), g = m, _ = s.geoScale / (h.maxLat - h.minLat), v = Math.cos(h.centerLat * (Math.PI / 180)), y = {
 				lng: h.centerLng,
 				lat: h.centerLat
 			}, b = mv(m, y, _, v), x = (h.maxLng - h.minLng) * _ * v, S = new $h({
@@ -20518,13 +20526,13 @@ function wv(e, t) {
 			S.setSize(C, w), S.toneMapping = 4, S.toneMappingExposure = 1.15, e.appendChild(S.domElement);
 			let T = new kg();
 			T.setSize(C, w), T.domElement.className = "sc-map-label-layer", T.domElement.style.pointerEvents = "none", e.appendChild(T.domElement);
-			let E = new Dr(), D = new pu(o.fov, C / w, .1, 200);
-			D.position.set(-x * o.camX, -x * o.camY, x * o.camZ), D.lookAt(0, 0, 0);
+			let E = new Dr(), D = new pu(s.fov, C / w, .1, 200);
+			D.position.set(-x * s.camX, -x * s.camY, x * s.camZ), D.lookAt(0, 0, 0);
 			let O = new ug(D, S.domElement);
-			O.enableDamping = !0, O.enablePan = !1, O.minDistance = x * o.minDistRatio, O.maxDistance = x * o.maxDistRatio, O.minPolarAngle = .35, O.maxPolarAngle = Math.PI * .48, O.target.set(0, 0, .25), E.add(new xu(s.ambient, .55));
-			let ee = new bu(s.keyLight, 1.1);
+			O.enableDamping = !0, O.enablePan = !1, O.minDistance = x * s.minDistRatio, O.maxDistance = x * s.maxDistRatio, O.minPolarAngle = .35, O.maxPolarAngle = Math.PI * .48, O.target.set(0, 0, .25), E.add(new xu(c.ambient, .55));
+			let ee = new bu(c.keyLight, 1.1);
 			ee.position.set(-6, -8, 14), E.add(ee);
-			let k = new _u(s.rimLight, 1.4, 80);
+			let k = new _u(c.rimLight, 1.4, 80);
 			k.position.set(8, 6, 10), E.add(k);
 			let A = new _r();
 			E.add(A);
@@ -20537,23 +20545,23 @@ function wv(e, t) {
 				steps: 1
 			});
 			if (A.add(new Sa(te, [new rl({
-				color: s.terrainTop,
-				emissive: s.terrainEmissiveTop,
+				color: c.terrainTop,
+				emissive: c.terrainEmissiveTop,
 				shininess: 48
 			}), new rl({
-				color: s.terrainSide,
-				emissive: s.terrainEmissiveSide,
+				color: c.terrainSide,
+				emissive: c.terrainEmissiveSide,
 				shininess: 30
 			})])), A.add(new Po(new Y().setFromPoints(b.map((e) => new U(e.x, e.y, .56))), new xo({
-				color: s.edgeGlow,
+				color: c.edgeGlow,
 				transparent: !0,
 				opacity: .95
 			}))), i !== "command") {
-				let e = new lf(x * 1.6, 24, s.gridPrimary, s.gridSecondary);
+				let e = new lf(x * 1.6, 24, c.gridPrimary, c.gridSecondary);
 				e.rotation.x = Math.PI / 2, e.position.z = -.02, A.add(e);
 			}
 			let j = await sv();
-			if (c) return;
+			if (l) return;
 			j && console.info("[MapScene] GLB 院区模板已加载", j.size);
 			let ne = /* @__PURE__ */ new Map(), M = /* @__PURE__ */ new Map(), re = /* @__PURE__ */ new Map(), ie = [], ae = null, oe = null;
 			function se(e, t) {
@@ -20585,23 +20593,23 @@ function wv(e, t) {
 				} else oe?.hide(), window.dispatchEvent(new CustomEvent("hx-map-node-select", { detail: null }));
 			}
 			i === "command" && (oe = fv(e, { onClose: () => ce(null) }));
-			for (let e of d) {
+			for (let e of o) {
 				M.set(e.id, e);
 				let t = e.lng, n = e.lat;
 				if (!_v(t, n, g)) {
 					let r = vv(t, n, g);
 					console.warn("[MapScene] 节点不在县界内，已吸附", e.id, e.name), t = r.lng, n = r.lat;
 				}
-				let r = gv(t, n, y, _, v), o = xv(e.tier), c = ov(), l = av(), u = new _r();
-				u.position.set(r.x, r.y, .58), lv(u, s, e.tier);
+				let r = gv(t, n, y, _, v), o = xv(e.tier), s = ov(), l = av(), u = new _r();
+				u.position.set(r.x, r.y, .58), lv(u, c, e.tier);
 				let d = !1;
 				if (j) {
-					let t = cv(u, e.tier, j, s, a);
+					let t = cv(u, e.tier, j, c, a);
 					if (t > 0) {
 						o = t, d = !0;
 						let e = new Sa(new jc(bv.diamondRadius * .75, 0), new rl({
-							color: c,
-							emissive: c,
+							color: s,
+							emissive: s,
 							emissiveIntensity: .4,
 							shininess: 80,
 							transparent: !0,
@@ -20612,15 +20620,15 @@ function wv(e, t) {
 				}
 				if (!d) {
 					let e = new Sa(new rs(bv.beamTopR, bv.beamBottomR, o * .75, 10, 1, !0), new ua({
-						color: c,
+						color: s,
 						transparent: !0,
 						opacity: .18,
 						side: 2
 					}));
 					e.position.z = o * .42, u.add(e);
 					let t = new Sa(new jc(bv.diamondRadius, 0), new rl({
-						color: c,
-						emissive: c,
+						color: s,
+						emissive: s,
 						emissiveIntensity: .32,
 						shininess: 80,
 						transparent: !0,
@@ -20629,14 +20637,14 @@ function wv(e, t) {
 					t.position.z = o, u.add(t);
 				}
 				let f = document.createElement("div");
-				i === "command" ? (f.className = d ? "hx-campus-map-label" : "hx-command-map-label", f.dataset.nodeId = e.id, d ? (f.textContent = Cv(e.name), f.style.color = l, f.style.borderColor = `${l}55`) : f.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${e.name}</span>`) : (f.className = "sc-map-label", f.textContent = e.name, f.style.color = s.labelCss, f.style.borderColor = s.accentCss);
+				i === "command" ? (f.className = d ? "hx-campus-map-label" : "hx-command-map-label", f.dataset.nodeId = e.id, d ? (f.textContent = Cv(e.name), f.style.color = l, f.style.borderColor = `${l}55`) : f.innerHTML = `<span class="hx-command-map-pin" aria-hidden="true"></span><span class="hx-command-map-name">${e.name}</span>`) : (f.className = "sc-map-label", f.textContent = e.name, f.style.color = c.labelCss, f.style.borderColor = c.accentCss);
 				let p = new Cg(f);
 				p.position.set(0, 0, o + (d ? .2 : .08)), u.add(p), u.userData.labelEl = f, se(u, e.id), re.set(e.id, u), A.add(u);
 				let m = .58 + Math.min(o, .45);
 				ne.set(e.id, new U(r.x, r.y, m));
 			}
 			let le = new xo({
-				color: s.flowLine,
+				color: c.flowLine,
 				transparent: !0,
 				opacity: bv.flowOpacity
 			}), ue = [];
@@ -20651,14 +20659,14 @@ function wv(e, t) {
 					n
 				]);
 				A.add(new ko(new Y().setFromPoints(i.getPoints(bv.curveSegments)), le));
-				let a = new Sa(new Ic(bv.pulseRadius, 12, 12), new ua({ color: s.pulse }));
+				let a = new Sa(new Ic(bv.pulseRadius, 12, 12), new ua({ color: c.pulse }));
 				A.add(a), ue.push({
 					mesh: a,
 					curve: i,
 					phase: Math.random()
 				});
 			}
-			if (A.rotation.x = -Math.PI / 2, A.position.z = .15, A.scale.setScalar(o.mapScale), i === "command" && ie.length) {
+			if (A.rotation.x = -Math.PI / 2, A.position.z = .15, A.scale.setScalar(s.mapScale), i === "command" && ie.length) {
 				let e = new Nd(), t = new H(), n = null, r = (n, r) => {
 					let i = S.domElement.getBoundingClientRect();
 					t.x = (n - i.left) / i.width * 2 - 1, t.y = -((r - i.top) / i.height) * 2 + 1, e.setFromCamera(t, D), A.updateMatrixWorld(!0);
@@ -20686,77 +20694,150 @@ function wv(e, t) {
 				}, o = (e) => {
 					e.key === "Escape" && ce(null);
 				};
-				S.domElement.style.cursor = "grab", S.domElement.addEventListener("pointerdown", i), S.domElement.addEventListener("pointerup", a), window.addEventListener("keydown", o), u.push(() => {
+				S.domElement.style.cursor = "grab", S.domElement.addEventListener("pointerdown", i), S.domElement.addEventListener("pointerup", a), window.addEventListener("keydown", o), d.push(() => {
 					S.domElement.removeEventListener("pointerdown", i), S.domElement.removeEventListener("pointerup", a), window.removeEventListener("keydown", o), oe?.panel.remove();
 				});
 			}
 			let N = performance.now(), P = (e) => {
-				if (c) return;
-				l = requestAnimationFrame(P);
+				if (l) return;
+				u = requestAnimationFrame(P);
 				let t = (e - N) / 1e3;
 				A.rotation.z = Math.sin(t * .08) * .02;
 				for (let e of ue) e.mesh.position.copy(e.curve.getPoint((t * .35 + e.phase) % 1));
 				O.update(), S.render(E, D), T.render(E, D);
 			};
-			l = requestAnimationFrame(P);
+			u = requestAnimationFrame(P);
 			let de = () => {
 				let t = Math.max(e.clientWidth, 320), n = Math.max(e.clientHeight, 240);
 				D.aspect = t / n, D.updateProjectionMatrix(), S.setSize(t, n), T.setSize(t, n);
 			};
-			window.addEventListener("resize", de), u.push(() => window.removeEventListener("resize", de)), u.push(() => {
-				cancelAnimationFrame(l), O.dispose(), S.dispose(), te.dispose(), S.domElement.parentNode === e && e.removeChild(S.domElement), T.domElement.parentNode === e && e.removeChild(T.domElement);
+			if (window.addEventListener("resize", de), d.push(() => window.removeEventListener("resize", de)), typeof ResizeObserver < "u") {
+				let t = new ResizeObserver(() => de());
+				t.observe(e), d.push(() => t.disconnect());
+			}
+			d.push(() => {
+				cancelAnimationFrame(u), O.dispose(), S.dispose(), te.dispose(), S.domElement.parentNode === e && e.removeChild(S.domElement), T.domElement.parentNode === e && e.removeChild(T.domElement);
 			}), requestAnimationFrame(de), console.info("[MapScene] 地图已挂载", {
 				region: r,
-				nodes: d.length,
+				nodes: o.length,
 				glb: !!j
 			});
 		} catch (e) {
 			console.error("[MapScene] 挂载失败", e);
 		}
 	})(), () => {
-		c = !0, u.forEach((e) => e());
+		l = !0, d.forEach((e) => e());
 	};
 }
 //#endregion
 //#region src/legacy/appHomeMapUpgrade.ts
 var Tv = "hx-glb-map-overlay";
 function Ev() {
-	let e = (location.hash.replace(/^#/, "").split("?")[0] || "/").replace(/\/$/, "") || "/";
-	return e === "/" || e === "";
+	return (location.hash.replace(/^#/, "").split("?")[0] || "/").replace(/\/$/, "") || "/";
 }
 function Dv() {
-	return (document.querySelector(".dashboard-center .region-switch button.selected")?.textContent?.trim() ?? "").includes("威远") ? "weiyuan" : "dafang";
+	let e = Ev();
+	return e === "/" || e === "" || e === "/map";
 }
 function Ov() {
+	return document.body.classList.contains("hx-page-map-only");
+}
+function kv() {
+	return (document.querySelector(".dashboard-center .region-switch button.selected")?.textContent?.trim() ?? "").includes("威远") ? "weiyuan" : "dafang";
+}
+function Av() {
 	return document.querySelector("main.dashboard.screen .main-map") || document.querySelector("main.dashboard .main-map") || document.querySelector(".dashboard-center .main-map");
 }
-function kv(e) {
+function jv(e) {
 	let t = e.querySelector(".county-map") || e.querySelector(".map-stage")?.parentElement;
 	return t ? (getComputedStyle(t).position === "static" && (t.style.position = "relative"), t.querySelectorAll(".map-stage").forEach((e) => {
-		e.classList.contains(Tv) || e.remove();
+		e.classList.contains(Tv) || e.classList.contains("hx-glb-map-react-slot") || e.remove();
 	}), t.querySelectorAll("canvas").forEach((e) => {
 		e.closest(`.${Tv}`) || e.remove();
 	}), t.querySelectorAll(".sc-map-label-layer").forEach((e) => {
 		e.closest(`.${Tv}`) || e.remove();
 	}), t) : null;
 }
-var Av = null, jv = null, Mv = null;
-function Nv(e) {
-	Av?.(), Av = null, jv = null, document.querySelector(`.${Tv}`)?.remove();
+var Mv = null, Nv = null, Pv = null, Fv = null, Iv = !1;
+function Lv(e) {
+	Mv?.(), Mv = null, Nv = null, document.querySelector(`.${Tv}`)?.remove();
 }
-function Pv(e) {
-	let t = e.querySelector("canvas");
-	return t ? t.clientWidth > 40 && t.clientHeight > 40 : !1;
+function Rv() {
+	[
+		0,
+		80,
+		200,
+		450,
+		900,
+		1400
+	].forEach((e) => {
+		setTimeout(() => {
+			zv(), window.dispatchEvent(new Event("resize"));
+		}, e);
+	});
 }
-function Fv() {
-	if (!Ev()) {
-		Nv(Ov()), Mv &&= (clearInterval(Mv), null);
+function zv() {
+	let e = Av(), t = document.querySelector(`.${Tv}`);
+	if (!e || !t) return;
+	let n = t.parentElement;
+	Math.max(e.clientWidth, 320);
+	let r = Math.max(e.clientHeight, 280);
+	n && (n.style.position = "absolute", n.style.inset = "0", n.style.width = "100%", n.style.height = "100%", n.style.minHeight = `${r}px`), t.style.position = "absolute", t.style.inset = "0", t.style.width = "100%", t.style.height = "100%", t.style.minHeight = `${r}px`;
+	let i = t.querySelector("canvas");
+	i && (i.style.display = "block", i.style.width = "100%", i.style.height = "100%");
+}
+function Bv(e) {
+	document.body.classList.toggle("hx-map-drawer-open", e);
+	let t = document.querySelector(".hx-map-drawer-backdrop");
+	t && (t.hidden = !e);
+}
+function Vv(e) {
+	if (!Ov()) {
+		Bv(!1), document.querySelector(".hx-map-page-chrome")?.remove(), document.querySelector(".hx-map-drawer-backdrop")?.remove();
 		return;
 	}
-	let e = Ov();
+	if (!document.querySelector(".hx-map-drawer-backdrop")) {
+		let e = document.createElement("div");
+		e.className = "hx-map-drawer-backdrop", e.hidden = !0, e.addEventListener("click", () => Bv(!1)), document.body.appendChild(e);
+	}
+	let t = e.closest(".dashboard-center") ?? e;
+	if (t.querySelector(".hx-map-page-chrome")) return;
+	let n = document.createElement("div");
+	n.className = "hx-map-page-chrome", n.setAttribute("role", "toolbar"), n.innerHTML = "\n    <div class=\"hx-map-chrome-left\">\n      <button type=\"button\" class=\"hx-map-chrome-btn\" data-action=\"menu\">菜单</button>\n      <button type=\"button\" class=\"hx-map-chrome-btn\" data-action=\"exit\">返回概览</button>\n    </div>\n    <span class=\"hx-map-chrome-title\">协作三维地图</span>\n  ", t.appendChild(n), n.querySelector("[data-action=\"menu\"]")?.addEventListener("click", () => {
+		Bv(!document.body.classList.contains("hx-map-drawer-open"));
+	}), n.querySelector("[data-action=\"exit\"]")?.addEventListener("click", (e) => {
+		e.preventDefault(), e.stopPropagation(), window.hxMapPage?.exit?.();
+	}), document.querySelector(".hx-sidebar")?.addEventListener("click", (e) => {
+		e.target.closest("a") && Bv(!1);
+	});
+}
+function Hv(e) {
+	let t = Ov();
+	e.classList.toggle("hx-map-light-3d", !0), e.classList.toggle("hx-glb-map-host", !0), e.classList.toggle("hx-glb-map-host--full", t), Vv(e);
+}
+function Uv() {
+	if (!Iv) {
+		Iv = !0;
+		try {
+			Wv();
+		} finally {
+			queueMicrotask(() => {
+				Iv = !1;
+			});
+		}
+	}
+}
+function Wv() {
+	if (!Dv()) {
+		Lv(Av()), Pv &&= (clearInterval(Pv), null);
+		return;
+	}
+	let e = Av();
 	if (!e) return;
-	let t = Dv(), n = kv(e) ?? e, r = n.querySelector(`.${Tv}`);
-	r || (r = document.createElement("div"), r.className = `${Tv} command-map-canvas map-stage`, r.setAttribute("aria-label", "3D 院区地图"), Object.assign(r.style, {
+	let t = kv(), n = jv(e) ?? e;
+	Hv(e);
+	let r = n.querySelector(`.${Tv}`);
+	r || (r = document.createElement("div"), r.className = `${Tv} command-map-canvas`, r.setAttribute("aria-label", "3D 院区地图"), Object.assign(r.style, {
 		position: "absolute",
 		inset: "0",
 		zIndex: "20",
@@ -20764,42 +20845,55 @@ function Fv() {
 		height: "100%",
 		minHeight: "240px",
 		background: "transparent"
-	}), n.appendChild(r)), !(jv === t && Pv(r)) && (Av?.(), Av = wv(r, {
+	}), n.appendChild(r));
+	let i = t, a = !!r.querySelector("canvas");
+	Nv === i && a && Mv || (Mv?.(), Mv = wv(r, {
 		themeId: "light",
 		region: t,
 		variant: "command",
-		campusDisplayScale: 1.2
-	}), jv = t, requestAnimationFrame(() => {
-		window.dispatchEvent(new Event("resize"));
-	}));
+		layout: "dashboard",
+		campusDisplayScale: 1.22
+	}), Nv = i), Rv();
 }
-function Iv(e, t) {
+function Gv(e, t) {
 	let n = null;
 	return () => {
 		n && clearTimeout(n), n = setTimeout(e, t);
 	};
 }
-function Lv() {
-	if (Mv) return;
+function Kv() {
+	if (Pv) return;
 	let e = 0;
-	Mv = setInterval(() => {
-		e += 1, Fv();
+	Pv = setInterval(() => {
+		e += 1, Uv();
 		let t = document.querySelector(`.${Tv} canvas`);
-		(t || e > 90) && (clearInterval(Mv), Mv = null, t && console.info("[hx-glb-map] 院区地图就绪"));
+		(t || e > 90) && (clearInterval(Pv), Pv = null, t && console.info("[hx-glb-map] 院区地图就绪"));
 	}, 400);
 }
-function Rv() {
-	let e = Iv(Fv, 150);
-	e(), Lv(), window.addEventListener("hashchange", () => {
-		jv = null, setTimeout(e, 100), Lv();
+function qv(e) {
+	if (Fv === e) return;
+	Fv = e;
+	let t = Av();
+	t && Hv(t), Rv(), Uv();
+}
+function Jv() {
+	let e = Gv(Uv, 150);
+	e(), Kv(), window.addEventListener("hashchange", () => {
+		Nv = null, setTimeout(e, 100), Kv();
+	}), window.addEventListener("hx-map-page", (e) => {
+		qv(!!e.detail?.active);
+	}), window.addEventListener("hx-glb-map-layout", () => {
+		Rv();
 	}), document.querySelector(".dashboard-center")?.addEventListener("click", (t) => {
-		t.target.closest(".region-switch") && (jv = null, setTimeout(e, 120));
+		t.target.closest(".region-switch") && (Nv = null, setTimeout(e, 120));
 	});
 	let t = document.getElementById("root");
-	t && new MutationObserver(e).observe(t, {
+	t && new MutationObserver(() => {
+		Iv || Av() && e();
+	}).observe(t, {
 		childList: !0,
 		subtree: !0
-	}), window.addEventListener("resize", Iv(Fv, 200));
+	}), window.addEventListener("resize", Gv(Uv, 200));
 }
-Rv();
+Jv();
 //#endregion

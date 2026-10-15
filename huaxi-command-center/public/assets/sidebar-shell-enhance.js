@@ -81,13 +81,13 @@
   }
 
   function isHome() {
+    if (document.body.classList.contains('hx-page-map-only')) return true
     const p = hashPath()
-    if (p === '/map' || document.body.classList.contains('hx-page-map-only')) return true
     return p === '/' || p === ''
   }
 
   function isMapPage() {
-    return hashPath() === '/map' || document.body.classList.contains('hx-page-map-only')
+    return document.body.classList.contains('hx-page-map-only')
   }
 
   function skipShell() {
@@ -165,7 +165,7 @@
   }
 
   function activeGroupId() {
-    if (isHome() || hashPath() === '/map') return HOME.id
+    if (isHome()) return HOME.id
     const path = hashPath()
     if (path.startsWith('/medical-quality')) return 'quality'
     if (path.startsWith('/dr')) return 'dr'
@@ -205,7 +205,7 @@
     }
     let next = ''
     if (isHome()) {
-      next = hashPath() === '/map' ? '协作三维地图' : '县域指挥概览'
+      next = isMapPage() ? '协作三维地图' : '县域指挥概览'
     } else {
       const fromPath = pageNavLabel()
       if (fromPath) next = fromPath
@@ -396,5 +396,6 @@
 
   window.hxEnhance(() => apply(), { wait: 200, afterNav: 100 })
   window.addEventListener('hashchange', () => apply())
+  window.addEventListener('hx-map-page', () => apply())
   setTimeout(() => apply(), 600)
 })()

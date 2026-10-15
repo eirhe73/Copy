@@ -1,5 +1,5 @@
 /**
- * 侧栏一体化：#/map 为首页 3D 地图独立整页（仍用 React 首页 WebGL，非 gis-command.html）
+ * 协作三维地图：全屏 body.hx-page-map-only；概览与全屏共用 #/
  */
 ;(function () {
   const FLAG = 'hx-page-map-only'
@@ -13,77 +13,190 @@
     return document.body.classList.contains(FLAG)
   }
 
-  function setMapOnly(on) {
-    document.body.classList.toggle(FLAG, on)
-    window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: on } }))
-    if (on) {
-      requestAnimationFrame(() => {
-        window.dispatchEvent(new Event('resize'))
-        setTimeout(() => window.dispatchEvent(new Event('resize')), 120)
-      })
+  function hasDashboard() {
+    return !!document.querySelector('main.dashboard.screen, main.dashboard')
+  }
+
+  function goHomeHash() {
+    const home = `${location.pathname}${location.search}#/`
+    try {
+      history.replaceState(history.state, '', home)
+    } catch {
+      location.hash = '#/'
     }
   }
 
-  function syncUrlDisplay() {
-    if (!mapOnlyActive()) return
-    const want = `${location.pathname}${location.search}#/map`
-    if (location.hash !== '#/map') {
-      try {
-        history.replaceState(history.state, '', want)
-      } catch {
-        location.hash = '#/map'
-      }
+  function syncSidebar() {
+    window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: mapOnlyActive() } }))
+  }
+
+  function setMapOnly(on) {
+    document.body.classList.toggle(FLAG, !!on)
+    window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: !!on } }))
+    syncSidebar()
+    if (on) pulseMapLayout()
+  }
+
+  function leaveMapMode() {
+    pendingMap = false
+    document.body.classList.remove('hx-map-drawer-open')
+    const bd = document.querySelector('.hx-map-drawer-backdrop')
+    if (bd) bd.hidden = true
+    clearMapBlockers()
+    document.body.classList.remove(FLAG)
+    window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: false } }))
+    if (path() === '/map') goHomeHash()
+    requestAnimationFrame(() => window.dispatchEvent(new Event('resize')))
+  }
+
+  function clearMapBlockers() {
+    document.querySelector('.dashboard-center .main-map')?.classList.remove('map-nodes-open')
+    document.querySelectorAll('.dashboard-center .map-med-backdrop').forEach((el) => {
+      el.remove()
+    })
+    const drawer = document.querySelector('.hx-map-drawer-backdrop')
+    if (drawer) drawer.hidden = true
+    document.body.classList.remove('hx-map-drawer-open')
+  }
+
+  function pulseMapLayout() {
+    ;[0, 100, 250, 500, 900, 1400].forEach((ms) => {
+      setTimeout(() => {
+        window.dispatchEvent(new Event('resize'))
+        window.dispatchEvent(new CustomEvent('hx-glb-map-layout'))
+      }, ms)
+    })
+  }
+
+  function enterMapChrome() {
+    if (!hasDashboard()) {
+      pendingMap = true
+      if (path() === '/map') goHomeHash()
+      else if (path() !== '/') location.hash = '#/'
+      ensureHomeThenMap()
+      return
     }
+    pendingMap = false
+    clearMapBlockers()
+    if (path() === '/map') goHomeHash()
+
+    /* 先让概览布局稳定，再加全屏 class，避免 WebGL 容器高度为 0 */
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.body.classList.add(FLAG)
+        window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
+        pulseMapLayout()
+      })
+    })
   }
 
   function ensureHomeThenMap() {
-    const dash = document.querySelector('main.dashboard.screen, main.dashboard')
-    if (dash) {
-      setMapOnly(true)
-      syncUrlDisplay()
-      pendingMap = false
+    if (!pendingMap) return
+    if (hasDashboard()) {
+      enterMapChrome()
       return
     }
-    if (path() !== '/') {
-      location.hash = '#/'
-      return
-    }
+    if (path() === '/map') goHomeHash()
+    else if (path() !== '/') location.hash = '#/'
+
     window.hxEnhance?.(
       () => {
-        if (pendingMap || path() === '/map') ensureHomeThenMap()
+        if (!pendingMap) return
+        if (hasDashboard()) enterMapChrome()
+        else ensureHomeThenMap()
       },
-      { wait: 200, afterNav: 150 },
+      { wait: 200, afterNav: 250, observeRoot: true },
     )
   }
 
   function applyRoute() {
     const p = path()
+
     if (p === '/map') {
       pendingMap = true
-      ensureHomeThenMap()
+      if (!hasDashboard()) {
+        goHomeHash()
+        ensureHomeThenMap()
+        return
+      }
+      enterMapChrome()
       return
     }
 
-    if (p === '/' && pendingMap) {
-      ensureHomeThenMap()
+    if (p === '/') {
+      if (pendingMap) {
+        ensureHomeThenMap()
+        return
+      }
+      if (!mapOnlyActive()) {
+        document.body.classList.remove(FLAG)
+      }
       return
     }
 
     pendingMap = false
-    if (p === '/') {
-      setMapOnly(false)
+    if (mapOnlyActive()) leaveMapMode()
+  }
+
+  function isOverviewLink(a) {
+    if (!a || a.tagName !== 'A') return false
+    if (a.dataset?.navHref === '/map') return false
+    if ((a.getAttribute('href') || '').includes('/map')) return false
+    const nav = a.dataset?.navHref || ''
+    if (nav === '/') return true
+    const href = (a.getAttribute('href') || '').trim()
+    return href === '#/' || href === '#'
+  }
+
+  function interceptMapNavClick(e) {
+    const a =
+      e.target &&
+      e.target.closest &&
+      e.target.closest('a[href="#/map"], a[href$="#/map"], a[data-nav-href="/map"]')
+    if (!a) return
+    e.preventDefault()
+    e.stopPropagation()
+    pendingMap = true
+    if (path() === '/map') goHomeHash()
+    if (hasDashboard() && (path() === '/' || path() === '')) {
+      enterMapChrome()
       return
     }
+    if (path() !== '/') location.hash = '#/'
+    else ensureHomeThenMap()
+  }
 
-    setMapOnly(false)
+  function interceptOverviewNavClick(e) {
+    const a = e.target && e.target.closest && e.target.closest('a')
+    if (!a || !isOverviewLink(a)) return
+    if (!mapOnlyActive()) return
+    e.preventDefault()
+    e.stopPropagation()
+    leaveMapMode()
+  }
+
+  function interceptExitControl(e) {
+    const btn =
+      e.target &&
+      e.target.closest &&
+      e.target.closest('.hx-map-page-chrome [data-action="exit"]')
+    if (!btn) return
+    e.preventDefault()
+    e.stopPropagation()
+    leaveMapMode()
   }
 
   window.hxMapPage = {
-    isActive: () => mapOnlyActive() || path() === '/map',
+    isActive: () => mapOnlyActive(),
+    exit: leaveMapMode,
+    enter: enterMapChrome,
   }
 
+  document.addEventListener('click', interceptExitControl, true)
+  document.addEventListener('click', interceptOverviewNavClick, true)
+  document.addEventListener('click', interceptMapNavClick, true)
   window.addEventListener('hashchange', applyRoute)
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', applyRoute)
   else applyRoute()
-  window.hxEnhance?.(applyRoute, { wait: 280, observeRoot: true, afterNav: 120 })
+  window.hxEnhance?.(applyRoute, { wait: 320, observeRoot: true, afterNav: 150 })
 })()

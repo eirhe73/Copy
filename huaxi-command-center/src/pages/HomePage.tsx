@@ -8,7 +8,8 @@ import { HomeDashboardRight } from '../components/home/HomeDashboardRight'
 import { DashboardPanel } from '../components/home/DashboardPanel'
 import { useRouteApi } from '../hooks/useRouteApi'
 import { rowsFromPayload } from '../lib/extractRows'
-import { displayVehicleStatus, vehicleBucket } from '../lib/vehicleStatus'
+import { homeCurrentMetricsFromResults } from '../lib/homeCurrentMetrics'
+import { displayVehicleStatus, vehicleBucket, vehicleOnDispatch } from '../lib/vehicleStatus'
 import { ROUTE_API_BINDINGS } from '../routes/apiBindings'
 
 const bindings = ROUTE_API_BINDINGS['/'] ?? []
@@ -27,6 +28,7 @@ function HomeDashboard() {
   const live = results.find((r) => r.path.includes('dispatch-live'))
   const gps = results.find((r) => r.path.includes('vehicles/gps'))
   const beds = results.find((r) => r.path.includes('beds/overview'))
+  const criticalBeds = results.find((r) => r.path.includes('critical/beds'))
 
   let vehicles = rowsFromPayload(ambulances?.ok ? ambulances.data : [])
   if (!vehicles.length) vehicles = rowsFromPayload(gps?.ok ? gps.data : [])
@@ -38,15 +40,11 @@ function HomeDashboard() {
   )
   const kpiClosed = String(liveObj?.closedToday ?? liveObj?.closedCount ?? '—')
 
-  const bedsObj =
-    beds?.ok && beds.data && typeof beds.data === 'object' ? (beds.data as Record<string, unknown>) : null
-
-  const bedNum = (key: string) => {
-    const v = bedsObj?.[key]
-    if (typeof v === 'number' && !Number.isNaN(v)) return v
-    if (typeof v === 'string' && v !== '' && !Number.isNaN(Number(v))) return Number(v)
-    return undefined
-  }
+  const current = homeCurrentMetricsFromResults(
+    beds?.ok ? beds.data : undefined,
+    criticalBeds?.ok ? criticalBeds.data : undefined,
+    live?.ok ? live.data : undefined,
+  )
 
   return (
     <>
@@ -66,7 +64,13 @@ function HomeDashboard() {
             {VEHICLE_BUCKETS.map((status) => (
               <Link key={status} to={`/dispatch?status=${encodeURIComponent(status)}`}>
                 <span>{status}</span>
-                <strong>{vehicles.filter((v) => vehicleBucket(v.status) === status).length}</strong>
+                <strong>
+                  {
+                    vehicles.filter(
+                      (v) => vehicleBucket(v.status, v.statusLabel) === status,
+                    ).length
+                  }
+                </strong>
               </Link>
             ))}
           </div>
@@ -83,24 +87,19 @@ function HomeDashboard() {
               <tbody>
                 {vehicles.slice(0, 8).map((v, i) => (
                   <tr key={String(v.id ?? i)}>
-                    <td>{displayVehicleStatus(v.status)}</td>
-                    <td className="cyan-text">{displayVehicleStatus(v.status) === '出警中' ? '是' : '否'}</td>
+                    <td>{displayVehicleStatus(v.status, v.statusLabel)}</td>
+                    <td className="cyan-text">
+                      {vehicleOnDispatch(v.status, v.statusLabel) ? '是' : '否'}
+                    </td>
                     <td>{String(v.plate ?? v.plateNo ?? v.id ?? '—')}</td>
-                    <td>{String(v.stationName ?? v.station ?? v.institutionId ?? '—')}</td>
+                    <td>{String(v.stationName ?? v.station ?? v.org ?? v.boundHospital ?? v.institutionId ?? '—')}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </DashboardPanel>
-        <HomeCurrentPanel
-          erPatients={bedNum('erPatients')}
-          erBedsTotal={bedNum('erBedsTotal')}
-          erBedsFree={bedNum('erBedsFree')}
-          icuPatients={bedNum('icuPatients')}
-          icuBedsTotal={bedNum('icuBedsTotal')}
-          icuBedsFree={bedNum('icuBedsFree')}
-        />
+        <HomeCurrentPanel {...current} />
       </div>
 
       <div className="dashboard-center">

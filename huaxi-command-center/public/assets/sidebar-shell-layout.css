@@ -581,10 +581,15 @@ body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-left .p
   overflow-y: auto !important;
 }
 
-body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-center,
 body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-right {
+  display: grid !important;
   grid-template-rows: repeat(3, minmax(0, 1fr)) !important;
   gap: 8px !important;
+  min-height: 0 !important;
+  align-content: stretch !important;
+}
+
+body.hx-sidebar-shell.hx-sidebar-home main.dashboard.screen > .dashboard-center {
   min-height: 0 !important;
   align-content: stretch !important;
 }
@@ -602,7 +607,9 @@ body.hx-sidebar-shell.hx-sidebar-home .dashboard-right > .panel {
   overflow: hidden !important;
 }
 
-body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed button {
+body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed button,
+body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed .event-feed-item,
+body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed a.event-feed-item {
   padding: 9px 8px !important;
   line-height: 1.55 !important;
 }
@@ -754,6 +761,39 @@ body.hx-sidebar-shell.hx-page-map-only .dashboard-center .main-map.hx-map-light-
     #e8f0f8 40%,
     #f0f5fa 100%
   ) !important;
+}
+
+/* 协作三维地图：侧栏/顶栏默认收起，地图占满视口 */
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready {
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > header.command-header {
+  display: none !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only .hx-sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 130;
+  width: min(var(--hx-sidebar-w), 88vw);
+  max-width: 280px;
+  transform: translateX(-105%);
+  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: none;
+}
+
+body.hx-sidebar-shell.hx-page-map-only.hx-map-drawer-open .hx-sidebar {
+  transform: translateX(0);
+  box-shadow: 12px 0 40px rgba(15, 23, 42, 0.14);
+}
+
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen {
+  grid-column: 1 / -1 !important;
+  grid-row: 1 / -1 !important;
 }
 
 /* Vue 120 嵌入：侧栏四入口对应 dispatch.html 子页，无 Tab 壳 */

@@ -55,6 +55,7 @@ export type MountMapSceneOptions = {
   themeId: MapThemeId
   region?: 'weiyuan' | 'dafang'
   variant?: 'default' | 'command'
+  layout?: 'dashboard' | 'fullscreen'
   /** 院区在模板尺寸上再放大（首页建议 1.1~1.25） */
   campusDisplayScale?: number
 }
@@ -72,10 +73,13 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
     region = 'weiyuan',
     variant = 'default',
     campusDisplayScale = variant === 'command' ? 1.18 : 1,
+    layout = 'dashboard',
   } = options
   const view =
     variant === 'command'
-      ? { ...INITIAL_VIEW, camZ: 1.12, mapScale: 1.0, minDistRatio: 0.62 }
+      ? layout === 'fullscreen'
+        ? { ...INITIAL_VIEW, fov: 32, camX: 0.2, camY: 0.36, camZ: 0.98, mapScale: 1.12, minDistRatio: 0.52 }
+        : { ...INITIAL_VIEW, camZ: 1.12, mapScale: 1.0, minDistRatio: 0.62 }
       : INITIAL_VIEW
   const theme = getMapTheme(themeId)
   const t = theme.three
@@ -464,6 +468,11 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       }
       window.addEventListener('resize', onResize)
       cleanups.push(() => window.removeEventListener('resize', onResize))
+      if (typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => onResize())
+        ro.observe(mount)
+        cleanups.push(() => ro.disconnect())
+      }
       cleanups.push(() => {
         cancelAnimationFrame(frame)
         controls.dispose()

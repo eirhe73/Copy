@@ -103,7 +103,13 @@
 
   function tick() {
     const mainMap = document.querySelector('.dashboard-center .main-map')
-    if (mainMap) mount(mainMap)
+    if (!mainMap) return
+    if (document.body.classList.contains('hx-page-map-only')) {
+      setOpen(mainMap, false)
+      return
+    }
+    if (mainMap.querySelector('.map-med-sidepanel') && mainMap.querySelector('.map-collab-row')) return
+    mount(mainMap)
   }
 
   const DEMO_LINKS_POS_KEY = 'huaxi-demo-links-pos'
@@ -218,6 +224,11 @@
     window.addEventListener('hashchange', () => {
       mountedKey = ''
       open = false
+    })
+    window.addEventListener('hx-map-page', (ev) => {
+      const mainMap = document.querySelector('.dashboard-center .main-map')
+      if (!mainMap) return
+      if (ev.detail?.active) setOpen(mainMap, false)
     })
     if (window.hxEnhance) window.hxEnhance(tick, { wait: 450, observeRoot: true, afterNav: 150 })
     else {

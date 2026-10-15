@@ -66,7 +66,7 @@ export function attachCampusGlb(
 }
 
 /** 首页：单圈淡光，不用三层波纹 */
-export function addCampusBasePlate(g: THREE.Group, t: MapThree, tier: number) {
+export function addCampusBasePlate(g: THREE.Group, _t: MapThree, tier: number) {
   const r = 0.12 + tier * 0.025
   const c = tierLegendColor(tier)
   g.add(
