@@ -109,36 +109,28 @@ body.hx-sidebar-shell.hx-sidebar-home .command-header .hx-sidebar-page-title {
   font-weight: 500;
 }
 
-/* 顶栏页签：与时间同一行，横向滚动，不占第二行 */
-body.hx-sidebar-shell.hx-nav-tabs-active .command-header .header-left {
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 10px !important;
-  overflow: hidden !important;
+/* 顶栏下 · 多页签（已打开页面，可点回、可关闭） */
+body.hx-sidebar-shell.hx-nav-tabs-active .app-shell.hx-sidebar-ready > main,
+body.hx-sidebar-shell.hx-nav-tabs-active .app-shell.hx-sidebar-ready > #hx-ambulances-page {
+  margin-top: 36px;
 }
 
-body.hx-sidebar-shell.hx-nav-tabs-active .command-header .header-left time {
-  flex: 0 0 auto !important;
-}
-
-body.hx-sidebar-shell .command-header .header-left .hx-nav-tabs {
-  position: static !important;
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  display: flex !important;
-  align-items: stretch !important;
-  min-height: 30px !important;
-  max-height: 30px !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  background: #f5f7fa !important;
-  border: 1px solid #dcdfe6 !important;
-  border-radius: 4px !important;
-  overflow: hidden !important;
-  box-sizing: border-box !important;
-  z-index: auto !important;
+body.hx-sidebar-shell .hx-nav-tabs {
+  position: fixed;
+  top: var(--hx-topbar-h);
+  left: var(--hx-sidebar-w);
+  right: 0;
+  z-index: 12050;
+  display: flex;
+  align-items: stretch;
+  min-height: 36px;
+  max-height: 36px;
+  margin: 0;
+  padding: 0 8px;
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs[hidden] {
@@ -149,129 +141,67 @@ body.hx-sidebar-shell .hx-nav-tabs__scroll {
   display: flex;
   flex: 1 1 auto;
   align-items: stretch;
-  gap: 0;
+  gap: 4px;
   overflow-x: auto;
   overflow-y: hidden;
   scrollbar-width: thin;
-  padding: 0;
+  padding: 4px 0;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs__item {
-  position: relative;
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
   flex-shrink: 0;
-  max-width: 168px;
-  min-height: 30px;
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  border-right: 1px solid #dcdfe6;
+  max-width: 132px;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px 4px 0 0;
   overflow: hidden;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs__item.is-active {
   background: #fff;
+  border-bottom-color: #fff;
+  box-shadow: 0 -1px 0 #fff;
   z-index: 1;
 }
 
-body.hx-sidebar-shell .hx-nav-tabs__item.is-active::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background: #fff;
-  pointer-events: none;
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__item.is-active .hx-nav-tabs__tab {
-  color: #303133;
-  font-weight: 500;
-}
-
 body.hx-sidebar-shell .hx-nav-tabs__tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  width: 100%;
-  min-width: 0;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
+  border: none;
+  background: transparent;
   font: inherit;
-  font-size: 13px;
-  color: #606266;
-  height: 30px;
-  line-height: 1;
-  padding: 0 8px 0 10px;
-  margin: 0;
+  font-size: 12px;
+  color: #475569;
+  padding: 6px 10px;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
-  text-align: left;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+body.hx-sidebar-shell .hx-nav-tabs__item.is-active .hx-nav-tabs__tab {
+  color: #0f172a;
+  font-weight: 600;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs__tab:hover {
-  color: #303133;
-  background: transparent !important;
-  border: none !important;
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__label {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #1d4ed8;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs__close {
-  flex: 0 0 14px;
-  width: 14px;
-  height: 14px;
-  margin: 0;
-  padding: 0;
   border: none;
-  border-radius: 50%;
   background: transparent;
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 8px 0 0;
   cursor: pointer;
-  position: relative;
-  opacity: 0.55;
-  transition:
-    opacity 0.12s ease,
-    background 0.12s ease;
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__close::before,
-body.hx-sidebar-shell .hx-nav-tabs__close::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 8px;
-  height: 1px;
-  margin: -0.5px 0 0 -4px;
-  background: #909399;
-  border-radius: 1px;
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__close::before {
-  transform: rotate(45deg);
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__close::after {
-  transform: rotate(-45deg);
+  flex-shrink: 0;
 }
 
 body.hx-sidebar-shell .hx-nav-tabs__close:hover {
-  opacity: 1;
-  background: rgba(0, 0, 0, 0.06);
-}
-
-body.hx-sidebar-shell .hx-nav-tabs__item.is-pinned .hx-nav-tabs__tab {
-  padding: 0 14px;
+  color: #ef4444;
 }
 
 body.hx-sidebar-shell.hx-nav-tabs-active .command-header .hx-sidebar-page-title {
@@ -836,6 +766,13 @@ body.hx-sidebar-shell:not(.hx-sidebar-home):not(.hx-page-map-only):not(.hx-sideb
   display: none !important;
 }
 
+/* 协作三维地图：必须露出首页 dashboard（否则全屏只剩灰底） */
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen,
+body.hx-sidebar-shell.hx-sidebar-map-view .app-shell.hx-sidebar-ready > main.dashboard.screen {
+  display: grid !important;
+  visibility: visible !important;
+}
+
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.workspace,
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.dispatch-screen,
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.warning-screen,
@@ -904,8 +841,22 @@ body.hx-sidebar-shell.hx-page-map-only .huaxi-demo-links {
   display: none !important;
 }
 
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready,
 body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready:has(#hx-panel-toggles) {
-  grid-template-rows: var(--hx-topbar-h) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: minmax(0, 1fr) !important;
+}
+
+/* 首页规则会把 dashboard 放到第 3 行；全屏只有 1 行时地图高度为 0 */
+body.hx-sidebar-shell.hx-page-map-only.hx-sidebar-home
+  .app-shell.hx-sidebar-ready:has(#hx-panel-toggles)
+  > main.dashboard.screen,
+body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen {
+  grid-row: 1 / -1 !important;
+  grid-column: 1 / -1 !important;
+  display: grid !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > #hx-panel-toggles {
@@ -999,6 +950,15 @@ body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > header.comm
   display: none !important;
 }
 
+body.hx-sidebar-shell.hx-page-map-only .hx-nav-tabs {
+  display: none !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only.hx-nav-tabs-active .app-shell.hx-sidebar-ready > main,
+body.hx-sidebar-shell.hx-page-map-only.hx-nav-tabs-active .app-shell.hx-sidebar-ready > #hx-ambulances-page {
+  margin-top: 0 !important;
+}
+
 body.hx-sidebar-shell.hx-page-map-only .hx-sidebar {
   position: fixed;
   left: 0;
@@ -1017,9 +977,49 @@ body.hx-sidebar-shell.hx-page-map-only.hx-map-drawer-open .hx-sidebar {
   box-shadow: 12px 0 40px rgba(15, 23, 42, 0.14);
 }
 
-body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen {
-  grid-column: 1 / -1 !important;
-  grid-row: 1 / -1 !important;
+/* 脱离网格：首页规则会把 dashboard 放到高度为 0 的第 3 行，固定铺满视口 */
+body.hx-sidebar-shell.hx-page-map-only main.dashboard.screen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 50 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-height: 100dvh !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  overflow: hidden !important;
+  background: #e8f0f8 !important;
+  visibility: visible !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only main.dashboard.screen > .dashboard-center,
+body.hx-sidebar-shell.hx-page-map-only .dashboard-center .main-map,
+body.hx-sidebar-shell.hx-page-map-only .dashboard-center .county-map,
+body.hx-sidebar-shell.hx-page-map-only .command-map-canvas.map-stage {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  display: block !important;
+  visibility: visible !important;
+  overflow: hidden !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only .command-map-canvas canvas,
+body.hx-sidebar-shell.hx-page-map-only .command-map-canvas .sc-map-label-layer {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100dvh !important;
+  display: block !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only .command-map-canvas.hx-map-diamond-nodes .sc-map-label-layer {
+  display: none !important;
+  min-height: 0 !important;
 }
 
 /* Vue 120 嵌入：侧栏四入口对应 dispatch.html 子页，无 Tab 壳 */

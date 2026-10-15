@@ -484,7 +484,7 @@ button.link-button:hover {
   border-color: transparent !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.hx-nav-tabs__tab):not(.amber):not(.cyan):not(.muted) {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted) {
   background: #fff !important;
   border: 1px solid #cbd5e1 !important;
   color: #334155 !important;
@@ -493,7 +493,7 @@ button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-n
   text-shadow: none !important;
 }
 
-button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.hx-nav-tabs__tab):not(.amber):not(.cyan):not(.muted):hover {
+button:not(.primary):not(.danger):not(.camera-button):not(.hx-dispatch-vehicle-name):not(.link-button):not(.icon-button):not(.icon-btn):not(.loop-stage):not(.os-home-gesture):not(.hx-nav-l1):not(.amber):not(.cyan):not(.muted):hover {
   background: #f8fafc !important;
   border-color: #94a3b8 !important;
   color: #0f172a !important;
@@ -3827,15 +3827,6 @@ main.single-bed.hx-bed-layout > .bed-center {
   gap: 0 !important;
 }
 
-.hx-bed-p2 > .hx-bed-p1 {
-  flex: 0 0 auto !important;
-  margin: 0 0 12px !important;
-}
-
-.hx-bed-p2 > .hx-bed-record-tabs {
-  flex: 0 0 auto !important;
-}
-
 .hx-bed-p2 .hx-bed-record-tabs {
   display: flex !important;
   flex-wrap: wrap !important;
@@ -4446,11 +4437,6 @@ footer.system-footer {
   height: 16px !important;
   color: inherit !important;
   stroke: currentColor !important;
-}
-
-/* 底栏隐藏「任务协同」入口 */
-.system-footer a[href*='coordination'] {
-  display: none !important;
 }
 
 /* 底栏「通知」悬浮预览：类似 #/messages 的消息列表，点某条进患者档案（/patient/<id>） */

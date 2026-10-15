@@ -119,6 +119,7 @@
   function skipShell() {
     const p = hashPath()
     if (/^\/phone/.test(p)) return true
+    if (isMapPage()) return true
     if (!document.body.classList.contains('hx-sidebar-shell')) return true
     if (!document.querySelector('.app-shell')) return true
     return false
@@ -430,16 +431,6 @@
         parsed.tabs.forEach(function (t, i) {
           if (t.lastAt == null) t.lastAt = now - i
         })
-        parsed.tabs = parsed.tabs.filter(function (t) {
-          const p = (t.hash || '').replace(/^#/, '').split('?')[0] || '/'
-          return p !== '/coordination' && t.label !== '任务协同'
-        })
-        if (!parsed.tabs.length) {
-          parsed.tabs = [{ id: 'tab-home', hash: '#/', label: '首页', pinned: true, lastAt: Date.now() }]
-          parsed.active = 'tab-home'
-        } else if (!parsed.tabs.some(function (t) { return t.id === parsed.active })) {
-          parsed.active = parsed.tabs[parsed.tabs.length - 1].id
-        }
         while (parsed.tabs.length > MAX_TABS) {
           evictOneTab(parsed.tabs, parsed.active)
         }
@@ -484,11 +475,8 @@
   function registerTabForHash() {
     if (suppressTabRegister) return loadTabState()
     const hash = currentHash()
-    const pathOnly = hash.replace(/^#/, '').split('?')[0] || '/'
-    if (pathOnly === '/coordination') return loadTabState()
     const key = tabKey(hash)
     const label = pageTabLabel()
-    if (label === '任务协同') return loadTabState()
     const state = loadTabState()
     const now = Date.now()
     let hit = null
@@ -520,10 +508,8 @@
     if (href.replace(/^#/, '').split('?')[0] === '/map') {
       if (typeof window.hxMapPage?.enter === 'function') {
         window.hxMapPage.enter()
-        return
       }
-      document.body.classList.add('hx-page-map-only')
-      window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
+      return
     }
     if (location.hash !== href) location.hash = href
     else window.dispatchEvent(new HashChangeEvent('hashchange'))
@@ -560,13 +546,12 @@
         const on = t.id === state.active
         const closeBtn = t.pinned
           ? ''
-          : '<span class="hx-nav-tabs__close" role="button" tabindex="-1" data-hx-tab-close="' +
+          : '<button type="button" class="hx-nav-tabs__close" data-hx-tab-close="' +
             esc(t.id) +
-            '" aria-label="关闭"></span>'
+            '" aria-label="关闭">×</button>'
         return (
           '<div class="hx-nav-tabs__item' +
           (on ? ' is-active' : '') +
-          (t.pinned ? ' is-pinned' : '') +
           '" role="presentation">' +
           '<button type="button" class="hx-nav-tabs__tab" role="tab" aria-selected="' +
           (on ? 'true' : 'false') +
@@ -575,11 +560,9 @@
           '" data-hx-tab-hash="' +
           esc(t.hash) +
           '">' +
-          '<span class="hx-nav-tabs__label">' +
           esc(t.label) +
-          '</span>' +
-          closeBtn +
           '</button>' +
+          closeBtn +
           '</div>'
         )
       })
@@ -588,37 +571,19 @@
     if (inner && inner.innerHTML !== html) inner.innerHTML = html
   }
 
-  function tabStripHost() {
-    return document.querySelector('.app-shell.hx-sidebar-ready .command-header .header-left')
-  }
-
-  function placeTabStrip(strip) {
-    const host = tabStripHost()
-    if (!host || !strip) return false
-    const time = host.querySelector('time')
-    if (time) {
-      if (strip.parentElement !== host || strip.previousElementSibling !== time) {
-        time.insertAdjacentElement('afterend', strip)
-      }
-    } else if (strip.parentElement !== host) {
-      host.appendChild(strip)
-    }
-    return true
-  }
-
   function ensureTabStrip() {
     let strip = document.getElementById('hx-nav-tabs')
-    if (strip) {
-      placeTabStrip(strip)
-      return strip
+    if (strip && strip.parentElement !== document.body) {
+      document.body.appendChild(strip)
     }
+    if (strip) return strip
     strip = document.createElement('div')
     strip.id = 'hx-nav-tabs'
     strip.className = 'hx-nav-tabs'
     strip.setAttribute('role', 'navigation')
     strip.setAttribute('aria-label', '已打开页面')
     strip.innerHTML = '<div class="hx-nav-tabs__scroll"></div>'
-    if (!placeTabStrip(strip)) return null
+    document.body.appendChild(strip)
     strip.addEventListener('click', function (e) {
       const t = e.target
       if (!(t instanceof Element)) return
@@ -657,9 +622,9 @@
 
     if (!document.querySelector('.app-shell')) return
 
-    const stripEl = ensureTabStrip()
-    if (!stripEl) return
-    stripEl.hidden = false
+    ensureTabStrip()
+    const stripEl = document.getElementById('hx-nav-tabs')
+    if (stripEl) stripEl.hidden = false
     const state = registerTabForHash()
     renderTabStrip(state)
     document.body.classList.add('hx-nav-tabs-active')
@@ -671,6 +636,9 @@
   }
 
   window.addEventListener('hashchange', function () {
+    setTimeout(mount, 0)
+  })
+  window.addEventListener('hx-map-page', function () {
     setTimeout(mount, 0)
   })
   window.hxEnhance(mount, { wait: 280, observeRoot: true, afterNav: 100 })
