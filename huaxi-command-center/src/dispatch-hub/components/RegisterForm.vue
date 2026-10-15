@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { consultHref, emptyForm, loadDraft, savePatient, type PatientForm } from '../context'
+import {
+  consultHref,
+  consultLinkTarget,
+  emptyForm,
+  loadDraft,
+  savePatient,
+  type PatientForm,
+} from '../context'
 
 const props = defineProps<{
   seed: Partial<PatientForm>

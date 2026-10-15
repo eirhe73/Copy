@@ -114,24 +114,16 @@
   function devicesStrip(idx) {
     const qBed = hashQuery().get('bed')
     const bind = qBed ? idx.byBed.get(qBed) : null
-    if (bind) return stripHtml(bind, 'devices')
-    if (idx.list.length <= 6) {
-      const links = idx.list
-        .slice(0, 8)
-        .map(
-          (b) =>
-            `<a href="/#/bed/${encodeURIComponent(b.bedId)}">${b.bedLabel} · ${b.patientName}</a>`,
-        )
-        .join('')
-      return `<div class="hx-strip">
+    if (bind) {
+      return `<div class="hx-strip hx-devices-strip">
         <a class="hx-back" href="/#/critical">返回重症监护</a>
-        ${links}
+        <span class="hx-care-meta">当前床位上下文：<strong>${bind.bedLabel}</strong> · ${bind.patientName}</span>
+        <a href="/#/bed/${encodeURIComponent(bind.bedId)}">单床监护</a>
       </div>`
     }
-    return `<div class="hx-strip">
+    return `<div class="hx-strip hx-devices-strip">
       <a class="hx-back" href="/#/critical">返回重症监护</a>
-      <a href="/#/beds">从科室床位选择</a>
-      <span class="hx-slot">已绑定 ${idx.list.length} 张床，请从床位进入</span>
+      <span class="hx-slot">在设备列表每行点击 <strong>绑定床位</strong>，在弹窗内按 <strong>机构 → 科室 → 床位</strong> 完成绑定（无需先去科室页选床）</span>
     </div>`
   }
 

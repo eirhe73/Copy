@@ -52,11 +52,41 @@ body.hx-sidebar-shell .app-shell:has(main.dashboard.screen) .command-header.home
 }
 
 body.hx-sidebar-shell header .main-nav[aria-label='五个业务模块'] {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
   overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
+  pointer-events: none !important;
+}
+
+body.hx-sidebar-shell .command-header .header-rail {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+body.hx-sidebar-shell .command-header .hx-sidebar-page-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  line-height: var(--hx-topbar-h);
+}
+
+body.hx-sidebar-shell.hx-sidebar-home .command-header .hx-sidebar-page-title {
+  color: #475569;
+  font-weight: 500;
 }
 
 body.hx-sidebar-shell nav.subnav {
@@ -243,6 +273,52 @@ body.hx-sidebar-shell .command-header .header-right > button {
 
 body.hx-sidebar-shell .command-header .compact-brand {
   display: none !important;
+}
+
+/* 出警地图 · 底部车辆条：避免被顶栏裁切、字号过小 */
+body.hx-sidebar-shell main.dispatch-screen.screen .dispatch-map-wrap {
+  position: relative !important;
+  padding-bottom: 72px !important;
+  box-sizing: border-box !important;
+}
+
+body.hx-sidebar-shell .vehicle-detail-bar {
+  position: absolute !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  right: 8px !important;
+  z-index: 500 !important;
+  padding: 10px 12px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  gap: 8px 14px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  max-height: none !important;
+  overflow: visible !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.08) !important;
+  color: #334155 !important;
+}
+
+body.hx-sidebar-shell .vehicle-detail-bar button {
+  min-height: 32px !important;
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+  white-space: nowrap !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready {
+  padding-bottom: 38px !important;
+}
+
+body.hx-sidebar-shell footer.system-footer {
+  left: var(--hx-sidebar-w) !important;
+  width: calc(100% - var(--hx-sidebar-w)) !important;
+  min-height: 36px !important;
+  padding: 8px 14px !important;
+  box-sizing: border-box !important;
 }
 
 body.hx-sidebar-shell nav.detail-trail {

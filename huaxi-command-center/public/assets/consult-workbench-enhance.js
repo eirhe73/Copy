@@ -39,8 +39,17 @@
     msgKind: '',
     schedule: null, // Date|null 定时开始时间
     qtab: 'wait',   // 队列状态 Tab：wait/incall/sched/done/all
+    scopeTab: 'all', // 全县会诊 | 基层上转（#/consultations?tab=grassroots）
+    dataSource: 'api', // api | demo
     dispatch: null, // {task,plate,complaint}|null 120 调度跳转带入的任务上下文
+    scenarioBySession: {}, // sessionId -> scenario consultationRequest
+    scenarioPatientByName: {}, // 姓名 -> patientId（API 队列缺 patientId 时补链）
   }
+
+  /** 基层上转来源识别（与 grassroots-consult-enhance 一致） */
+  var GRASSROOTS_SOURCE_HINTS = [
+    '船石', '连界', '神界', '威远', '村卫生', '镇卫生', '新场镇', 'chuanshi', 'lianjie',
+  ]
 
   // ---------- 基础工具 ----------
 
@@ -53,6 +62,44 @@
     var raw = location.hash
     var i = raw.indexOf('?')
     return new URLSearchParams(i >= 0 ? raw.slice(i + 1) : '')
+  }
+
+  function consultScopeTab() {
+    var q = query()
+    if (q.get('scope') === 'grassroots' || q.get('tab') === 'grassroots') return 'grassroots'
+    return 'all'
+  }
+
+  function migrateLegacyGrassrootsUrl() {
+    if (path() !== ROUTE) return
+    var q = query()
+    if (q.get('scope') !== 'grassroots') return
+    var next = new URLSearchParams(q.toString())
+    next.delete('scope')
+    next.set('tab', 'grassroots')
+    var qs = next.toString()
+    location.replace(location.pathname + location.search + '#/consultations' + (qs ? '?' + qs : ''))
+  }
+
+  function isGrassrootsItem(it) {
+    var src = [
+      it.sourceHospital,
+      it.sourceDepartment,
+      it.sourceInstitutionId,
+      it.source_hospital,
+      it.source_department,
+    ]
+      .filter(Boolean)
+      .join(' ')
+    if (!src) return false
+    return GRASSROOTS_SOURCE_HINTS.some(function (k) {
+      return src.indexOf(k) >= 0
+    })
+  }
+
+  function queueForScope() {
+    if (state.scopeTab !== 'grassroots') return state.queue
+    return state.queue.filter(isGrassrootsItem)
   }
 
   function esc(v) {
@@ -223,6 +270,12 @@
       P + '-tab:hover{border-color:#94a3b8;background:#f8fafc}',
       P + '-tab.on{background:#1d4ed8;border-color:#1d4ed8;color:#fff}',
       P + '-tab .n{opacity:.7;margin-left:3px}',
+      P + '-scope{margin:0 0 14px;padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:8px}',
+      P + '-scope-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}',
+      P + '-scope-tab{display:inline-flex;align-items:center;min-height:32px;padding:5px 14px;font-size:13px;font-weight:600;color:#0369a1;text-decoration:none;background:#fff;border:1px solid #7dd3fc;border-radius:999px;cursor:pointer;font-family:inherit}',
+      P + '-scope-tab:hover{background:#e0f2fe}',
+      P + '-scope-tab.on{color:#fff;background:#0284c7;border-color:#0284c7}',
+      P + '-scope-hint{margin:0;font-size:12px;line-height:1.55;color:#334155}',
       P + ' tr.' + HOST_ID + '-done td{opacity:.55}',
       // ---------- 120 调度带入的任务上下文条 ----------
       P + '-ctxstrip{display:flex;gap:8px;align-items:center;background:#eff6ff;border:1px solid #bfdbfe;color:#1e40af;border-radius:4px;padding:6px 10px;font-size:12px;margin-bottom:10px}',
@@ -261,6 +314,15 @@
       P + '-msg{font-size:12px}',
       P + '-msg.err{color:#b91c1c}',
       P + '-msg.ok{color:#15803d}',
+      P + '-msg.info{color:#0369a1;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:8px 10px;margin-bottom:10px}',
+      P + '-kind{display:inline-block;padding:1px 8px;border-radius:999px;font-size:11px;font-weight:600;border:1px solid transparent}',
+      P + '-kind.grass{background:#ecfdf5;color:#047857;border-color:#6ee7b7}',
+      P + '-kind.county{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}',
+      P + '-kind.pre{background:#fff7ed;color:#c2410c;border-color:#fed7aa}',
+      P + '-ops{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center}',
+      P + '-doctors-fold{margin-top:8px;font-size:13px;color:#64748b}',
+      P + '-doctors-fold summary{cursor:pointer;font-weight:600;color:#475569}',
+      P + '-doctors-fold[open] summary{margin-bottom:8px}',
       P + '-empty{color:#94a3b8;font-size:13px;padding:10px 2px}',
       '@media(max-width:900px){' + P + '-form{grid-template-columns:1fr}}',
     ].join('\n')
@@ -308,12 +370,16 @@
     return (
       '<div class="' + HOST_ID + '-panel">' +
       '<div class="' + HOST_ID + '-head">' +
-      '<h2>远程会诊</h2>' +
+      '<h2 id="hx-cw-title">远程会诊</h2>' +
       '<div class="' + HOST_ID + '-actions">' +
       '<button type="button" class="' + HOST_ID + '-btn" data-act="refresh">刷新</button>' +
       '<button type="button" class="' + HOST_ID + '-btn primary" data-act="toggle-form">发起会诊</button>' +
       '</div></div>' +
+      '<div id="hx-cw-scope"></div>' +
       '<div id="hx-cw-form-wrap" hidden>' + formHtml() + '</div>' +
+      '<details class="' + HOST_ID + '-doctors-fold" id="hx-cw-doctors-fold">' +
+      '<summary id="hx-cw-doctors-summary">可选接诊医生（发起会诊时在表单中指定）</summary>' +
+      '<div id="hx-cw-doctors"></div></details>' +
       '<div id="hx-cw-ctx"></div>' +
       '<div class="' + HOST_ID + '-msg" id="hx-cw-msg"></div>' +
       '</div>' +
@@ -321,10 +387,6 @@
       '<div class="' + HOST_ID + '-h3">会诊队列</div>' +
       '<div class="' + HOST_ID + '-tabs" id="hx-cw-tabs"></div>' +
       '<div id="hx-cw-queue"></div>' +
-      '</div>' +
-      '<div class="' + HOST_ID + '-panel">' +
-      '<div class="' + HOST_ID + '-h3">可选接诊医生</div>' +
-      '<div id="hx-cw-doctors"></div>' +
       '</div>'
     )
   }
@@ -539,6 +601,104 @@
       '" data-act="' + act + '" data-id="' + esc(id) + '">' + esc(text) + '</button>'
   }
 
+  function opLink(href, text, primary) {
+    return '<a class="' + HOST_ID + '-btn' + (primary ? ' primary' : ' link') + '" href="' + esc(href) + '">' + esc(text) + '</a>'
+  }
+
+  function resolvePatientId(it) {
+    if (!it) return ''
+    var pid = it.patientId || (it.patient && (it.patient.patientId || it.patient.id)) || ''
+    if (pid) return pid
+    var name = (it.patient && it.patient.name) || it.patientName || ''
+    if (name && state.scenarioPatientByName[name.trim()]) return state.scenarioPatientByName[name.trim()]
+    if (!name || !state.patients.length) return ''
+    var hit = state.patients.filter(function (p) { return p.name === name })[0]
+    return (hit && hit.patientId) || ''
+  }
+
+  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
+  function roomHref(it) {
+    if (!it) return ''
+    var token = it.consultationToken || it.token || it.rtcToken || it.roomToken || ''
+    if (!token && it.sessionId && state.scenarioBySession[it.sessionId]) {
+      token = state.scenarioBySession[it.sessionId].token || ''
+    }
+    var id = token || it.sessionId || ''
+    return id ? '/#/room/' + encodeURIComponent(id) : ''
+  }
+
+  function ingestScenarioPack(pack) {
+    if (!pack) return
+    var st = (pack && pack.state) || pack || {}
+    state.scenarioBySession = {}
+    state.scenarioPatientByName = {}
+    ;(st.consultationRequests || []).forEach(function (cr) {
+      if (cr && cr.id) state.scenarioBySession[cr.id] = cr
+    })
+    ;(st.patients || []).forEach(function (p) {
+      if (p && p.name && p.id) state.scenarioPatientByName[String(p.name).trim()] = p.id
+    })
+    state.queue = state.queue.map(function (it) {
+      var cr = state.scenarioBySession[it.sessionId]
+      if (cr) {
+        if (!it.consultationToken && cr.token) it.consultationToken = cr.token
+        if (!it.patientId && cr.patientId) it.patientId = cr.patientId
+      }
+      if (!it.patientId) it.patientId = resolvePatientId(it)
+      return it
+    })
+    if (!state.patients.length) {
+      state.patients = (st.patients || []).map(function (p) {
+        return {
+          patientId: p.id,
+          name: p.name,
+          gender: p.gender,
+          age: p.age,
+          institutionName: orgLabel(p.institutionId),
+          departmentName: p.departmentId || '',
+          chiefComplaint: (p.symptoms || []).join('、'),
+        }
+      })
+    }
+    if (!state.doctors.length) {
+      state.doctors = (st.staff || [])
+        .filter(function (s) { return String(s.profession || '').toLowerCase() === 'doctor' })
+        .map(function (s) {
+          return {
+            doctorId: s.id,
+            name: s.name,
+            institutionName: orgLabel(s.institutionId),
+            departmentName: s.departmentId || '',
+          }
+        })
+    }
+  }
+
+  function fetchScenarioPack() {
+    return fetch('/scenario.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null })
+      .catch(function () { return null })
+  }
+
+  function consultKind(it) {
+    if (isGrassrootsItem(it)) return { label: '基层上转', cls: 'grass' }
+    var src = String(it.sourceHospital || '') + String(it.sourceDepartment || '')
+    if (/120|出警|院前|急救/.test(src)) return { label: '院前', cls: 'pre' }
+    return { label: '县域', cls: 'county' }
+  }
+
+  var ORG_LABEL = {
+    chuanshi: '船石村卫生室',
+    lianjie: '连界镇卫生院',
+    weiyuan: '威远县人民医院',
+    huaxi: '四川大学华西医院',
+    'neijiang-first': '内江市第一人民医院',
+  }
+
+  function orgLabel(id) {
+    return ORG_LABEL[id] || id || '—'
+  }
+
   // ---------- 队列状态 Tab ----------
 
   var QTABS = [
@@ -560,52 +720,85 @@
     }
   }
 
+  function scopeHtml() {
+    var tab = state.scopeTab
+    var hint =
+      tab === 'grassroots'
+        ? '仅显示乡镇、村卫生室及县域上转来源的会诊单；与「全县会诊」同一队列，按来源筛选。'
+        : '全县会诊队列（院前、县域、上级医院）；基层发起的上转请切到「基层上转」。'
+    return (
+      '<div class="' + HOST_ID + '-scope">' +
+      '<nav class="' + HOST_ID + '-scope-tabs" aria-label="会诊范围">' +
+      '<button type="button" class="' + HOST_ID + '-scope-tab' + (tab === 'all' ? ' on' : '') +
+      '" data-act="scope" data-scope="all">全县会诊</button>' +
+      '<button type="button" class="' + HOST_ID + '-scope-tab' + (tab === 'grassroots' ? ' on' : '') +
+      '" data-act="scope" data-scope="grassroots">基层上转</button>' +
+      '</nav><p class="' + HOST_ID + '-scope-hint">' + hint + '</p></div>'
+    )
+  }
+
   function tabsHtml() {
+    var base = queueForScope()
     return QTABS.map(function (t) {
       var n = 0
-      state.queue.forEach(function (it) { if (qtabMatch(it, t.k)) n++ })
+      base.forEach(function (it) { if (qtabMatch(it, t.k)) n++ })
       return '<button type="button" class="' + HOST_ID + '-tab' + (state.qtab === t.k ? ' on' : '') +
         '" data-act="qtab" data-qtab="' + t.k + '">' + t.label + '<span class="n">' + n + '</span></button>'
     }).join('')
   }
 
   function queueHtml() {
-    var rows0 = state.queue.filter(function (it) { return qtabMatch(it, state.qtab) })
+    var scoped = queueForScope()
+    var rows0 = scoped.filter(function (it) { return qtabMatch(it, state.qtab) })
     if (state.loading && !state.queue.length) return '<div class="' + HOST_ID + '-empty">加载中…</div>'
-    if (!rows0.length) return '<div class="' + HOST_ID + '-empty">' + (state.queue.length ? '该状态下暂无会诊单' : '暂无会诊单') + '</div>'
+    if (!rows0.length) {
+      if (state.scopeTab === 'grassroots' && state.queue.length) {
+        return '<div class="' + HOST_ID + '-empty">当前筛选下暂无基层上转会诊单（全县共 ' + state.queue.length + ' 条）</div>'
+      }
+      return '<div class="' + HOST_ID + '-empty">' + (scoped.length ? '该状态下暂无会诊单' : '暂无会诊单') + '</div>'
+    }
     var rows = rows0.map(function (it) {
       var p = it.patient || {}
       var who = esc(p.name || '—')
       if (p.age) who += ' · ' + esc(p.age) + '岁'
       var ops = []
-      // 定时未到点：状态列显示"定时·开始时间"，不出现"进入会诊室"（后端 join-link 也会拒绝）
-      if (it.scheduledAt && !startableNow(it)) {
-        if (it.status === 'WAITING') ops.push(opBtn('accept', it.sessionId, '接诊'))
-      } else {
-        if (it.status === 'WAITING') ops.push(opBtn('accept', it.sessionId, '接诊'))
-        if (it.status === 'WAITING' || it.status === 'IN_CALL') {
-          ops.push(opBtn('join', it.sessionId, '进入会诊室', it.status === 'IN_CALL'))
-        }
+      var scheduledLater = it.scheduledAt && !startableNow(it)
+      // 定时未到点：状态列显示"定时·开始时间"，不出现"进入会诊室"
+      if (!scheduledLater && it.status === 'WAITING' && state.dataSource === 'api') {
+        ops.push(opBtn('accept', it.sessionId, '接诊'))
       }
-      var statusHtml = (it.scheduledAt && !startableNow(it))
+      if (!scheduledLater && (it.status === 'WAITING' || it.status === 'IN_CALL')) {
+        var rh = roomHref(it)
+        if (rh) ops.push(opLink(rh, '进入会诊室', it.status === 'IN_CALL'))
+        else ops.push(opBtn('join', it.sessionId, '进入会诊室', it.status === 'IN_CALL'))
+      }
+      var statusHtml = scheduledLater
         ? '<span class="' + HOST_ID + '-tag sched">定时 · ' + esc(fmtLocal(it.scheduledAt)) + ' 开始</span>'
         : statusTag(it.status, it.statusLabel)
+      var kind = consultKind(it)
+      var pid = resolvePatientId(it)
+      if (pid) {
+        ops.push(opLink('/#/patient/' + encodeURIComponent(pid), '患者档案'))
+        ops.push(opLink('/#/transfers?scope=grassroots&patient=' + encodeURIComponent(pid), '转诊协同'))
+      }
+      var cc = it.chiefComplaint || (p.chiefComplaint || '') || '—'
       var done = it.status === 'FINISHED'
       return (
         '<tr' + (done ? ' class="' + HOST_ID + '-done"' : '') + '>' +
-        '<td>' + esc(it.consultCode || it.sessionId) + '</td>' +
+        '<td><span class="' + HOST_ID + '-kind ' + kind.cls + '">' + esc(kind.label) + '</span><br>' +
+        '<span style="color:#64748b;font-size:12px">' + esc(it.consultCode || it.sessionId) + '</span></td>' +
         '<td>' + who + '</td>' +
         '<td>' + esc(it.sourceHospital || '—') + '<br><span style="color:#94a3b8">' + esc(it.sourceDepartment || '') + '</span></td>' +
         '<td>' + esc(it.targetHospital || '—') + '<br><span style="color:#94a3b8">' + esc(it.targetDepartment || '') + '</span></td>' +
-        '<td>' + esc(it.nominatedDoctorName || '—') + '</td>' +
+        '<td style="max-width:140px">' + esc(cc) + '</td>' +
         '<td>' + statusHtml + '</td>' +
-        '<td>' + (ops.length ? ops.join(' ') : '<span style="color:#94a3b8">—</span>') + '</td>' +
+        '<td><div class="' + HOST_ID + '-ops">' + (ops.length ? ops.join('') : '<span style="color:#94a3b8">—</span>') + '</div></td>' +
         '</tr>'
       )
     }).join('')
     return (
       '<table><thead><tr>' +
-      '<th>会诊单号</th><th>患者</th><th>来源</th><th>目标</th><th>指定医生</th><th>状态</th><th>操作</th>' +
+      '<th>类型 / 单号</th><th>患者</th><th>来源</th><th>目标</th><th>主诉</th><th>状态</th><th>操作</th>' +
       '</tr></thead><tbody>' + rows + '</tbody></table>'
     )
   }
@@ -643,13 +836,31 @@
     }
   }
 
+  function syncScopeFromQuery() {
+    var next = consultScopeTab()
+    if (state.scopeTab === next) return
+    state.scopeTab = next
+    paint()
+  }
+
   function paint() {
     var q = $('hx-cw-queue')
     var d = $('hx-cw-doctors')
     var tb = $('hx-cw-tabs')
     var ctx = $('hx-cw-ctx')
+    var scope = $('hx-cw-scope')
+    var title = $('hx-cw-title')
+    if (scope) scope.innerHTML = scopeHtml()
+    if (title) {
+      title.textContent = state.scopeTab === 'grassroots' ? '远程会诊 · 基层上转' : '远程会诊'
+    }
     if (q) q.innerHTML = queueHtml()
     if (d) d.innerHTML = doctorsHtml()
+    var dsum = $('hx-cw-doctors-summary')
+    if (dsum) {
+      dsum.textContent =
+        '可选接诊医生（' + (state.doctors.length || 0) + ' 人 · 发起会诊时在表单中指定）'
+    }
     if (tb) tb.innerHTML = tabsHtml()
     if (ctx) {
       var dd = state.dispatch
@@ -708,7 +919,11 @@
     state.msgKind = kind || ''
     var el = $('hx-cw-msg')
     if (!el) return
-    el.className = HOST_ID + '-msg ' + (kind || '')
+    var cls = HOST_ID + '-msg'
+    if (kind === 'err') cls += ' err'
+    else if (kind === 'ok') cls += ' ok'
+    else if (kind === 'info') cls += ' info'
+    el.className = cls
     el.textContent = state.msg
   }
 
@@ -720,6 +935,69 @@
   }
 
   // ---------- 数据 ----------
+
+  function mapScenarioConsult(cr, pack) {
+    var patients = pack.patients || []
+    var staff = pack.staff || []
+    var p = patients.filter(function (x) { return x.id === cr.patientId })[0] || {}
+    var st = cr.status === 'completed' ? 'FINISHED' : cr.status === 'accepted' ? 'IN_CALL' : 'WAITING'
+    var nom = staff.filter(function (s) { return s.id === cr.nominatedDoctorId })[0]
+    return {
+      sessionId: cr.id,
+      consultCode: cr.id,
+      consultationToken: cr.token,
+      token: cr.token,
+      patientId: cr.patientId,
+      status: st,
+      sourceHospital: orgLabel(cr.sourceInstitutionId),
+      sourceDepartment: cr.sourceDepartmentId || '',
+      targetHospital: orgLabel(cr.institutionId),
+      targetDepartment: cr.departmentId || '',
+      nominatedDoctorName: nom ? nom.name : '',
+      chiefComplaint: (p.symptoms && p.symptoms.join && p.symptoms.join('、')) || '',
+      patient: { name: p.name, age: p.age, patientId: p.id, chiefComplaint: (p.symptoms || []).join('、') },
+    }
+  }
+
+  function loadDemoScenario() {
+    return fetch('/scenario.json', { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : null })
+      .then(function (pack) {
+        var st = (pack && pack.state) || pack || {}
+        var reqs = st.consultationRequests || []
+        state.queue = reqs.map(function (cr) { return mapScenarioConsult(cr, st) })
+        state.patients = (st.patients || []).map(function (p) {
+          return {
+            patientId: p.id,
+            name: p.name,
+            gender: p.gender,
+            age: p.age,
+            institutionName: orgLabel(p.institutionId),
+            departmentName: p.departmentId || '',
+            chiefComplaint: (p.symptoms || []).join('、'),
+          }
+        })
+        state.doctors = (st.staff || [])
+          .filter(function (s) { return String(s.profession || '').toLowerCase() === 'doctor' })
+          .map(function (s) {
+            return {
+              doctorId: s.id,
+              name: s.name,
+              institutionName: orgLabel(s.institutionId),
+              departmentName: s.departmentId || '',
+            }
+          })
+        state.orgs = []
+        state.depts = []
+        state.dataSource = 'demo'
+        ingestScenarioPack(pack)
+        state.ready = true
+        return state.queue.length > 0
+      })
+      .catch(function () {
+        return false
+      })
+  }
 
   function loadAll() {
     if (state.loading) return Promise.resolve()
@@ -734,20 +1012,38 @@
       ['/departments', { _t: t }],
     ]
     return mapLimited(tasks, 2, function (task) {
-      return call('GET', task[0], task[1])
+      return call('GET', task[0], task[1]).catch(function () { return null })
     }).then(function (res) {
-      state.queue = listOf(res[0])
-      state.doctors = (res[1] && res[1].doctors) || []
-      state.patients = listOf(res[2])
-      state.orgs = listOf(res[3])
-      state.depts = uniqBy(listOf(res[4]), 'dept_name')
-      state.ready = true
-      if (state.msgKind === 'err') setMsg('')
-    }).catch(function (e) {
-      setMsg((e && e.message) || '数据加载失败', 'err')
+      var queueRaw = res[0]
+      if (queueRaw) {
+        state.queue = listOf(queueRaw)
+        state.dataSource = 'api'
+        if (res[1] && res[1].doctors) state.doctors = res[1].doctors
+        if (res[2]) state.patients = listOf(res[2])
+        if (res[3]) state.orgs = listOf(res[3])
+        if (res[4]) state.depts = uniqBy(listOf(res[4]), 'dept_name')
+        state.ready = true
+        setMsg('')
+        return fetchScenarioPack().then(function (pack) {
+          ingestScenarioPack(pack)
+        })
+      }
+      return loadDemoScenario().then(function (ok) {
+        if (ok) {
+          setMsg('后端会诊接口未连接，当前为演示队列；接诊/发起会诊接后端后自动切换。', 'info')
+        } else {
+          setMsg('无法加载会诊数据，请检查网络或刷新页面。', 'err')
+        }
+      })
+    }).catch(function () {
+      return loadDemoScenario().then(function (ok) {
+        if (ok) setMsg('后端会诊接口未连接，当前为演示队列。', 'info')
+        else setMsg('无法加载会诊数据。', 'err')
+      })
     }).then(function () {
       state.loading = false
       paint()
+      if (!state.ready && !state.queue.length) unmount()
     })
   }
 
@@ -780,6 +1076,9 @@
 
   function submitForm() {
     if (state.busy) return setFormMsg('上一步操作还在进行，请稍候', 'err')
+    if (state.dataSource === 'demo') {
+      return setFormMsg('演示队列：请从「患者登记/急救事件」发起会诊，或连接后端后在此提交。', 'err')
+    }
     var pid = ($('hx-cw-f-patient') || {}).value || ''
     var hospital = ($('hx-cw-f-hospital') || {}).value || ''
     var dept = ($('hx-cw-f-dept') || {}).value || ''
@@ -844,6 +1143,10 @@
   }
 
   function accept(sessionId) {
+    if (state.dataSource === 'demo') {
+      setMsg('演示队列：请点「进入会诊室」或「患者档案」；接后端后「接诊」将写入真实会诊单。', 'info')
+      return
+    }
     if (state.busy) return setMsg('上一步操作还在进行，请稍候', 'err')
     state.busy = true
     setMsg('接诊中…')
@@ -861,37 +1164,26 @@
   }
 
   function enterRoom(sessionId) {
+    var it = state.queue.filter(function (x) { return x.sessionId === sessionId })[0]
+    var rh = roomHref(it || { sessionId: sessionId })
+    if (rh) {
+      location.hash = rh.replace(/^\/#/, '#')
+      setMsg('')
+      return
+    }
     if (state.busy) return setMsg('上一步操作还在进行，请稍候', 'err')
     state.busy = true
     setMsg('正在获取入会链接…')
-    // 必须在用户手势里同步开窗：等 fetch 回来再 window.open 会被当成非用户手势拦截
-    var win = window.open('about:blank', '_blank')
-    if (win) {
-      try {
-        win.document.write('<p style="font-family:system-ui,sans-serif;padding:24px;color:#475569">正在进入远程会诊系统…</p>')
-        win.document.close()
-        win.opener = null
-      } catch (e) {
-        /* 跨源或已被回收，忽略 */
-      }
-    }
     call('GET', '/consultations/' + encodeURIComponent(sessionId) + '/join-link', { _t: Date.now() })
       .then(function (link) {
         var url = link && link.joinUrl
         if (!url) throw new Error('未获取到入会链接')
         setMsg('')
-        if (win) win.location.href = url
-        else location.href = url
+        window.open(url, '_blank', 'noopener')
       })
-      .catch(function (e) {
-        if (win) {
-          try {
-            win.close()
-          } catch (x) {
-            /* ignore */
-          }
-        }
-        setMsg((e && e.message) || '获取入会链接失败', 'err')
+      .catch(function () {
+        location.hash = '#/room/' + encodeURIComponent(sessionId)
+        setMsg('已打开本系统会诊室；外接 RTC 未就绪时将显示演示画面。', 'info')
       })
       .then(function () {
         state.busy = false
@@ -922,6 +1214,11 @@
       else if (act === 'qtab') {
         state.qtab = btn.getAttribute('data-qtab') || 'all'
         paint()
+      }
+      else if (act === 'scope') {
+        var sc = btn.getAttribute('data-scope') || 'all'
+        var qs = sc === 'grassroots' ? '?tab=grassroots' : ''
+        location.hash = '#/consultations' + qs
       }
       else if (act === 'dt-clear') {
         state.schedule = null
@@ -979,7 +1276,10 @@
     }
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
+    migrateLegacyGrassrootsUrl()
+    state.scopeTab = consultScopeTab()
     syncDispatchFromQuery()
+    syncScopeFromQuery()
 
     var host = $(HOST_ID)
     if (!host) {
@@ -995,6 +1295,7 @@
     if (!state.ready && !state.loading) loadAll()
   }
 
+  window.addEventListener('hashchange', migrateLegacyGrassrootsUrl)
   window.hxEnhance(tick, { wait: 300, observeRoot: true, afterNav: 120 })
   // 兜底：布局变化（窗口缩放、字体加载、侧栏展开）时重算位置，并保证节点不丢
   setInterval(tick, 900)
