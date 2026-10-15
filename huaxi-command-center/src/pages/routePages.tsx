@@ -28,6 +28,8 @@ const phonePage = createScaffoldPage(APP_ROUTES.find((r) => r.path === '/phone')
 
 export const routeElements: Record<string, ComponentType> = {
   '/': HomePage,
+  /** 与 command-map-page-enhance 一致：全屏地图仍渲染首页 WebGL，仅 body 样式不同 */
+  '/map': HomePage,
   '/phone': phonePage,
   '/patients': PatientsListPage,
   '/patient/:id': PatientDetailPage,

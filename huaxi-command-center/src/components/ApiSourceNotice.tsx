@@ -8,8 +8,9 @@ export function ApiSourceNotice({ compact }: { compact?: boolean }) {
     )
   }
   return (
-    <p className="api-muted" style={{ margin: '8px 12px 0', gridColumn: '1 / -1' }}>
-      本入口为 <strong>src-shell</strong>：各页直连 Laravel API。像素级验收请用{' '}
+    <p className="api-muted api-source-notice" style={{ margin: '8px 12px 0', gridColumn: '1 / -1' }}>
+      本入口为 <strong>src-shell</strong>：各页直连 Laravel API。协作三维地图请用{' '}
+      <a href="/app.html">app.html</a>。像素级验收请用{' '}
       <a href="/">index.html</a>；若仍见旧演示数，请{' '}
       <a href="/?reset=1">/?reset=1</a> 后强刷。
     </p>

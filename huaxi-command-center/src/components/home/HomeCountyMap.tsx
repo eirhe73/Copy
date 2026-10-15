@@ -1,14 +1,15 @@
 import { Activity } from 'lucide-react'
-import { lazy, Suspense, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { useHomeRegion } from '../../context/HomeRegionContext'
+import { useHomeRegion, type HomeRegion } from '../../context/HomeRegionContext'
 import { useHomeMapEnhancers } from '../../hooks/useHomeMapEnhancers'
 import { useRouteApi } from '../../hooks/useRouteApi'
+import type { ApiBinding } from '../../routes/apiBindings'
 import { CenterMetricsBar } from './CenterMetricsBar'
 import { MapCollabPanel } from './MapCollabPanel'
 import { MapLegend, MapTools } from './MapChrome'
 
-const MapScene = lazy(() => import('../../smart-city/MapScene').then((m) => ({ default: m.MapScene })))
+const COUNTY_MAP_BINDINGS: ApiBinding[] = [{ method: 'GET', path: '/dashboard/county-map' }]
 
 type Props = {
   kpiEmergency?: string
@@ -25,14 +26,42 @@ export function HomeCountyMap({
 }: Props) {
   const { region, setRegion } = useHomeRegion()
   const { ready, authenticated } = useAuth()
-  const { results, loading: countyLoading } = useRouteApi(
-    [{ method: 'GET', path: '/dashboard/county-map' }],
-    {},
-    { enabled: ready && authenticated },
-  )
+  const countyBindings = useMemo(() => COUNTY_MAP_BINDINGS, [])
+  const { results, loading: countyLoading } = useRouteApi(countyBindings, {}, { enabled: ready && authenticated })
   const countyResult = results[0]
-  const county = countyResult?.ok ? countyResult.data : undefined
-  const countyError = countyResult && !countyResult.ok ? countyResult.error : undefined
+  const [demoCounty, setDemoCounty] = useState<unknown>(undefined)
+
+  useEffect(() => {
+    if (authenticated) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch('/api/gis-collab.json', { cache: 'no-store' })
+        if (!res.ok) return
+        const pack = (await res.json()) as Record<string, { nodes?: unknown[]; links?: unknown[] }>
+        if (cancelled) return
+        setDemoCounty(pack)
+      } catch {
+        /* demo 静态包可选 */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [authenticated])
+
+  const countyFromApi = countyResult?.ok ? countyResult.data : undefined
+  const county = useMemo(() => {
+    if (countyFromApi) return countyFromApi
+    if (!demoCounty || typeof demoCounty !== 'object') return undefined
+    const pack = demoCounty as Record<string, { nodes?: unknown[]; links?: unknown[]; erToday?: number }>
+    const block = pack[region as HomeRegion] ?? pack.weiyuan
+    if (!block?.nodes?.length) return undefined
+    return { erToday: block.erToday ?? 0, nodes: block.nodes, links: block.links ?? [] }
+  }, [countyFromApi, demoCounty, region])
+
+  const countyError =
+    authenticated && countyResult && !countyResult.ok ? countyResult.error : undefined
 
   useEffect(() => {
     if (!county || typeof county !== 'object') return
@@ -61,12 +90,9 @@ export function HomeCountyMap({
         <div className="county-map">
           <MapCollabPanel
             loading={ready && authenticated && countyLoading}
-            error={!authenticated ? '未登录' : countyError}
+            error={countyError}
             payload={county}
           />
-          <Suspense fallback={<p className="api-muted">地图加载中…</p>}>
-            <MapScene themeId="light" region={region} variant="command" />
-          </Suspense>
         </div>
         <div className="map-kpi left">
           <strong>{kpiEmergency}</strong>

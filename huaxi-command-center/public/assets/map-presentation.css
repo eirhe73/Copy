@@ -654,3 +654,197 @@ main.dashboard.screen .dashboard-center .map-kpi.left {
 .dashboard .map-tools .map-caption {
   display: none !important;
 }
+
+/* 协作三维地图 #/map：GLB 与首页同步，画布铺满主内容区 */
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage,
+body.hx-page-map-only main.dashboard.screen .dashboard-center .hx-glb-map-overlay {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 100% !important;
+}
+
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage {
+  bottom: 0 !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .hx-glb-map-react-slot {
+  display: none !important;
+}
+
+body.hx-page-map-only .api-source-notice {
+  display: none !important;
+}
+
+body.hx-page-map-only main.dashboard.screen .dashboard-center .map-stage canvas,
+body.hx-page-map-only .hx-glb-map-host--full .hx-glb-map-overlay canvas {
+  transform: none !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-kpi,
+body.hx-page-map-only .dashboard-center .map-med-tab,
+body.hx-page-map-only .dashboard-center .map-med-backdrop,
+body.hx-page-map-only .dashboard-center .map-med-sidepanel,
+body.hx-page-map-only .dashboard-center .map-collab-panel,
+body.hx-page-map-only .main-map.map-nodes-open .map-med-sidepanel {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+body.hx-page-map-only .main-map.map-nodes-open .map-med-backdrop {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.hx-page-map-only .dashboard-center .region-switch.segmented {
+  position: absolute;
+  z-index: 11;
+  top: 10px;
+  left: 12px;
+}
+
+body.hx-page-map-only .dashboard-center .map-legend {
+  top: auto !important;
+  bottom: 92px !important;
+  right: 12px !important;
+  left: auto !important;
+  z-index: 13 !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  padding: 8px 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid #e2e8f0 !important;
+  box-shadow: 0 4px 14px rgba(30, 75, 123, 0.1) !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-tools {
+  position: absolute !important;
+  top: auto !important;
+  bottom: 16px !important;
+  right: 12px !important;
+  left: auto !important;
+  z-index: 13 !important;
+}
+
+body.hx-page-map-only .hx-campus-info-panel {
+  bottom: 16px !important;
+  right: 16px !important;
+}
+
+.hx-map-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 125;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(2px);
+}
+
+.hx-map-drawer-backdrop[hidden] {
+  display: none !important;
+}
+
+.hx-map-page-chrome {
+  position: absolute;
+  z-index: 30;
+  top: 10px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  pointer-events: none;
+  min-height: 34px;
+}
+
+.hx-map-chrome-left {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.hx-map-chrome-left .hx-map-chrome-btn,
+.hx-map-chrome-left .hx-map-chrome-link,
+.hx-map-chrome-left button.hx-map-chrome-btn {
+  pointer-events: auto;
+}
+
+.hx-map-page-chrome .hx-map-chrome-btn,
+.hx-map-page-chrome .hx-map-chrome-link,
+.hx-map-page-chrome button.hx-map-chrome-btn {
+  pointer-events: auto;
+  font-family: inherit;
+  border: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.96);
+  color: #1e293b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(30, 75, 123, 0.1);
+  cursor: pointer;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.hx-map-page-chrome .hx-map-chrome-btn:hover,
+.hx-map-page-chrome .hx-map-chrome-link:hover {
+  background: #fff;
+  border-color: #cbd5e1;
+}
+
+.hx-map-chrome-title {
+  max-width: 42%;
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+body.hx-page-map-only .dashboard-center .region-switch.segmented {
+  top: 52px;
+  left: 12px;
+}
+
+body.hx-page-map-only .dashboard-center .main-map {
+  padding-top: 0 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .dashboard-center .county-map {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 240px !important;
+}
+
+body.hx-page-map-only .dashboard-center .hx-glb-map-overlay {
+  z-index: 20 !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+body.hx-page-map-only .dashboard-center .map-med-backdrop {
+  display: none !important;
+}
+
+body.hx-page-map-only .dashboard-center {
+  overflow: hidden !important;
+}

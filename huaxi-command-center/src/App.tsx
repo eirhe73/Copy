@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { CommandHeader } from './layout/CommandHeader'
 import { CommandLayout } from './layout/CommandLayout'
+import { HomePage } from './pages/HomePage'
 import { LoginPage } from './pages/LoginPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { routeElements } from './pages/routePages'
@@ -30,6 +31,7 @@ export default function App() {
       ))}
 
       <Route element={<CommandLayout />}>
+        <Route path="/map" element={<HomePage />} />
         {shellRoutes.map((meta) => {
           if (meta.path === '/mobile') {
             return (

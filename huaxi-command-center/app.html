@@ -8,8 +8,8 @@
     <title>华西 · 县域急危重症救治一体化指挥中心</title>
     <link rel="stylesheet" crossorigin href="/assets/index-BRuArrdm.css" />
     <link rel="stylesheet" href="/assets/theme-light.css?v=20260315l" />
-    <link rel="stylesheet" href="/assets/sidebar-shell-layout.css?v=24" />
-    <link rel="stylesheet" href="/assets/map-presentation.css" />
+    <link rel="stylesheet" href="/assets/sidebar-shell-layout.css?v=25" />
+    <link rel="stylesheet" href="/assets/map-presentation.css?v=20260315map4" />
     <!-- INJECT_BACKEND_ENV -->
     <script src="/assets/app-embed-guard.js?v=1"></script>
     <script src="/assets/startup-loading-enhance.js?v=1"></script>
@@ -25,18 +25,19 @@
     <script src="/assets/backend-scenario-live-merge.js"></script>
     <script src="/assets/backend-write-proxy.js"></script>
     <script src="/assets/backend-api-write-dock.js" defer></script>
-    <script type="module" crossorigin src="/assets/index-BA_IO3dC.js?v=consult-admit-2"></script>
-    <script src="/assets/map-medical-overlay.js" defer></script>
+    <!-- 本地 dev：源码 React（含 /map）；线上可改回 /assets/index-*.js -->
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- 协作节点由 React MapCollabPanel 渲染，勿与 map-medical-overlay 双开 -->
     <script src="/assets/map-threemaps-enhance.js" defer></script>
     <script src="/assets/map-light-3d-enhance.js" defer></script>
-    <script type="module" src="/assets/map-hospital-glb-enhance.js?v=17"></script>
+    <script type="module" src="/assets/map-hospital-glb-enhance.js?v=30"></script>
     <script src="/assets/app-integrated-nav.js?v=1"></script>
     <script src="/assets/monitoring-off-enhance.js?v=1"></script>
     <script src="/assets/dispatch-hub-bridge.js?v=6" defer></script>
     <script src="/assets/nav-ia-enhance.js?v=13" defer></script>
     <script src="/assets/dispatch-subnav-parity-enhance.js?v=2" defer></script>
-    <script src="/assets/sidebar-shell-enhance.js?v=18" defer></script>
-    <script src="/assets/command-map-page-enhance.js?v=1" defer></script>
+    <script src="/assets/sidebar-shell-enhance.js?v=20" defer></script>
+    <script src="/assets/command-map-page-enhance.js?v=11" defer></script>
     <script src="/assets/ambulances-page-enhance.js?v=1" defer></script>
     <script src="/assets/dispatch-vue-embed-enhance.js?v=3" defer></script>
     <script src="/assets/consult-launch-dialog-enhance.js?v=1" defer></script>

@@ -25,6 +25,7 @@
   }
 
   window.addEventListener('hashchange', () => setTimeout(tick, 80))
+  window.addEventListener('hx-map-page', () => setTimeout(tick, 50))
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tick)
   else tick()
   window.hxEnhance?.(tick, { wait: 400, observeRoot: true, afterNav: 100 })

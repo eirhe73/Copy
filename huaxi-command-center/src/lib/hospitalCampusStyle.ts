@@ -8,8 +8,6 @@ export const TIER_LEGEND_HEX = ['#1e4b7b', '#2563eb', '#38bdf8'] as const
 export const CAMPUS_UNIFIED_HEX = '#4a7ab0'
 export const CAMPUS_UNIFIED_SHADE = '#2563eb'
 
-const TIER_SHADE = ['#153a61', '#1d4ed8', '#0ea5e9'] as const
-
 type GisThree = {
   terrainTop: number
   terrainSide: number
@@ -20,11 +18,6 @@ type GisThree = {
 function tierPrimaryHex(tier: number): string {
   const idx = Math.min(2, Math.max(0, tier))
   return TIER_LEGEND_HEX[idx]
-}
-
-function tierShadeHex(tier: number): string {
-  const idx = Math.min(2, Math.max(0, tier))
-  return TIER_SHADE[idx]
 }
 
 type MatKind = 'window' | 'roof' | 'body'

@@ -59,7 +59,7 @@ export function useRouteApi(
     return () => {
       cancelled = true
     }
-  }, [pathKey, paramsKey, bindings, enabled])
+  }, [pathKey, paramsKey, enabled])
 
   return { results, loading: enabled ? loading : true, reload: () => setLoading(true) }
 }
