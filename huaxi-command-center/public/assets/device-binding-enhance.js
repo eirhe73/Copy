@@ -34,13 +34,13 @@
   function annotateRows(map) {
     document.querySelectorAll('main.workspace .business-table tbody tr').forEach((tr) => {
       const cells = tr.querySelectorAll('td')
-      if (cells.length < 5) return
+      if (cells.length < 7) return
       const devId = (cells[0].textContent || '').trim()
       if (!devId || !map[devId]) {
         tr.querySelector('.hx-bind-saved')?.remove()
         return
       }
-      const statusCell = cells[4]
+      const statusCell = cells[5]
       if (statusCell.querySelector('.hx-bind-saved')) return
       const span = document.createElement('span')
       span.className = 'hx-bind-saved'
