@@ -1,68 +1,69 @@
-﻿/**
- * 渚ф爮锛氬垎缁勬爣棰?+ 瀛愯彍鍗曞父鏄撅紝瀛愰」鐩存帴鐐瑰嚮锛堟棤鎶樺彔锛? */
+/**
+ * 侧栏：分组标题 + 子菜单常显，子项直接点击（无折叠）
+ */
 ;(function () {
   const HOME = {
     id: 'home',
-    title: '鎸囨尌涓灑',
+    title: '指挥中枢',
     links: [
-      ['/', '鍘垮煙鎸囨尌姒傝'],
-      ['/map', '鍗忎綔涓夌淮鍦板浘'],
+      ['/', '县域指挥概览'],
+      ['/map', '协作三维地图'],
     ],
   }
 
   const PLATES = [
     {
       id: 'dispatch',
-      title: '鏅烘収鎬ユ晳璋冨害',
+      title: '智慧急救调度',
       links: [
-        ['/dispatch', '瀹炴椂鍑鸿'],
-        ['/dispatch/list', '鍑鸿鍒楄〃'],
-        ['/ambulances', '鏁戞姢杞﹀垪琛?],
-        ['/patients', '鎬ユ晳浜嬩欢'],
-        ['/register', '鎮ｈ€呯櫥璁?],
-        ['/consultations', '杩滅▼浼氳瘖'],
-        ['/consultations?tab=grassroots', '鍩哄眰浼氳瘖'],
-        ['/transfers?scope=grassroots', '鍖婚櫌杞瘖'],
-        ['/critical?mode=grassroots-remote', '鍩哄眰杩滅▼鐩戞姢'],
+        ['/dispatch', '实时出警'],
+        ['/dispatch/list', '出警列表'],
+        ['/ambulances', '救护车列表'],
+        ['/patients', '急救事件'],
+        ['/register', '患者登记'],
+        ['/consultations', '远程会诊'],
+        ['/consultations?tab=grassroots', '基层会诊'],
+        ['/transfers?scope=grassroots', '医院转诊'],
+        ['/critical?mode=grassroots-remote', '基层远程监护'],
       ],
     },
     {
       id: 'warning',
-      title: '闄㈠唴鏃╂湡棰勮',
+      title: '院内早期预警',
       links: [
-        ['/warning', '棰勮鎬昏'],
-        ['/warning?view=departments', '绉戝鐩戞帶'],
-        ['/patients?focus=1', '閲嶇偣鍏虫敞'],
-        ['/messages', '棰勮閫氱煡'],
-        ['/quality', '杩愯缁熻'],
+        ['/warning', '预警总览'],
+        ['/warning?view=departments', '科室监控'],
+        ['/patients?focus=1', '重点关注'],
+        ['/messages', '预警通知'],
+        ['/quality', '运行统计'],
       ],
     },
     {
       id: 'critical',
-      title: '鍘垮煙鏅烘収閲嶇棁',
+      title: '县域智慧重症',
       links: [
-        ['/critical', '閲嶇棁鐩戞姢'],
-        ['/critical?view=wards', '搴婁綅鍏ㄦ櫙'],
-        ['/critical?mode=town', '涔￠晣鐩戞姢'],
-        ['/devices', '搴婃梺璁惧'],
-        ['/centers', '浜斿ぇ涓績'],
-        ['/organizations', '鍗忎綔鏈烘瀯'],
+        ['/critical', '重症监护'],
+        ['/critical?view=wards', '床位全景'],
+        ['/critical?mode=town', '乡镇监护'],
+        ['/devices', '床旁设备'],
+        ['/centers', '五大中心'],
+        ['/organizations', '协作机构'],
       ],
     },
     {
       id: 'quality',
-      title: '鏅鸿兘鍖荤枟璐ㄦ帶',
+      title: '智能医疗质控',
       links: [
-        ['/medical-quality', '璐ㄦ帶鏁存敼鐪嬫澘'],
-        ['/medical-quality/reports', '涓氬姟缁熻'],
+        ['/medical-quality', '质控整改看板'],
+        ['/medical-quality/reports', '业务统计'],
       ],
     },
     {
       id: 'dr',
-      title: '鍩哄眰鍖诲０Dr.',
+      title: '基层医声Dr.',
       links: [
-        ['/dr?view=videos', '瑙嗛灞曠ず'],
-        ['/dr?view=saved', '鎴戠殑鏀惰棌'],
+        ['/dr?view=videos', '视频展示'],
+        ['/dr?view=saved', '我的收藏'],
       ],
     },
   ]
@@ -103,29 +104,29 @@
     return q.get('tab') === 'grassroots' || q.get('scope') === 'grassroots'
   }
 
-  /** 椤舵爮鏍囬锛氫互褰撳墠 hash 涓哄噯锛岄伩鍏嶄粛鏄剧ず涓婁竴椤点€屽疄鏃跺嚭璀︺€?*/
+  /** 顶栏标题：以当前 hash 为准，避免仍显示上一页「实时出警」 */
   function pageNavLabel() {
     const p = hashPath()
-    if (p === '/consultations/pick') return '閫夋嫨鎮ｈ€?路 鍙戣捣杩滅▼浼氳瘖'
-    if (p === '/consultations') return isGrassrootsConsult() ? '鍩哄眰浼氳瘖' : '杩滅▼浼氳瘖'
+    if (p === '/consultations/pick') return '选择患者 · 发起远程会诊'
+    if (p === '/consultations') return isGrassrootsConsult() ? '基层会诊' : '远程会诊'
     const labels = {
-      '/dispatch': '瀹炴椂鍑鸿',
-      '/dispatch/list': '鍑鸿鍒楄〃',
-      '/ambulances': '鏁戞姢杞﹀垪琛?,
-      '/patients': '鎬ユ晳浜嬩欢',
-      '/register': '鎮ｈ€呯櫥璁?,
-      '/transfers': '鍖婚櫌杞瘖',
-      '/critical': '閲嶇棁鐩戞姢',
-      '/warning': '棰勮鎬昏',
-      '/map': '鍗忎綔涓夌淮鍦板浘',
-      '/': '鍘垮煙鎸囨尌姒傝',
+      '/dispatch': '实时出警',
+      '/dispatch/list': '出警列表',
+      '/ambulances': '救护车列表',
+      '/patients': '急救事件',
+      '/register': '患者登记',
+      '/transfers': '医院转诊',
+      '/critical': '重症监护',
+      '/warning': '预警总览',
+      '/map': '协作三维地图',
+      '/': '县域指挥概览',
     }
     if (labels[p]) return labels[p]
-    if (p.startsWith('/critical')) return '閲嶇棁鐩戞姢'
-    if (p.startsWith('/warning')) return '棰勮鎬昏'
-    if (p.startsWith('/medical-quality')) return '璐ㄦ帶鏁存敼鐪嬫澘'
-    if (p.startsWith('/dr')) return '鍩哄眰鍖诲０Dr.'
-    if (p.startsWith('/room/') || p.startsWith('/join/')) return '杩滅▼浼氳瘖瀹?
+    if (p.startsWith('/critical')) return '重症监护'
+    if (p.startsWith('/warning')) return '预警总览'
+    if (p.startsWith('/medical-quality')) return '质控整改看板'
+    if (p.startsWith('/dr')) return '基层医声Dr.'
+    if (p.startsWith('/room/') || p.startsWith('/join/')) return '远程会诊室'
     return null
   }
 
@@ -204,7 +205,7 @@
     }
     let next = ''
     if (isHome()) {
-      next = isMapPage() ? '鍗忎綔涓夌淮鍦板浘' : '鍘垮煙鎸囨尌姒傝'
+      next = isMapPage() ? '协作三维地图' : '县域指挥概览'
     } else {
       const fromPath = pageNavLabel()
       if (fromPath) next = fromPath
@@ -228,7 +229,7 @@
     )
   }
 
-  /** hash 涓?React 閲嶆覆鏌撳悗浠嶉攣瀹氫細璇婇《鏍忔爣棰樹笌渚ф爮楂樹寒 */
+  /** hash 与 React 重渲染后仍锁定会诊顶栏标题与侧栏高亮 */
   function pinConsultRouteChrome(menu) {
     syncRouteBodyClasses()
     const p = hashPath()
@@ -259,7 +260,7 @@
   }
 
   function clonePlateIcon(shell, index) {
-    const src = shell.querySelectorAll('header .main-nav[aria-label="浜斾釜涓氬姟妯″潡"] a')
+    const src = shell.querySelectorAll('header .main-nav[aria-label="五个业务模块"] a')
     const svg = src[index]?.querySelector('svg')
     return svg ? svg.cloneNode(true) : null
   }
@@ -353,15 +354,63 @@
 
   }
 
+  function suppressReactPlateSubNav(shell) {
+    shell.querySelectorAll('nav.filter-bar[aria-label="模块二级导航"]').forEach((nav) => {
+      nav.hidden = true
+      nav.setAttribute('aria-hidden', 'true')
+      nav.style.setProperty('display', 'none', 'important')
+      nav.style.setProperty('pointer-events', 'none', 'important')
+    })
+  }
+
+  function teardownSidebarShell() {
+    document.body.classList.remove('hx-sidebar-shell', 'hx-sidebar-home', 'hx-sidebar-map-view')
+    document.querySelector('.app-shell')?.classList.remove('hx-sidebar-ready')
+    document.querySelector('body > aside.hx-sidebar')?.remove()
+    document.querySelectorAll('.app-shell > aside.hx-sidebar').forEach((el) => el.remove())
+  }
+
+  function watchForAppShell() {
+    const root = document.getElementById('root')
+    if (!root || root.dataset.hxSidebarWatch === '1') return
+    root.dataset.hxSidebarWatch = '1'
+    const obs = new MutationObserver(() => {
+      if (skipShell()) return
+      if (document.querySelector('.app-shell')) apply()
+    })
+    obs.observe(root, { childList: true, subtree: true })
+  }
+
+  function getOrCreateSidebarAside() {
+    document.querySelectorAll('.app-shell > aside.hx-sidebar').forEach((el) => el.remove())
+    let aside = document.querySelector('body > aside.hx-sidebar')
+    if (!aside) {
+      aside = document.createElement('aside')
+      aside.className = 'hx-sidebar'
+      aside.setAttribute('aria-label', '业务导航')
+      aside.innerHTML =
+        '<div class="hx-sidebar-brand">' +
+        '<div class="hx-sidebar-brand__mark" aria-hidden="true"></div>' +
+        '<div class="hx-sidebar-brand__text"><strong>华西指挥</strong><small>县域急危重症</small></div></div>' +
+        '<nav class="hx-sidebar-menu" aria-label="模块菜单"></nav>'
+      const root = document.getElementById('root')
+      if (root) document.body.insertBefore(aside, root)
+      else document.body.prepend(aside)
+    }
+    return aside
+  }
+
   function apply() {
-    const shell = document.querySelector('.app-shell')
-    if (!shell || skipShell()) {
-      document.body.classList.remove('hx-sidebar-shell')
-      shell?.classList.remove('hx-sidebar-ready')
+    if (skipShell()) {
+      teardownSidebarShell()
       return
     }
 
+    const shell = document.querySelector('.app-shell')
+    if (!shell) return
+
     document.body.classList.add('hx-sidebar-shell')
+    document.documentElement.dataset.hxUi = 'sidebar-v25'
     shell.classList.add('hx-sidebar-ready')
     try {
       localStorage.setItem('huaxi-integrated-nav', '1')
@@ -371,18 +420,7 @@
     document.body.classList.toggle('hx-sidebar-home', isHome())
     document.body.classList.toggle('hx-sidebar-map-view', isMapPage())
 
-    let aside = shell.querySelector(':scope > aside.hx-sidebar')
-    if (!aside) {
-      aside = document.createElement('aside')
-      aside.className = 'hx-sidebar'
-      aside.setAttribute('aria-label', '涓氬姟瀵艰埅')
-      aside.innerHTML =
-        '<div class="hx-sidebar-brand">' +
-        '<div class="hx-sidebar-brand__mark" aria-hidden="true"></div>' +
-        '<div class="hx-sidebar-brand__text"><strong>鍗庤タ鎸囨尌</strong><small>鍘垮煙鎬ュ嵄閲嶇棁</small></div></div>' +
-        '<nav class="hx-sidebar-menu" aria-label="妯″潡鑿滃崟"></nav>'
-      shell.insertBefore(aside, shell.firstChild)
-    }
+    const aside = getOrCreateSidebarAside()
 
     const menu = aside.querySelector('.hx-sidebar-menu')
     if (!menu) return
@@ -391,10 +429,15 @@
     bindSidebarNav(menu)
     fillIcons(menu, shell)
     syncActive(menu)
+    suppressReactPlateSubNav(shell)
   }
 
+  watchForAppShell()
   window.hxEnhance(() => apply(), { wait: 200, afterNav: 100 })
   window.addEventListener('hashchange', () => apply())
   window.addEventListener('hx-map-page', () => apply())
+  window.addEventListener('DOMContentLoaded', () => apply())
+  setTimeout(() => apply(), 80)
   setTimeout(() => apply(), 600)
+  setTimeout(() => apply(), 1800)
 })()
