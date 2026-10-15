@@ -97,5 +97,13 @@
     })
   }
 
+  function syncReportsTitle() {
+    if (path() !== '/medical-quality/reports') return
+    const h1 = document.querySelector('.quality-workspace .workspace-heading h1')
+    const t = h1?.textContent.trim()
+    if (h1 && (t === '业务统计' || t === '运行统计')) h1.textContent = '质控统计'
+  }
+
   window.hxEnhance(render, { wait: 520, observeRoot: true, afterNav: 120 })
+  window.hxEnhance(syncReportsTitle, { wait: 280, observeRoot: true, afterNav: 80 })
 })()

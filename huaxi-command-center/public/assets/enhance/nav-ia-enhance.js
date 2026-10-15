@@ -42,6 +42,11 @@
     return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
   }
 
+  function redirectLegacyQualityRoute() {
+    if (hashPath() !== '/quality') return
+    location.replace(`${location.pathname}${location.search}#/medical-quality/reports`)
+  }
+
   function hashQuery() {
     const raw = location.hash.replace(/^#/, '')
     const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
@@ -110,7 +115,18 @@ const DR_SUB = [
 
     if (hashPath().startsWith('/medical-quality') || names.includes('质控整改看板')) {
       items.forEach((a) => {
-        const label = text(a)
+        let label = text(a)
+        if (label === '运行统计' || label === '业务统计') {
+          a.textContent = '质控统计'
+          a.href = '#/medical-quality/reports'
+          label = '质控统计'
+        }
+        const onReports = hashPath() === '/medical-quality/reports'
+        const active =
+          (label === '质控整改看板' && !onReports) ||
+          (label === '质控统计' && onReports)
+        a.classList.toggle('active', active)
+        a.setAttribute('aria-current', active ? 'page' : 'false')
         setHidden(a, label !== '质控整改看板' && label !== '质控统计')
       })
       return
@@ -177,6 +193,7 @@ const DR_SUB = [
     if (!nav) return
     lock = true
     try {
+      redirectLegacyQualityRoute()
       tune(nav)
       blockGrassrootsOrgPage()
     } finally {
@@ -185,5 +202,8 @@ const DR_SUB = [
   }
 
   window.hxEnhance(apply, { wait: 400, afterNav: 100 })
-  window.addEventListener('hashchange', blockGrassrootsOrgPage)
+  window.addEventListener('hashchange', () => {
+    redirectLegacyQualityRoute()
+    blockGrassrootsOrgPage()
+  })
 })()

@@ -30,7 +30,6 @@ export const IA_PLATES: IaPlate[] = [
       ['/warning?view=departments', '科室监控'],
       ['/patients?focus=1', '重点关注'],
       ['/messages', '预警通知'],
-      ['/quality', '运行统计'],
     ],
   },
   {
@@ -50,7 +49,7 @@ export const IA_PLATES: IaPlate[] = [
     home: '/medical-quality',
     links: [
       ['/medical-quality', '质控整改看板'],
-      ['/medical-quality/reports', '业务统计'],
+      ['/medical-quality/reports', '质控统计'],
     ],
   },
   {

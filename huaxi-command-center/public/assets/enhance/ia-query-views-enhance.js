@@ -92,55 +92,14 @@
     location.replace(`${location.pathname}${location.search}#/warning?${qs.toString()}`)
   }
 
-  function renderDeptBeds(bedsPayload) {
+  function renderDeptBeds() {
     const { p, q } = pathAndQuery()
-    if (p !== '/warning' || q.get('view') !== 'departments') {
-      remove('hx-dept-beds-panel')
-      return
-    }
+    remove('hx-dept-beds-panel')
+    if (p !== '/warning' || q.get('view') !== 'departments') return
     const host = findDeptHost()
     if (!host) return
 
-    const focusOrg = q.get('org') || ''
     const focusDept = q.get('dept') || ''
-    const depts = bedsPayload?.departments || []
-    const filtered = depts.filter((d) => {
-      if (focusDept && d.id !== focusDept) return false
-      return true
-    })
-
-    const cards = (filtered.length ? filtered : depts)
-      .map((d) => {
-        const occ =
-          d.total && d.occupied != null ? Math.round((Number(d.occupied) / Number(d.total)) * 100) : null
-        const occCls = occ != null && occ >= 90 ? ' hx-dept-bed-occ--high' : ''
-        return `<article class="hx-dept-bed-card" data-dept="${esc(d.id)}">
-          <h4>${esc(d.name)}${occ != null ? `<em class="hx-dept-bed-occ${occCls}">${occ}%</em>` : ''}</h4>
-          <ul>
-            <li><span>总床</span><strong>${d.total ?? '—'}</strong></li>
-            <li><span>在用</span><strong>${d.occupied ?? '—'}</strong></li>
-            <li><span>预留</span><strong>${d.reserved ?? '—'}</strong></li>
-            <li><span>空床</span><strong class="hx-dept-bed-free">${d.free ?? '—'}</strong></li>
-          </ul>
-        </article>`
-      })
-      .join('')
-
-    const html = `<section id="hx-dept-beds-panel" class="hx-dept-beds-panel" aria-label="科室床位">
-      <header class="hx-dept-beds-head">
-        <strong>科室床位</strong>
-        <span>已并入科室监控 · ${esc(bedsPayload?.hospitalId || '本院')}${focusDept ? ` · 当前科室 ${esc(focusDept)}` : ''}</span>
-      </header>
-      <div class="hx-dept-beds-grid">${cards || '<p class="hx-ia-view-empty">暂无床位统计数据</p>'}</div>
-    </section>`
-
-    let box = document.getElementById('hx-dept-beds-panel')
-    if (box && box.dataset.html === html) return
-    remove('hx-dept-beds-panel')
-    host.insertAdjacentHTML('beforeend', html)
-    const panel = document.getElementById('hx-dept-beds-panel')
-    if (panel) panel.dataset.html = html
-
     host.querySelectorAll('.department-matrix a[href*="/beds"]').forEach((a) => {
       const href = a.getAttribute('href') || ''
       const m = href.match(/org=([^&]+).*dept=([^&]+)/)
@@ -148,8 +107,11 @@
       a.setAttribute('href', `#/warning?view=departments&org=${decodeURIComponent(m[1])}&dept=${decodeURIComponent(m[2])}`)
     })
 
-    if (focusDept && panel) {
-      panel.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    if (focusDept) {
+      const card = host.querySelector(
+        `.department-matrix [data-dept="${CSS.escape(focusDept)}"], .department-matrix a[href*="dept=${encodeURIComponent(focusDept)}"]`,
+      )
+      card?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
   }
 
@@ -188,6 +150,98 @@
   const remoteCache = { value: null, promise: null }
   const bedsCache = { value: null, promise: null }
   const monitorCache = { value: null, promise: null }
+  const linkCtxCache = { value: null, promise: null }
+
+  function currentOrg(ctx) {
+    const { q } = pathAndQuery()
+    return q.get('org') || ctx?.institutionId || 'weiyuan'
+  }
+
+  function criticalHash(org, bedId) {
+    const qs = new URLSearchParams()
+    if (org) qs.set('org', org)
+    if (bedId) qs.set('bed', bedId)
+    const tail = qs.toString()
+    return `#/critical${tail ? `?${tail}` : ''}`
+  }
+
+  function deptWarningHash(org, dept) {
+    const qs = new URLSearchParams({ view: 'departments' })
+    if (org) qs.set('org', org)
+    if (dept) qs.set('dept', dept || 'icu')
+    return `#/warning?${qs.toString()}`
+  }
+
+  function loadLinkCtx() {
+    if (linkCtxCache.value) return Promise.resolve(linkCtxCache.value)
+    if (linkCtxCache.promise) return linkCtxCache.promise
+    linkCtxCache.promise = fetch('/scenario.json', { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : {}))
+      .then((pack) => {
+        const state = pack.state || pack
+        linkCtxCache.value = { beds: state.beds || [], patients: state.patients || [] }
+        return linkCtxCache.value
+      })
+      .catch(() => {
+        linkCtxCache.value = { beds: [], patients: [] }
+        return linkCtxCache.value
+      })
+    return linkCtxCache.promise
+  }
+
+  function resolveBedId(bedLabel, instId, beds) {
+    const raw = String(bedLabel || '').trim()
+    if (!raw) return null
+    const icu = raw.match(/^ICU[-\s]?0*(\d+)/i)
+    if (icu) {
+      const id = `${instId}-icu-${icu[1]}`
+      if (beds.some((b) => b.id === id)) return id
+    }
+    const byLabel = beds.find(
+      (b) =>
+        b.institutionId === instId &&
+        (b.label === raw || `${b.label}` === raw.replace(/^ICU[-\s]?/i, '') || raw.includes(b.label)),
+    )
+    return byLabel?.id || null
+  }
+
+  function isIcuBedLabel(bedLabel) {
+    return /^ICU/i.test(String(bedLabel || '').trim())
+  }
+
+  function bedCellHtml(bedLabel, org, beds) {
+    const bedId = resolveBedId(bedLabel, org, beds)
+    const label = esc(bedLabel || '—')
+    if (!bedId) return label
+    return `<a class="hx-dm-bed-link" href="#/bed/${encodeURIComponent(bedId)}" title="床旁监护">${label}</a>`
+  }
+
+  function bedRowActions(bedLabel, org, beds) {
+    const bedId = resolveBedId(bedLabel, org, beds)
+    if (!bedId) return '—'
+    return `<span class="hx-dm-row-actions">
+      <a href="#/bed/${encodeURIComponent(bedId)}">床旁</a>
+      <a href="${esc(criticalHash(org, bedId))}">ICU</a>
+    </span>`
+  }
+
+  function kpiLinkHref(label, org) {
+    const t = String(label || '')
+    if (t.includes('NEWS')) return '#hx-dm-panel-news'
+    if (t.includes('危急值')) return '#/warning?view=labs'
+    if (t.includes('床位占用')) return criticalHash(org)
+    if (t.includes('新预警')) return '#hx-dm-pending-panel'
+    return null
+  }
+
+  function findIcuBedForPatient(patientId, org, beds) {
+    if (!patientId) return null
+    return (
+      beds.find(
+        (b) => b.patientId === patientId && b.institutionId === org && b.departmentId === 'icu',
+      ) || null
+    )
+  }
 
   function panelDataKey(titleRaw) {
     const n = String(titleRaw || '').replace(/\s+/g, '')
@@ -220,36 +274,47 @@
     return `<span class="${cls}">${esc(t || '—')}</span>`
   }
 
-  function compactTable(rows, cols) {
+  function compactTable(rows, cols, org, beds) {
     if (!rows.length) return ''
-    const head = cols.map((c) => `<th>${esc(c.label)}</th>`).join('')
+    const head = cols.map((c) => `<th>${esc(c.label)}</th>`).join('') + '<th>联动</th>'
     const body = rows
       .map((row) => {
         const tds = cols
           .map((c) => {
-            const raw = typeof c.key === 'function' ? c.key(row) : row[c.key]
+            let raw = typeof c.key === 'function' ? c.key(row) : row[c.key]
+            if (c.key === 'bed' && org && beds) raw = bedCellHtml(row.bed, org, beds)
             return `<td>${raw ?? '—'}</td>`
           })
           .join('')
-        return `<tr>${tds}</tr>`
+        const actions = org && beds ? bedRowActions(row.bed, org, beds) : '—'
+        return `<tr>${tds}<td class="hx-dm-mini-actions">${actions}</td></tr>`
       })
       .join('')
     return `<div class="hx-dm-mini-table business-table"><table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`
   }
 
-  function renderMonitorBanner(section, ctx) {
-    if (!section || !ctx) return
+  function renderMonitorBanner(mainEl, ctx, org) {
+    if (!mainEl || !ctx) return
     const shift = ctx.shift || {}
     const kpis = ctx.kpis || []
     const links = ctx.quickLinks || []
     const kpiHtml = kpis
-      .map(
-        (k) => `<article class="hx-dm-kpi ${toneClass(k.tone)}">
-          <span class="hx-dm-kpi-label">${esc(k.label)}</span>
-          <strong class="hx-dm-kpi-val">${esc(k.value)}</strong>
-          <small>${esc(k.hint || '')}</small>
-        </article>`,
-      )
+      .map((k) => {
+        const href = kpiLinkHref(k.label, org)
+        const inner =
+          `<span class="hx-dm-kpi-label">${esc(k.label)}</span>` +
+          `<strong class="hx-dm-kpi-val">${esc(k.value)}</strong>` +
+          `<small>${esc(k.hint || '')}</small>`
+        if (!href) {
+          return `<article class="hx-dm-kpi ${toneClass(k.tone)}">${inner}</article>`
+        }
+        const isHash = href.startsWith('#/') || href.startsWith('#')
+        const cls = `hx-dm-kpi ${toneClass(k.tone)} hx-dm-kpi--link`
+        if (isHash && !href.startsWith('#/')) {
+          return `<a class="${cls}" href="${esc(href)}" data-hx-dm-scroll="1">${inner}</a>`
+        }
+        return `<a class="${cls}" href="${esc(href)}">${inner}</a>`
+      })
       .join('')
     const linkHtml = links
       .map((l) => `<a class="hx-dm-quick" href="${esc(l.href)}">${esc(l.label)}</a>`)
@@ -272,26 +337,55 @@
       <p class="hx-dept-monitor-note">${esc(shift.note || '')}</p>
       <nav class="hx-dept-monitor-links" aria-label="快捷入口">${linkHtml}</nav>
     </header>`
-    const totals = section.querySelector('.department-totals')
     let box = document.getElementById('hx-dept-monitor-banner')
     if (box && box.dataset.html === html) return
     remove('hx-dept-monitor-banner')
-    if (totals) totals.insertAdjacentHTML('beforebegin', html)
-    else section.insertAdjacentHTML('afterbegin', html)
+    mainEl.insertAdjacentHTML('afterbegin', html)
     box = document.getElementById('hx-dept-monitor-banner')
     if (box) box.dataset.html = html
   }
 
-  function renderTodayFocus(section, ctx) {
+  function syncPanelWarningCounts(panel, rows) {
+    if (!rows.length) return
+    const counts = panel.querySelector('.warning-counts')
+    if (!counts) return
+    const bs = counts.querySelectorAll('b')
+    if (!bs.length) return
+    const pending = rows.filter((r) => /待|未/.test(String(r.status || ''))).length
+    const done = rows.filter((r) => /干预|已|进行|结案/.test(String(r.status || ''))).length
+    const total = rows.length
+    const sum = [...bs].reduce((n, b) => n + (Number(b.textContent) || 0), 0)
+    if (sum > 0) return
+    if (bs[0]) bs[0].textContent = String(total)
+    if (bs[1]) bs[1].textContent = String(done)
+    if (bs[2]) bs[2].textContent = String(pending)
+  }
+
+  function wireCompactTableBedLinks(panel, org, beds) {
+    if (!org || !beds?.length) return
+    panel.querySelectorAll('table.compact-table tbody tr').forEach((tr) => {
+      const bedCell = tr.cells[0]
+      if (!bedCell || bedCell.querySelector('a.hx-dm-bed-link')) return
+      const bedLabel = (bedCell.textContent || '').trim()
+      if (!bedLabel) return
+      const linked = bedCellHtml(bedLabel, org, beds)
+      if (linked.includes('href')) bedCell.innerHTML = linked
+    })
+  }
+
+  function renderTodayFocus(section, ctx, org) {
     if (!section || !ctx) return
     const items = ctx.todayFocus || []
     const res = ctx.resources || []
     const focusHtml = items
-      .map(
-        (f) => `<li class="hx-dm-focus hx-dm-focus--${esc(f.tone || 'neutral')}">
-          <b>${esc(f.label)}</b><span>${esc(f.desc)}</span>
-        </li>`,
-      )
+      .map((f) => {
+        const inner = `<b>${esc(f.label)}</b><span>${esc(f.desc)}</span>`
+        const icu = String(f.label || '').includes('ICU')
+        const body = icu
+          ? `<a class="hx-dm-focus-link" href="${esc(criticalHash(org))}">${inner}</a>`
+          : inner
+        return `<li class="hx-dm-focus hx-dm-focus--${esc(f.tone || 'neutral')}">${body}</li>`
+      })
       .join('')
     const resHtml = res
       .map(
@@ -322,8 +416,65 @@
     if (box) box.dataset.html = html
   }
 
-  function enrichLeftPanels(main, ctx) {
+  function renderLinkageBar(section, org) {
+    if (!section) return
+    const wardsQs = new URLSearchParams({ view: 'wards' })
+    if (org) wardsQs.set('org', org)
+    const html = `<nav id="hx-dept-linkage-bar" class="hx-dept-linkage-bar" aria-label="重症联动">
+      <span class="hx-dept-linkage-tag">重症联动</span>
+      <a class="hx-dept-linkage-go" href="${esc(criticalHash(org))}">ICU 重症监护</a>
+      <a class="hx-dept-linkage-go" href="#/critical?${wardsQs.toString()}">床位全景</a>
+      <a class="hx-dept-linkage-go" href="${esc(deptWarningHash(org, 'icu'))}">ICU 预警筛选</a>
+      <span class="hx-dept-linkage-tip">左侧 <b>床号</b> 点进床旁 · 待测评行末 <b>重症/床旁</b></span>
+    </nav>`
+    let box = document.getElementById('hx-dept-linkage-bar')
+    if (box && box.dataset.html === html) return
+    remove('hx-dept-linkage-bar')
+    const totals = section.querySelector('.department-totals')
+    if (totals) totals.insertAdjacentHTML('afterend', html)
+    else section.querySelector('.department-matrix')?.insertAdjacentHTML('beforebegin', html)
+    box = document.getElementById('hx-dept-linkage-bar')
+    if (box) box.dataset.html = html
+  }
+
+  function wireMatrixIcuLinks(section, org) {
+    if (!section || !org) return
+    section.querySelectorAll('.department-matrix a, .department-matrix article').forEach((card) => {
+      const text = (card.textContent || '').replace(/\s+/g, '')
+      if (!text.includes('重症医学科') && !text.includes('ICU')) return
+      if (card.querySelector('.hx-dept-matrix-icu')) return
+      card.insertAdjacentHTML(
+        'beforeend',
+        `<p class="hx-dept-matrix-icu"><a href="${esc(criticalHash(org))}">→ ICU 监护</a></p>`,
+      )
+    })
+  }
+
+  function appendPendingLinkage(main, org, linkCtx) {
+    const panel = main?.querySelector('section > .panel')
+    const body = panel?.querySelector('.panel-body')
+    if (!body) return
+    panel.id = 'hx-dm-pending-panel'
+    const beds = linkCtx?.beds || []
+    body.querySelectorAll(':scope > p').forEach((p) => {
+      if (p.querySelector('.hx-dm-pending-ops')) return
+      const link = p.querySelector('a')
+      const href = link ? link.getAttribute('href') || '#' : '#'
+      const pidM = href.match(/\/patient\/([^/?#]+)/)
+      const patientId = pidM ? decodeURIComponent(pidM[1]) : ''
+      const icuBed = findIcuBedForPatient(patientId, org, beds)
+      let ops = `<a class="hx-dm-pending-go" href="${esc(href)}">档案</a>`
+      ops += ` · <a href="${esc(criticalHash(org))}">重症</a>`
+      if (icuBed?.id) {
+        ops += ` · <a href="#/bed/${encodeURIComponent(icuBed.id)}">床旁</a>`
+      }
+      p.insertAdjacentHTML('beforeend', `<span class="hx-dm-pending-ops"> · ${ops}</span>`)
+    })
+  }
+
+  function enrichLeftPanels(main, ctx, org, linkCtx) {
     if (!main || !ctx) return
+    const beds = linkCtx?.beds || []
     const aside = main.querySelector('aside:first-of-type')
     if (!aside) return
     aside.querySelectorAll('.panel').forEach((panel) => {
@@ -331,30 +482,18 @@
       const key = panelDataKey(title)
       if (!key) return
       const rows = ctx[key] || []
-      if (!rows.length) return
-      const body = panel.querySelector('.panel-body')
-      if (!body || body.querySelector('.hx-dm-mini-table')) return
-      let table = ''
-      if (key === 'criticalLabs') {
-        table = compactTable(rows, [
-          { label: '床/区', key: 'bed' },
-          { label: '项目', key: 'item' },
-          { label: '状态', key: (r) => statusPill(r.status) },
-        ])
-      } else if (key === 'vasoactive') {
-        table = compactTable(rows, [
-          { label: '床', key: 'bed' },
-          { label: '药物', key: 'drug' },
-          { label: '状态', key: (r) => statusPill(r.status) },
-        ])
-      } else {
-        table = compactTable(rows, [
-          { label: '床', key: 'bed' },
-          { label: '评分', key: 'score' },
-          { label: '状态', key: (r) => statusPill(r.status) },
-        ])
+      if (key === 'newsScores') panel.id = 'hx-dm-panel-news'
+      if (key === 'criticalLabs') panel.id = 'hx-dm-panel-labs'
+      if (key === 'vasoactive') panel.id = 'hx-dm-panel-vaso'
+      syncPanelWarningCounts(panel, rows)
+      wireCompactTableBedLinks(panel, org, beds)
+      const titleEl = panel.querySelector('.panel-title')
+      if (titleEl && !titleEl.querySelector('.hx-dm-link-hint')) {
+        titleEl.insertAdjacentHTML(
+          'beforeend',
+          `<span class="hx-dm-link-hint">床号→床旁</span>`,
+        )
       }
-      body.insertAdjacentHTML('beforeend', table)
     })
   }
 
@@ -367,26 +506,33 @@
       const body = panel.querySelector('.panel-body')
       if (!body || body.dataset.hxHygiene === '1') return
       body.dataset.hxHygiene = '1'
+      if (body.querySelector('.hx-dm-hh')) return
       const wards = (hh.wards || [])
         .map(
           (w) => `<li><span>${esc(w.name)}</span><span class="hx-dm-hh-bar"><i style="width:${Math.min(100, w.rate)}%"></i></span><b>${w.rate}%</b></li>`,
         )
         .join('')
-      body.innerHTML = `<div class="hx-dm-hh">
+      body.insertAdjacentHTML(
+        'beforeend',
+        `<div class="hx-dm-hh hx-dm-hh--append">
         <div class="hx-dm-hh-main"><strong>${hh.rate}%</strong><span>${esc(hh.period || '')}</span></div>
         <p class="hx-dm-hh-meta">观察 ${hh.observations ?? '—'} 次 · 依从 ${hh.compliant ?? '—'} 次 · ${esc(hh.source || '')}</p>
         <ul class="hx-dm-hh-wards">${wards}</ul>
-      </div>`
+      </div>`,
+      )
     })
   }
 
-  function enhancePendingPanel(main) {
+  function enhancePendingPanel(main, org, linkCtx) {
     const panel = main?.querySelector('section > .panel')
     if (!panel) return
+    panel.id = 'hx-dm-pending-panel'
     const body = panel.querySelector('.panel-body')
     if (!body || body.querySelector('.hx-dm-pending-table')) return
+    if (body.querySelector('table.compact-table, table.business-table, .business-table table')) return
     const ps = [...body.querySelectorAll(':scope > p')]
     if (!ps.length) return
+    const beds = linkCtx?.beds || []
     const rows = ps
       .map((p) => {
         const link = p.querySelector('a')
@@ -399,11 +545,19 @@
         let tone = 'wait'
         if (/干预|治疗|吸氧|升压/.test(note + title)) tone = 'doing'
         if (/低|下降|异常/.test(title)) tone = 'danger'
+        const pidM = href.match(/\/patient\/([^/?#]+)/)
+        const patientId = pidM ? decodeURIComponent(pidM[1]) : ''
+        const icuBed = findIcuBedForPatient(patientId, org, beds)
+        let ops = `<a class="hx-dm-pending-go" href="${esc(href)}">档案</a>`
+        if (icuBed?.id) {
+          ops += ` · <a href="${esc(criticalHash(org, icuBed.id))}">重症</a>`
+          ops += ` · <a href="#/bed/${encodeURIComponent(icuBed.id)}">床旁</a>`
+        }
         return `<tr class="hx-dm-pending-row hx-dm-pending-row--${tone}">
           <td><a href="${esc(href)}">${esc(name)}</a></td>
           <td>${esc(title)}</td>
           <td class="hx-dm-pending-note">${esc(note)}</td>
-          <td><a class="hx-dm-pending-go" href="${esc(href)}">患者档案</a></td>
+          <td class="hx-dm-pending-ops">${ops}</td>
         </tr>`
       })
       .join('')
@@ -418,13 +572,18 @@
   function clearDeptMonitorEnhance() {
     remove('hx-dept-monitor-banner')
     remove('hx-dept-today-focus')
+    remove('hx-dept-linkage-bar')
+    remove('hx-dept-beds-panel')
     const main = document.querySelector('main.department-overview.screen')
     if (!main) return
-    main.querySelectorAll('.hx-dm-mini-table').forEach((el) => el.remove())
+    main.querySelectorAll('.panel-body .hx-dm-hh--append').forEach((el) => el.remove())
     main.querySelectorAll('[data-hx-hygiene]').forEach((el) => {
       delete el.dataset.hxHygiene
     })
     main.querySelectorAll('.hx-dm-pending-table').forEach((el) => el.remove())
+    main.querySelectorAll('.hx-dm-pending-ops').forEach((el) => el.remove())
+    main.querySelectorAll('.hx-dept-matrix-icu').forEach((el) => el.remove())
+    main.querySelectorAll('.hx-dm-link-hint').forEach((el) => el.remove())
   }
 
   function renderDeptMonitorContext(ctx) {
@@ -436,11 +595,16 @@
     const main = document.querySelector('main.department-overview.screen')
     const section = findDeptHost()
     if (!main || !section || !ctx) return
-    renderMonitorBanner(section, ctx)
-    renderTodayFocus(section, ctx)
-    enrichLeftPanels(main, ctx)
-    enrichHandHygiene(main, ctx)
-    enhancePendingPanel(main)
+    const org = currentOrg(ctx)
+    loadLinkCtx().then((linkCtx) => {
+      if (pathAndQuery().p !== '/warning' || pathAndQuery().q.get('view') !== 'departments') return
+      if (!document.querySelector('main.department-overview.screen')) return
+      renderLinkageBar(section, org)
+      wireMatrixIcuLinks(section, org)
+      enrichLeftPanels(main, ctx, org, linkCtx)
+      enrichHandHygiene(main, ctx)
+      appendPendingLinkage(main, org, linkCtx)
+    })
   }
 
   function loadJson(url, cache) {
@@ -463,23 +627,39 @@
     bedsCache.promise = null
     monitorCache.value = null
     monitorCache.promise = null
+    linkCtxCache.value = null
+    linkCtxCache.promise = null
   }
 
   function render() {
+    const { p, q } = pathAndQuery()
+    if (p !== '/warning' || q.get('view') !== 'departments') clearDeptMonitorEnhance()
     redirectSubHospitalsRoute()
     redirectBedsRoute()
     syncViewMode()
     hidePhoneNoticeOnDepartmentView()
     remove('hx-sub-hospital-monitor')
     loadJson('/api/grassroots-remote-monitor.json', remoteCache).then(renderGrassrootsRemote)
-    loadJson('/api/beds-by-dept.json', bedsCache).then(renderDeptBeds)
+    renderDeptBeds()
     loadJson('/api/dept-monitor-context.json', monitorCache).then(renderDeptMonitorContext)
   }
 
   document.addEventListener(
     'click',
     (e) => {
-      const a = e.target instanceof Element ? e.target.closest('nav.subnav > a') : null
+      const t = e.target
+      if (!(t instanceof Element)) return
+      const scrollLink = t.closest('[data-hx-dm-scroll="1"]')
+      if (scrollLink) {
+        const href = scrollLink.getAttribute('href') || ''
+        if (href.startsWith('#') && !href.startsWith('#/')) {
+          e.preventDefault()
+          const el = document.querySelector(href)
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          return
+        }
+      }
+      const a = t.closest('nav.subnav > a')
       if (!a || (a.textContent || '').trim() !== '科室床位') return
       e.preventDefault()
       e.stopPropagation()
@@ -489,6 +669,7 @@
   )
 
   window.addEventListener('hashchange', () => {
+    clearDeptMonitorEnhance()
     resetCaches()
     redirectSubHospitalsRoute()
     syncViewMode()
