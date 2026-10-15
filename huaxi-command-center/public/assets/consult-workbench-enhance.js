@@ -38,6 +38,10 @@
     msgKind: '',
     schedule: null, // Date|null 定时开始时间
     scopeTab: 'all', // 页内视图：grassroots（基层上转）| all（全县）
+    statusFilter: 'ALL', // 队列状态筛选：ALL | WAITING | IN_CALL | SCHEDULED | FINISHED
+    page: 1, // 队列表格当前页（1 起）
+    pageSize: 10, // 队列表格每页条数
+    queueTotal: 0, // 后端返回的队列总条数（本地条数少于它时提示只加载了前 N 条）
     dataSource: 'api', // api | demo
     dispatch: null, // {task,plate,complaint}|null 120 调度跳转带入的任务上下文
     scenarioBySession: {}, // sessionId -> scenario consultationRequest
@@ -153,6 +157,68 @@
   function queueForScope() {
     if (state.scopeTab !== 'grassroots') return state.queue
     return state.queue.filter(isGrassrootsItem)
+  }
+
+  /**
+   * 队列筛选维度：定时未到点的单虽然后端状态仍是 WAITING，但在列表里是独立的
+   * "定时 · x月x日 HH:MM 开始" 形态，所以单列一档，医生可按此筛出未来场次。
+   */
+  var STATUS_FILTERS = [
+    { key: 'ALL', label: '全部' },
+    { key: 'WAITING', label: '待接诊' },
+    { key: 'IN_CALL', label: '会诊中' },
+    { key: 'SCHEDULED', label: '定时待开始' },
+    { key: 'FINISHED', label: '已结束' },
+  ]
+
+  /**
+   * 判定顺序必须和状态列渲染一致：queueHtml 里"定时未到点"优先级最高，
+   * 会覆盖掉后端状态（真实数据里存在 status=IN_CALL + scheduledAt 未到点的单，
+   * 界面上显示的是"定时 · … 开始"）。所以这里也先判定时，否则筛选结果和看到的标签对不上。
+   */
+  function statusKey(it) {
+    if (it.scheduledAt && !startableNow(it)) return 'SCHEDULED'
+    if (it.status === 'FINISHED') return 'FINISHED'
+    if (it.status === 'IN_CALL') return 'IN_CALL'
+    return 'WAITING'
+  }
+
+  /** 各状态条数（基于当前视图，不考虑状态筛选本身） */
+  function statusCounts() {
+    var counts = { ALL: 0, WAITING: 0, IN_CALL: 0, SCHEDULED: 0, FINISHED: 0 }
+    queueForScope().forEach(function (it) {
+      counts.ALL += 1
+      counts[statusKey(it)] += 1
+    })
+    return counts
+  }
+
+  function queueFiltered() {
+    if (state.statusFilter === 'ALL') return queueForScope()
+    return queueForScope().filter(function (it) {
+      return statusKey(it) === state.statusFilter
+    })
+  }
+
+  /** 当前页数据；页码越界时收敛到最后一页（筛选/刷新后行数变少会走到这里） */
+  function queuePage() {
+    var rows = queueFiltered()
+    var pages = Math.max(1, Math.ceil(rows.length / state.pageSize))
+    if (state.page > pages) state.page = pages
+    if (state.page < 1) state.page = 1
+    var start = (state.page - 1) * state.pageSize
+    return {
+      rows: rows.slice(start, start + state.pageSize),
+      total: rows.length,
+      pages: pages,
+      start: start,
+    }
+  }
+
+  /** 翻页回顶：宿主自身是滚动容器，翻页后停留在底部会看不到新一页的表头 */
+  function scrollQueueTop() {
+    var head = document.querySelector('#' + HOST_ID + ' .' + HOST_ID + '-section-head')
+    if (head && head.scrollIntoView) head.scrollIntoView({ block: 'start' })
   }
 
   function esc(v) {
@@ -346,9 +412,28 @@
       P + '-role{padding:10px 14px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;font-size:13px;line-height:1.55;color:#334155}',
       P + '-role strong{display:block;font-size:13px;margin-bottom:2px;color:#0c4a6e}',
       // ---------- 会诊队列（全量单表） ----------
-      P + '-section-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:0 0 10px}',
-      P + '-section-head h3{margin:0;font-size:15px;font-weight:600;color:#0f172a}',
-      P + '-qcount{font-size:12px;color:#94a3b8}',
+      P + '-section-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px 14px;margin:0 0 10px}',
+      P + '-section-head h3{margin:0;font-size:15px;font-weight:600;color:#0f172a;flex:0 0 auto}',
+      P + '-qcount{font-size:12px;color:#94a3b8;margin-left:auto;white-space:nowrap}',
+      // 状态筛选：胶囊按钮组，计数跟在标签后
+      P + '-filters{display:flex;flex-wrap:wrap;gap:6px}',
+      P + '-chip{display:inline-flex;align-items:center;gap:6px;border:1px solid #dfe6ee;background:#fff;color:#475569;border-radius:999px;padding:4px 11px;font-size:12px;font-family:inherit;line-height:1.5;cursor:pointer}',
+      P + '-chip:hover{border-color:#b6c4d6;background:#f8fafc;color:#334155}',
+      P + '-chip b{font-weight:600;font-size:11px;color:#a3aebd}',
+      P + '-chip.on{background:#eef4fd;border-color:#b9cdf0;color:#1d4ed8;font-weight:600}',
+      P + '-chip.on b{color:#1d4ed8}',
+      // 分页条
+      P + '-pager{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px 14px;margin-top:10px;font-size:12px;color:#64748b}',
+      P + '-pager-info{white-space:nowrap}',
+      P + '-pager-ctl{display:flex;align-items:center;flex-wrap:wrap;gap:4px}',
+      P + '-pg-btn{min-width:28px;height:28px;padding:0 9px;border:1px solid #dfe6ee;background:#fff;color:#475569;border-radius:5px;font-size:12px;font-family:inherit;line-height:1;cursor:pointer}',
+      P + '-pg-btn:hover:not(:disabled){border-color:#94a3b8;background:#f8fafc;color:#1e293b}',
+      P + '-pg-btn:disabled{opacity:.45;cursor:not-allowed}',
+      P + '-pg-btn.on{background:#1e4b7b;border-color:#1e4b7b;color:#fff;font-weight:600}',
+      P + '-pg-btn.on:hover{background:#1e4b7b;color:#fff}',
+      P + '-pg-gap{color:#cbd5e1;padding:0 2px}',
+      P + '-pg-size{display:inline-flex;align-items:center;gap:5px;margin-left:8px;color:#64748b;white-space:nowrap}',
+      P + '-pg-size select{font-family:inherit;font-size:12px;color:#1e293b;border:1px solid #dfe6ee;border-radius:5px;padding:4px 6px;background:#fff;cursor:pointer}',
       P + ' .business-table{border:1px solid #e6ebf2;border-radius:10px;overflow:auto;background:#fff}',
       P + ' .business-table table{width:100%;border-collapse:collapse;font-size:13px;margin:0}',
       P + ' .business-table th{background:#f7f9fc;color:#64748b;font-weight:500;text-align:left;padding:9px 14px;border-bottom:1px solid #e6ebf2;white-space:nowrap;font-size:12px}',
@@ -450,6 +535,7 @@
       '<section>' +
       '<div class="' + HOST_ID + '-section-head">' +
       '<h3>会诊队列</h3>' +
+      '<div class="' + HOST_ID + '-filters" id="hx-cw-filter" role="group" aria-label="按状态筛选会诊队列"></div>' +
       '<span class="' + HOST_ID + '-qcount" id="hx-cw-qcount"></span>' +
       '</div>' +
       '<div id="hx-cw-queue"></div>' +
@@ -845,7 +931,14 @@
       }
       return '<div class="' + HOST_ID + '-empty">暂无会诊单</div>'
     }
-    var rows = scoped.map(function (it) {
+    var pg = queuePage()
+    if (!pg.total) {
+      var only = STATUS_FILTERS.filter(function (f) { return f.key === state.statusFilter })[0]
+      return '<div class="' + HOST_ID + '-empty">当前状态下暂无会诊单（' +
+        esc(only ? only.label : '') + '，本视图共 ' + scoped.length + ' 单）</div>' +
+        pagerHtml(pg)
+    }
+    var rows = pg.rows.map(function (it) {
       var p = it.patient || {}
       var who = esc(p.name || '—')
       if (p.age) who += ' · ' + esc(p.age) + '岁'
@@ -909,7 +1002,75 @@
       (state.scopeTab === 'grassroots'
         ? '<th>类型 / 单号</th><th>患者</th><th>来源</th><th>目标</th><th>主诉</th><th>上转意图</th><th>状态</th><th>操作</th>'
         : '<th>会诊单号</th><th>患者</th><th>来源</th><th>目标</th><th>指定医生</th><th>状态</th><th>操作</th>') +
-      '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+      '</tr></thead><tbody>' + rows + '</tbody></table></div>' + pagerHtml(pg)
+    )
+  }
+
+  /** 状态筛选：胶囊按钮组（计数取当前视图内各状态条数） */
+  function filterHtml() {
+    var counts = statusCounts()
+    return STATUS_FILTERS.map(function (f) {
+      var on = state.statusFilter === f.key
+      return (
+        '<button type="button" class="' + HOST_ID + '-chip' + (on ? ' on' : '') + '"' +
+        ' data-act="filter-status" data-status="' + f.key + '"' +
+        ' aria-pressed="' + (on ? 'true' : 'false') + '">' +
+        esc(f.label) + '<b>' + counts[f.key] + '</b></button>'
+      )
+    }).join('')
+  }
+
+  /** 页码序列：页数多时折叠成 1 … 4 5 6 … 20，避免按钮铺满一行 */
+  function pageItems(pages, cur) {
+    var out = []
+    var i
+    if (pages <= 7) {
+      for (i = 1; i <= pages; i++) out.push(i)
+      return out
+    }
+    out.push(1)
+    var lo = Math.max(2, cur - 1)
+    var hi = Math.min(pages - 1, cur + 1)
+    if (lo > 2) out.push('…')
+    for (i = lo; i <= hi; i++) out.push(i)
+    if (hi < pages - 1) out.push('…')
+    out.push(pages)
+    return out
+  }
+
+  function pagerHtml(pg) {
+    var total = pg.total || 0
+    var from = total ? pg.start + 1 : 0
+    var to = pg.start + (pg.rows ? pg.rows.length : 0)
+    var nums = pageItems(pg.pages, state.page).map(function (n) {
+      if (n === '…') return '<span class="' + HOST_ID + '-pg-gap">…</span>'
+      var on = n === state.page
+      return '<button type="button" class="' + HOST_ID + '-pg-btn' + (on ? ' on' : '') +
+        '" data-act="goto-page" data-page="' + n + '"' + (on ? ' aria-current="page"' : '') + '>' + n + '</button>'
+    }).join('')
+
+    var sizes = [10, 20, 50, 100].map(function (n) {
+      return '<option value="' + n + '"' + (n === state.pageSize ? ' selected' : '') + '>' + n + '</option>'
+    }).join('')
+
+    // 后端队列是"取前 N 条"：本地条数少于总条数时说明还有未加载的会诊单，明确提示避免误判
+    var partial = state.queueTotal > state.queue.length
+      ? '（已加载最近 ' + state.queue.length + ' / ' + state.queueTotal + ' 单）'
+      : ''
+
+    return (
+      '<div class="' + HOST_ID + '-pager">' +
+      '<span class="' + HOST_ID + '-pager-info">' +
+      (total ? '第 ' + from + '–' + to + ' 条 / 共 ' + total + ' 条' : '共 0 条') + esc(partial) +
+      '</span>' +
+      '<span class="' + HOST_ID + '-pager-ctl">' +
+      '<button type="button" class="' + HOST_ID + '-pg-btn" data-act="goto-page" data-page="' + (state.page - 1) + '"' +
+      (state.page <= 1 ? ' disabled' : '') + '>上一页</button>' +
+      nums +
+      '<button type="button" class="' + HOST_ID + '-pg-btn" data-act="goto-page" data-page="' + (state.page + 1) + '"' +
+      (state.page >= pg.pages ? ' disabled' : '') + '>下一页</button>' +
+      '<label class="' + HOST_ID + '-pg-size">每页<select id="hx-cw-pagesize">' + sizes + '</select>条</label>' +
+      '</span></div>'
     )
   }
 
@@ -962,9 +1123,13 @@
         : ''
     }
     if (count) {
-      var n = queueForScope().length
-      count.textContent = n ? '共 ' + n + ' 单' : ''
+      var total = queueForScope().length
+      if (!total) count.textContent = ''
+      else if (state.statusFilter === 'ALL') count.textContent = '共 ' + total + ' 单'
+      else count.textContent = '筛选出 ' + queueFiltered().length + ' 单 / 共 ' + total + ' 单'
     }
+    var filters = $('hx-cw-filter')
+    if (filters) filters.innerHTML = queueForScope().length ? filterHtml() : ''
     if (q) q.innerHTML = queueHtml()
     maybeOpenLaunchForm()
     syncForm()
@@ -1064,6 +1229,7 @@
         var st = (pack && pack.state) || pack || {}
         var reqs = st.consultationRequests || []
         state.queue = reqs.map(function (cr) { return mapScenarioConsult(cr, st) })
+        state.queueTotal = state.queue.length
         state.patients = (st.patients || []).map(function (p) {
           return {
             patientId: p.id,
@@ -1104,12 +1270,15 @@
     var t = Date.now()
     // 首屏只发一个聚合请求（队列+患者/机构/科室/医生）：
     // 本地 php -S 后端是单进程，HTTP 请求会串行排队，拆多个请求只会拿到总耗时之和
+    // pageSize 取 100：状态筛选与分页都在本地做（"定时/待接诊"要按 scheduledAt + 本地时钟
+    // 拆分，后端的 status 只有三态），一次多取一些才不会让分页总数对不上。
     return call('GET', '/consultations/workspace', {
-      status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 50, _t: t,
+      status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 100, _t: t,
     }).catch(function () { return null }).then(function (ws) {
       var queueRaw = ws && ws.queue
       if (queueRaw) {
         state.queue = listOf(queueRaw)
+        state.queueTotal = Number(queueRaw.total) || state.queue.length
         state.dataSource = 'api'
         if (ws.doctors) state.doctors = ws.doctors
         if (ws.patients) state.patients = listOf(ws.patients)
@@ -1350,13 +1519,37 @@
       else if (act === 'join') enterRoom(id)
       else if (act === 'accept-confirm') confirmAccept()
       else if (act === 'accept-cancel') closeAcceptModal()
-      else if (act === 'dt-clear') {
+      else if (act === 'filter-status') {
+        var st = btn.getAttribute('data-status')
+        if (st && st !== state.statusFilter) {
+          state.statusFilter = st
+          state.page = 1 // 换筛选维度后回到第一页
+          paint()
+        }
+      } else if (act === 'goto-page') {
+        var target = parseInt(btn.getAttribute('data-page'), 10)
+        // 越界页码由 queuePage 收敛，这里只拦非数字
+        if (!isNaN(target) && target !== state.page) {
+          state.page = target
+          paint()
+          scrollQueueTop()
+        }
+      } else if (act === 'dt-clear') {
         state.schedule = null
         updateDtInput()
         dpClose()
       }
     })
     root.addEventListener('change', function (ev) {
+      if (ev.target && ev.target.id === 'hx-cw-pagesize') {
+        var size = parseInt(ev.target.value, 10)
+        if (size > 0 && size !== state.pageSize) {
+          state.pageSize = size
+          state.page = 1 // 每页条数变化后原页码无意义
+          paint()
+        }
+        return
+      }
       if (ev.target && ev.target.id === 'hx-cw-f-patient') {
         var p = state.patients.filter(function (x) {
           return x.patientId === ev.target.value
@@ -1416,7 +1609,10 @@
     ensureStyle()
     if (!document.body.classList.contains(BODY_FLAG)) document.body.classList.add(BODY_FLAG)
     migrateLegacyGrassrootsUrl()
-    state.scopeTab = consultScopeTab()
+    // 切换「远程会诊 / 基层会诊」视图后行集变了，回到第一页（状态筛选保留）
+    var nextScope = consultScopeTab()
+    if (nextScope !== state.scopeTab) state.page = 1
+    state.scopeTab = nextScope
     syncDispatchFromQuery()
 
     var host = $(HOST_ID)
@@ -1446,7 +1642,9 @@
   function onConsultHashChange() {
     migrateLegacyGrassrootsUrl()
     if (path() !== ROUTE || !shouldUseConsultWorkbench()) return
-    state.scopeTab = consultScopeTab()
+    var nextScope = consultScopeTab()
+    if (nextScope !== state.scopeTab) state.page = 1
+    state.scopeTab = nextScope
     syncDispatchFromQuery()
     tick()
   }

@@ -468,6 +468,18 @@ body.hx-sidebar-shell nav.detail-trail {
   display: none !important;
 }
 
+/* React 的 PlateSubNav（nav.filter-bar[aria-label=模块二级导航]）是 .app-shell 的直接子节点，
+   但网格里只给 aside / header / main 定了位，它会被自动塞进隐式第 3 行、落到第 1 列
+   （216px 宽的侧栏列），把 main 的 1fr 行挤矮近 200px。远程会诊工作台是按 .workspace
+   的 rect 定位的固定层，于是只盖住上半屏，下半屏露出这排按钮，看上去像页面被切成两截。
+   侧栏（aside.hx-sidebar）已经按 IA_PLATES 渲染了完全相同的二级导航，这里隐藏即可，
+   隐式行随之消失，workspace 恢复整屏。 */
+body.hx-sidebar-shell
+  .app-shell.hx-sidebar-ready
+  > nav.filter-bar[aria-label='模块二级导航'] {
+  display: none !important;
+}
+
 body.hx-sidebar-shell.hx-sidebar-home .app-shell.hx-sidebar-ready:has(#hx-panel-toggles) {
   grid-template-rows: var(--hx-topbar-h) auto minmax(0, 1fr) !important;
 }
