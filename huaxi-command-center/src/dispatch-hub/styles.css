@@ -236,6 +236,10 @@ body {
   gap: 6px;
 }
 
+.dh-date-toolbar + .dh-date-toolbar {
+  margin-top: 10px;
+}
+
 .dh-date-input {
   font: inherit;
   font-size: 13px;

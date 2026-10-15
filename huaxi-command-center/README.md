@@ -12,7 +12,8 @@
 | **`index.devtools.html`** | 早期调试入口（可选） |
 
 - 演示：`npm run dev` → **http://localhost:5173/app.html#/**
-- 源码联调：**http://localhost:5173/src-shell.html#/**
+- 源码联调（**最新 MapScene / 四卡节点面板**）：**http://localhost:5173/src-shell.html#/**
+- 改 manifest 后：`npm run sync:src-shell`（与 `sync:app-html` 类似）
 - API：开发走 `/backend-api` 代理（见 `vite.config.ts`）
 - 环境：复制 `.env.example` 为 `.env`
 
