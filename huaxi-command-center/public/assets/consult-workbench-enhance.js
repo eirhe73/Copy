@@ -1275,10 +1275,11 @@
     return call('GET', '/consultations/workspace', {
       status: 'WAITING,IN_CALL,FINISHED', pageNum: 1, pageSize: 100, _t: t,
     }).catch(function () { return null }).then(function (ws) {
-      var queueRaw = ws && ws.queue
-      if (queueRaw) {
-        state.queue = listOf(queueRaw)
-        state.queueTotal = Number(queueRaw.total) || state.queue.length
+      if (ws && typeof ws === 'object') {
+        var queueRaw = ws.queue
+        state.queue = queueRaw ? listOf(queueRaw) : []
+        state.queueTotal =
+          queueRaw && queueRaw.total != null ? Number(queueRaw.total) : state.queue.length
         state.dataSource = 'api'
         if (ws.doctors) state.doctors = ws.doctors
         if (ws.patients) state.patients = listOf(ws.patients)
@@ -1305,8 +1306,16 @@
       })
     }).then(function () {
       state.loading = false
+      // P3 工作台：#/consultations 固定走表格工作台，加载失败也不退回 React P2 卡片页
+      if (path() === ROUTE && shouldUseConsultWorkbench() && !state.ready) {
+        state.ready = true
+        if (!state.queue) state.queue = []
+        if (!state.patients) state.patients = []
+        if (!state.msg) {
+          setMsg('会诊数据加载不完整，可点「刷新」重试；发起会诊表单仍可使用。', 'info')
+        }
+      }
       paint()
-      if (!state.ready && !state.queue.length) unmount()
     })
   }
 
@@ -1654,6 +1663,36 @@
   window.addEventListener('resize', function () {
     if (shouldUseConsultWorkbench()) tick()
   })
+
+  /**
+   * 回到本系统页面时重新拉队列。
+   *
+   * 会诊室是用 window.open 在新标签页打开的（见 enterRoom），房主在那边的会诊室里点"结束"
+   * 只会在会诊系统侧把房间置为 ENDED，本页不会自动重拉队列，于是主系统队列状态一直停在旧值。
+   * 这里在页面重新获得焦点/重新可见时主动请求一次，触发后端探活对账把已结束的会诊单收口。
+   */
+  var AUTO_REFRESH_MIN_GAP = 5000 // ms：focus 与 visibilitychange 会连着触发，短时间内只刷一次
+  var lastAutoRefreshAt = 0
+
+  function refreshQueue() {
+    if (path() !== ROUTE || !shouldUseConsultWorkbench()) return
+    if (state.loading || state.busy) return
+    var now = Date.now()
+    if (now - lastAutoRefreshAt < AUTO_REFRESH_MIN_GAP) return
+    lastAutoRefreshAt = now
+    loadAll()
+  }
+
+  window.addEventListener('focus', refreshQueue)
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) refreshQueue()
+  })
+  // 兜底轮询：会诊室在别的设备/浏览器结束、本页始终没切走时，也能在 30 秒内看到状态更新
+  setInterval(function () {
+    if (document.hidden) return
+    refreshQueue()
+  }, 30000)
+
   // 定时会诊到点自动翻转：本地时钟越过开始时间后，把"定时未开始"行刷成可进入
   // （只更新本地状态并重绘，不重新请求；改完 startable 计数归零即停）
   setInterval(function () {
