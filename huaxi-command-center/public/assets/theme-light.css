@@ -5065,8 +5065,10 @@ main.dashboard.screen > .dashboard-right {
 
 main.dashboard.screen .dashboard-left {
   display: grid !important;
-  grid-template-rows: minmax(0, 1fr) 190px !important;
+  grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
   gap: 12px !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 main.dashboard.screen .dashboard-left.hx-panels-left-compact {
@@ -7352,6 +7354,18 @@ body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > .hx-con
   border: 0 !important;
   padding: 0 !important;
   margin: -1px !important;
+  pointer-events: none !important;
+}
+
+/* React 重绘后可能新增未标记节点，仍盖住基层会诊操作区 */
+body.hx-consult-grassroots-page main.workspace.hx-gr-consult-workspace > *:not(.workspace-heading):not(#hx-grassroots-consult-root) {
+  pointer-events: none !important;
+}
+
+body.hx-consult-grassroots-page #hx-grassroots-consult-root {
+  position: relative;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 .hx-gr-consult {
@@ -9864,6 +9878,21 @@ body.hx-consult-page .workspace-heading {
   padding-bottom: 12px !important;
   margin-bottom: 4px !important;
   border-bottom: 1px solid #e2e8f0 !important;
+  position: relative !important;
+  z-index: 5 !important;
+  pointer-events: auto !important;
+}
+
+body.hx-consult-page .workspace-heading a,
+body.hx-consult-page .workspace-heading button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+body.hx-consult-page .consultation-grid > article footer a,
+body.hx-consult-page .consultation-grid > article footer button {
+  pointer-events: auto !important;
+  cursor: pointer !important;
 }
 
 body.hx-consult-page .consultation-grid {
@@ -9972,6 +10001,13 @@ body.hx-consult-page .consultation-queue .hx-consult-admit-actions {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   border-radius: 10px !important;
+  position: relative !important;
+  z-index: 2 !important;
+  pointer-events: auto !important;
+}
+
+body.hx-consult-page .consultation-queue article.hx-consult-queue-card {
+  pointer-events: auto !important;
 }
 
 body.hx-consult-page .consultation-queue .hx-consult-admit-label {

@@ -158,10 +158,22 @@ declare global {
   }
 }
 
-async function consultDialog(opts: ConsultDialogOpts): Promise<boolean> {
-  if (typeof window.__hxConsultDialog === 'function') {
-    return window.__hxConsultDialog(opts)
+function consultDialogHost(): ((opts: ConsultDialogOpts) => Promise<boolean>) | null {
+  try {
+    const top = window.top ?? window
+    if (top !== window && typeof top.__hxConsultDialog === 'function') {
+      return top.__hxConsultDialog.bind(top)
+    }
+  } catch {
+    /* cross-origin */
   }
+  if (typeof window.__hxConsultDialog === 'function') return window.__hxConsultDialog
+  return null
+}
+
+async function consultDialog(opts: ConsultDialogOpts): Promise<boolean> {
+  const host = consultDialogHost()
+  if (host) return host(opts)
   if (opts.variant === 'alert') {
     window.alert([opts.body, opts.lead].filter(Boolean).join('\n\n'))
     return true
@@ -222,9 +234,32 @@ export function isDispatchEmbedded(): boolean {
 export function navigateToAppHref(href: string) {
   const path = href.startsWith('/') ? href : `/${href}`
   const url = `${location.origin}${path}`
+  const hashIdx = path.indexOf('#')
+  const hashPart = hashIdx >= 0 ? path.slice(hashIdx) : ''
   const topWin = window.top ?? window
+
   if (isDispatchEmbedded() && topWin !== window) {
+    try {
+      const onApp =
+        /app\.html$/i.test(topWin.location.pathname) ||
+        topWin.location.pathname.endsWith('/app.html')
+      if (hashPart && onApp) {
+        const target = topWin.location.pathname + topWin.location.search + hashPart
+        if (topWin.location.pathname + topWin.location.search + topWin.location.hash !== target) {
+          topWin.location.assign(target)
+        } else {
+          topWin.dispatchEvent(new HashChangeEvent('hashchange'))
+        }
+        return
+      }
+    } catch {
+      /* fall through */
+    }
     topWin.location.href = url
+    return
+  }
+  if (hashPart && /app\.html$/i.test(location.pathname)) {
+    location.assign(location.pathname + location.search + hashPart)
     return
   }
   window.location.href = url

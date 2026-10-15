@@ -237,8 +237,25 @@
       )
       .join('')
     const grassroots = isGrassrootsTab()
-    const backHref = '#/consultations?launch=1'
+    const backHref = grassroots ? '#/consultations?tab=grassroots' : '#/consultations'
     return { hospitalOpts, deptOpts, target, grassroots, backHref }
+  }
+
+  function pickEntryHash() {
+    return isGrassrootsTab()
+      ? '#/consultations/pick?tab=grassroots&hospital=weiyuan&dept=emergency'
+      : '#/consultations/pick?hospital=weiyuan&dept=emergency'
+  }
+
+  /** 顶栏「选择患者」由 consult-nav-fix-enhance.js 文档委托处理（React 重绘不丢监听） */
+  function wirePickFromConsultList() {
+    if (hashPath() !== '/consultations') return
+    const pickHash = pickEntryHash()
+    document.querySelectorAll('main.workspace .workspace-heading a[href]').forEach((el) => {
+      const label = (el.textContent || '').replace(/\s+/g, '')
+      if (!label.includes('选择患者')) return
+      el.setAttribute('href', pickHash)
+    })
   }
 
   function syncPickHash(institutionId, departmentId) {
@@ -319,10 +336,18 @@
           const name = applyConsult(fresh, pid, target)
           persistStore(fresh)
           toast(`已为「${name}」发起至 ${target.hospitalName} · ${target.deptName}`)
-          const q = hashQuery()
-          location.hash =
-            isGrassrootsTab() ? '#/consultations?tab=grassroots' : '#/consultations'
-          setTimeout(() => location.reload(), 60)
+          const patient = fresh.state.patients.find((p) => String(p.id) === String(pid))
+          const req = [...(fresh.state.consultationRequests || [])]
+            .reverse()
+            .find((r) => String(r.patientId) === String(pid))
+          window.hxConsultEpisodeNav?.indexFromScenario(fresh.state)
+          const token = req?.token || patient?.consultationToken || ''
+          if (!window.hxConsultEpisodeNav?.goEpisode({ patientId: pid, token })) {
+            location.hash = isGrassrootsTab()
+              ? '#/consultations?tab=grassroots'
+              : '#/consultations'
+          }
+          window.dispatchEvent(new HashChangeEvent('hashchange'))
         } catch (err) {
           toast(err.message || '发起失败')
         }
@@ -395,29 +420,12 @@
     bindActions(root)
   }
 
-  if (!window.__hxConsultPickNav) {
-    window.__hxConsultPickNav = true
-    document.addEventListener(
-      'click',
-      (e) => {
-        if (path() !== '/consultations') return
-        const btn = e.target.closest?.('button')
-        const label = (btn.textContent || '').trim()
-        if (!label.includes('选择患者发起')) return
-        e.preventDefault()
-        e.stopPropagation()
-        e.stopImmediatePropagation()
-        const grassroots =
-          query().get('tab') === 'grassroots' || query().get('scope') === 'grassroots'
-        location.hash = grassroots
-          ? '#/consultations/pick?tab=grassroots&hospital=weiyuan&dept=emergency'
-          : '#/consultations/pick?hospital=weiyuan&dept=emergency'
-      },
-      true,
-    )
+  function tick() {
+    wirePickFromConsultList()
+    renderPickPage()
   }
 
-  window.hxEnhance(renderPickPage, { wait: 120, afterNav: 50 })
+  window.hxEnhance(tick, { wait: 120, afterNav: 50, observeRoot: true })
   window.addEventListener('hashchange', () => {
     if (!isPickPage()) teardown()
     else renderPickPage()

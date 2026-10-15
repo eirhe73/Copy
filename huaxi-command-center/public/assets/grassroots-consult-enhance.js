@@ -85,6 +85,7 @@
       .then((r) => (r.ok ? r.json() : null))
       .then((pack) => {
         scenarioCache = pack?.state || pack || {}
+        window.hxConsultEpisodeNav?.indexFromScenario(scenarioCache)
         return scenarioCache
       })
       .catch(() => {
@@ -270,20 +271,39 @@
     return rows
   }
 
+  function episodeHref(row) {
+    const nav = window.hxConsultEpisodeNav
+    if (nav) {
+      const h = nav.episodeHash({ patientId: row.patientId, token: row.token })
+      if (h) return h
+    }
+    return row.patientId ? `#/patient/${encodeURIComponent(row.patientId)}` : ''
+  }
+
   function rowAction(row) {
+    const parts = []
+    const ep = episodeHref(row)
     if (row.status === 'pending' && row.sessionId && row._fromApi) {
-      return `<button type="button" class="hx-gr-consult-btn primary" data-hx-gr-api-accept="${esc(row.sessionId)}">接诊</button>`
-    }
-    if (row.token && row.status !== 'completed') {
-      return `<a class="hx-gr-consult-btn primary" href="/#/room/${esc(row.token)}">进入会诊室</a>`
-    }
-    if (row.patientId) {
-      return `<a class="hx-gr-consult-btn" href="/#/patient/${esc(row.patientId)}">患者档案</a>`
+      parts.push(
+        `<button type="button" class="hx-gr-consult-btn primary" data-hx-gr-api-accept="${esc(row.sessionId)}" data-hx-gr-patient="${esc(row.patientId || '')}" data-hx-gr-token="${esc(row.token || '')}">接诊</button>`,
+      )
+      if (ep) {
+        parts.push(`<a class="hx-gr-consult-btn" href="${esc(ep)}">连续诊疗</a>`)
+      }
+      return parts.join('')
     }
     if (row._article) {
       return `<button type="button" class="hx-gr-consult-btn primary" data-hx-gr-accept="${esc(row.patientName)}">接诊</button>`
     }
-    return ''
+    if (ep) {
+      parts.push(`<a class="hx-gr-consult-btn primary" href="${esc(ep)}">连续诊疗</a>`)
+    }
+    if (row.token && row.status !== 'completed') {
+      parts.push(`<a class="hx-gr-consult-btn" href="#/room/${esc(row.token)}">进入视频会诊</a>`)
+    } else if (row.patientId && !ep) {
+      parts.push(`<a class="hx-gr-consult-btn" href="#/patient/${esc(row.patientId)}">患者档案</a>`)
+    }
+    return parts.join('')
   }
 
   function hospitalSidebarHtml(allRows) {
@@ -338,9 +358,9 @@
       <div class="hx-gr-consult-toolbar">
         <p class="hx-gr-consult-lead">乡镇、村卫生室发起会诊时<strong>选择接收医院</strong>（县域 / 市级 / 上级）；各院在本页各自待接诊队列中接诊，指挥中心可按医院筛选。</p>
         <div class="hx-gr-consult-toolbar__links">
-          <a href="/#/organizations?tier=township">协作机构</a>
-          <a href="/#/transfers?scope=grassroots">转诊上行</a>
-          <a href="/#/dr">基层 Dr.</a>
+          <a href="#/organizations?tier=township">协作机构</a>
+          <a href="#/transfers?scope=grassroots">转诊上行</a>
+          <a href="#/dr">基层 Dr.</a>
         </div>
       </div>
       <div class="hx-gr-consult-kpis">
@@ -370,13 +390,27 @@
             <li><strong>${orgLabel('lianjie')}</strong><span>急诊 / 消化内科</span></li>
           </ul>
           <p class="hx-gr-consult-tip">发起时通过「选择患者发起」指定接收医院与科室；也可在「急救事件」「患者登记」中关联上转。</p>
-          <a class="hx-gr-consult-btn block" href="/#/consultations/pick?tab=grassroots">选择患者 · 指定接收医院</a>
+          <a class="hx-gr-consult-btn block" href="#/consultations/pick?tab=grassroots">选择患者 · 指定接收医院</a>
         </aside>
       </div>
     </div>`
   }
 
   function bindPageActions(root) {
+    if (root.dataset.hxNavBound !== '1') {
+      root.dataset.hxNavBound = '1'
+      root.addEventListener('click', (e) => {
+        const a = e.target instanceof Element ? e.target.closest('a[href]') : null
+        if (!a || !root.contains(a)) return
+        const raw = a.getAttribute('href') || ''
+        const norm = window.hxConsultEpisodeNav?.normalizeHash(raw) || raw
+        if (norm !== raw && norm.charAt(0) === '#') {
+          e.preventDefault()
+          location.hash = norm
+        }
+      })
+    }
+
     root.querySelectorAll('[data-hx-gr-hospital]').forEach((btn) => {
       btn.addEventListener('click', () => {
         setHospitalFilter(btn.getAttribute('data-hx-gr-hospital') || 'all')
@@ -402,6 +436,18 @@
           await window.hxBackend.ensureAuth()
           await window.hxBackend.post(`/consultations/${encodeURIComponent(sid)}/accept`, {})
           backendRowsCache = { at: 0, rows: [] }
+          const patientId = btn.getAttribute('data-hx-gr-patient') || ''
+          const token = btn.getAttribute('data-hx-gr-token') || ''
+          await window.hxConsultEpisodeNav?.loadScenarioIndex()
+          if (
+            !window.hxConsultEpisodeNav?.goEpisode({ patientId, token }) &&
+            token
+          ) {
+            location.hash = '#/room/' + encodeURIComponent(token)
+          } else if (!window.hxConsultEpisodeNav?.goEpisode({ patientId, token })) {
+            await render({ force: true })
+            return
+          }
           await render({ force: true })
         } catch (e) {
           console.warn('[grassroots-consult] 接诊失败', e)
@@ -466,9 +512,16 @@
     })
   }
 
+  /** P1：基层上转与全县会诊共用 React 卡片队列 + 页内 Tab，不再用表格覆写 */
+  const USE_REACT_P1 = true
+
   async function render(opts) {
+    if (USE_REACT_P1 || document.body.classList.contains('hx-cw-active')) {
+      teardown()
+      return
+    }
     const force = opts && opts.force
-    if (!isGrassrootsPage() || document.body.classList.contains('hx-cw-active')) {
+    if (!isGrassrootsPage()) {
       teardown()
       return
     }

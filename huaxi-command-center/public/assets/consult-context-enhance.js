@@ -76,6 +76,10 @@
       document.getElementById('hx-consult-mode')?.remove()
       return
     }
+    if (path() === '/consultations/pick') {
+      document.getElementById('hx-consult-mode')?.remove()
+      return
+    }
     // 侧栏三级 + 工作台接管：不再插页内 Tab
     if (document.body.classList.contains('hx-cw-active')) {
       document.getElementById('hx-consult-mode')?.remove()
@@ -94,8 +98,8 @@
       host.insertAdjacentElement('afterend', box)
     }
     const html = `<nav class="hx-consult-tabs" aria-label="会诊范围">
-      <a class="hx-consult-tab${tab === 'all' ? ' is-active' : ''}" href="/#/consultations">全县会诊</a>
-      <a class="hx-consult-tab${tab === 'grassroots' ? ' is-active' : ''}" href="/#/consultations?tab=grassroots">基层上转</a>
+      <a class="hx-consult-tab${tab === 'all' ? ' is-active' : ''}" href="#/consultations">全县会诊</a>
+      <a class="hx-consult-tab${tab === 'grassroots' ? ' is-active' : ''}" href="#/consultations?tab=grassroots">基层上转</a>
     </nav>
     <p class="hx-consult-mode__text">${
       tab === 'grassroots'
@@ -118,14 +122,13 @@
     const plate = q.get('plate') || ''
     const complaint = q.get('complaint') || ''
 
-    const back = task || plate ? '/dispatch.html#live' : '/#/'
-    const backLabel = task || plate ? '返回实时出警' : '返回指挥中枢'
-    ensureNavBack(backLabel, back)
-
     if (!task && !plate) {
       document.getElementById('hx-consult-context')?.remove()
+      removeNavBack()
       return
     }
+
+    ensureNavBack('返回实时出警', '/dispatch.html#live')
 
     const host = document.querySelector('.workspace') || document.querySelector('main')
     if (!host) return
