@@ -615,7 +615,7 @@ body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed a.event-feed-
 }
 
 /* hash 已离开首页时勿再露出指挥概览 dashboard（避免与 #/consultations 等视图叠在一起） */
-body.hx-sidebar-shell:not(.hx-sidebar-home):not(.hx-page-map-only)
+body.hx-sidebar-shell:not(.hx-sidebar-home):not(.hx-page-map-only):not(.hx-sidebar-map-view)
   .app-shell.hx-sidebar-ready
   > main.dashboard.screen {
   display: none !important;
@@ -691,8 +691,8 @@ body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > #hx-panel-t
 }
 
 body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen {
-  grid-row: 2 / -1 !important;
-  grid-column: 2 / -1 !important;
+  grid-row: 1 / -1 !important;
+  grid-column: 1 / -1 !important;
 }
 
 body.hx-sidebar-shell.hx-page-map-only footer.system-footer {

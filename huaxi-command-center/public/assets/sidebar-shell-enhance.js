@@ -83,7 +83,7 @@
   function isHome() {
     if (document.body.classList.contains('hx-page-map-only')) return true
     const p = hashPath()
-    return p === '/' || p === ''
+    return p === '/' || p === '' || p === '/map'
   }
 
   function isMapPage() {

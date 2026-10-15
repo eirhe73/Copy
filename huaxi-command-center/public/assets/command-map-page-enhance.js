@@ -42,8 +42,10 @@
     document.body.classList.remove('hx-map-drawer-open')
     const bd = document.querySelector('.hx-map-drawer-backdrop')
     if (bd) bd.hidden = true
+    document.querySelector('.hx-map-page-chrome')?.remove()
     clearMapBlockers()
     document.body.classList.remove(FLAG)
+    document.body.classList.remove('hx-sidebar-map-view')
     window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: false } }))
     if (path() === '/map') goHomeHash()
     requestAnimationFrame(() => window.dispatchEvent(new Event('resize')))
@@ -59,7 +61,56 @@
     document.body.classList.remove('hx-map-drawer-open')
   }
 
+  function setMapDrawerOpen(open) {
+    document.body.classList.toggle('hx-map-drawer-open', open)
+    const bd = document.querySelector('.hx-map-drawer-backdrop')
+    if (bd) bd.hidden = !open
+  }
+
+  function ensureMapPageChrome() {
+    if (!mapOnlyActive()) {
+      document.querySelector('.hx-map-page-chrome')?.remove()
+      return
+    }
+    const mainMap = document.querySelector('.dashboard-center .main-map')
+    if (!mainMap) return
+    const host = mainMap.closest('.dashboard-center') || mainMap
+    if (host.querySelector('.hx-map-page-chrome')) return
+
+    if (!document.querySelector('.hx-map-drawer-backdrop')) {
+      const backdrop = document.createElement('div')
+      backdrop.className = 'hx-map-drawer-backdrop'
+      backdrop.hidden = true
+      backdrop.addEventListener('click', () => setMapDrawerOpen(false))
+      document.body.appendChild(backdrop)
+    }
+
+    const chrome = document.createElement('div')
+    chrome.className = 'hx-map-page-chrome'
+    chrome.setAttribute('role', 'toolbar')
+    chrome.innerHTML =
+      '<div class="hx-map-chrome-left">' +
+      '<button type="button" class="hx-map-chrome-btn" data-action="menu">菜单</button>' +
+      '<button type="button" class="hx-map-chrome-btn" data-action="exit">返回概览</button>' +
+      '</div>' +
+      '<span class="hx-map-chrome-title">协作三维地图</span>'
+    host.appendChild(chrome)
+
+    chrome.querySelector('[data-action="menu"]')?.addEventListener('click', () => {
+      setMapDrawerOpen(!document.body.classList.contains('hx-map-drawer-open'))
+    })
+    chrome.querySelector('[data-action="exit"]')?.addEventListener('click', (ev) => {
+      ev.preventDefault()
+      ev.stopPropagation()
+      leaveMapMode()
+    })
+    document.querySelector('.hx-sidebar')?.addEventListener('click', (ev) => {
+      if (ev.target instanceof Element && ev.target.closest('a')) setMapDrawerOpen(false)
+    })
+  }
+
   function pulseMapLayout() {
+    ensureMapPageChrome()
     ;[0, 100, 250, 500, 900, 1400].forEach((ms) => {
       setTimeout(() => {
         window.dispatchEvent(new Event('resize'))
@@ -78,14 +129,19 @@
     }
     pendingMap = false
     clearMapBlockers()
+
+    /* 同步打上全屏 class，避免 #/map → #/ 时 dashboard 被侧栏 CSS 误隐藏 */
+    document.body.classList.add(FLAG)
+    document.body.classList.add('hx-sidebar-home')
+    document.body.classList.add('hx-sidebar-map-view')
+    window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
+
     if (path() === '/map') goHomeHash()
 
-    /* 先让概览布局稳定，再加全屏 class，避免 WebGL 容器高度为 0 */
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        document.body.classList.add(FLAG)
-        window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
         pulseMapLayout()
+        window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
       })
     })
   }
