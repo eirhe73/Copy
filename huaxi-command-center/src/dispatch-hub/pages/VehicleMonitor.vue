@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as echarts from 'echarts'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
+import { goConsultationAsync } from '../context'
 import { startPoll } from '../poll'
 
 type Vehicle = {
@@ -43,6 +44,17 @@ watch(
     }
   },
 )
+
+async function onConsultFromVehicle() {
+  const v = selected()
+  if (!v) return
+  await goConsultationAsync({
+    vehicleId: v.id,
+    vehiclePlate: v.plate,
+    task120Id: '',
+    chiefComplaint: '',
+  })
+}
 
 function renderMap() {
   if (!chart) return
@@ -130,7 +142,7 @@ onUnmounted(() => {
             <strong class="hx-video-placeholder__title">车内监控</strong>
             <span class="hx-video-placeholder__hint">演示环境未接入摄像头，正式环境将显示救护车实时画面。</span>
           </div>
-          <a class="dh-btn primary block" :href="`/#/consultations?plate=${encodeURIComponent(selected()!.plate)}&vehicle=${encodeURIComponent(selected()!.id)}`">发起远程会诊</a>
+          <button type="button" class="dh-btn primary block" @click="onConsultFromVehicle">发起远程会诊</button>
         </template>
       </aside>
       <div v-else class="dh-video hx-video-placeholder hx-video-placeholder--block" data-hx-video="vehicle" role="status">

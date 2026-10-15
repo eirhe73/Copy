@@ -111,7 +111,9 @@
     if (wantPath !== curPath && wantPath.replace(/^\//, '') !== curPath.replace(/^\//, '')) return false
 
     if (!queryPart) {
-      if (wantPath === '/consultations') return true
+      if (wantPath === '/consultations') {
+        return curPath === '/consultations' || curPath.indexOf('/consultations/') === 0
+      }
       return !hashQuery().toString()
     }
     const want = new URLSearchParams(queryPart)
@@ -199,8 +201,8 @@
   }
 
   function buildMenu(menu) {
-    if (menu.dataset.built === '7') return
-    menu.dataset.built = '7'
+    if (menu.dataset.built === '9') return
+    menu.dataset.built = '9'
     menu.innerHTML = ''
 
     const section = document.createElement('p')
@@ -265,6 +267,7 @@
       /* ignore */
     }
     document.body.classList.toggle('hx-sidebar-home', isHome())
+    document.body.classList.toggle('hx-sidebar-map-view', isMapPage())
 
     let aside = shell.querySelector(':scope > aside.hx-sidebar')
     if (!aside) {

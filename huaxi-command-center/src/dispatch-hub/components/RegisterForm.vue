@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import {
-  consultHref,
-  consultLinkTarget,
+  goConsultationAsync,
   emptyForm,
   loadDraft,
   savePatient,
@@ -58,6 +57,10 @@ async function onDraft() {
   messageKind.value = 'ok'
   message.value = await savePatient(form.value, false)
 }
+
+async function onConsult() {
+  await goConsultationAsync(form.value)
+}
 </script>
 
 <template>
@@ -77,10 +80,14 @@ async function onDraft() {
     <label class="span-2">主诉
       <textarea v-model="form.chiefComplaint" :rows="compact ? 3 : 4" />
     </label>
+    <p class="dh-form-note span-2">
+      <strong>提交登记</strong>为正式建档，会诊前或会诊后均可；质控演示建议在会诊结束前补一次提交。
+      <strong>发起远程会诊</strong>需已有任务号与主诉（左侧选中出警单即可带入）；姓名可空，无姓名时将提示确认。
+    </p>
     <div class="dh-actions span-2">
       <button type="button" class="dh-btn" @click="onDraft">保存草稿</button>
       <button type="submit" class="dh-btn primary">提交登记</button>
-      <a class="dh-btn ghost" :href="consultHref(form)">发起远程会诊</a>
+      <button type="button" class="dh-btn ghost" @click="onConsult">发起远程会诊</button>
     </div>
     <p
       v-if="message"

@@ -38,7 +38,7 @@ const cases = [
   ['/#/ambulances', '/ambulances', ''],
   ['/#/dispatch/list', '/dispatch/list', ''],
   ['/#/consultations?tab=grassroots', '/consultations', 'tab=grassroots'],
-  ['/#/consultations?tab=grassroots', '/consultations', 'tab=grassroots', '智慧急救调度'],
+  ['/#/consultations', '/consultations', ''],
   ['/#/critical?mode=grassroots-remote', '/critical', 'mode=grassroots-remote', '智慧急救调度'],
   ['/#/medical-quality', '/medical-quality', '', '智能医疗质控'],
 ]

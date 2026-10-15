@@ -53,7 +53,7 @@ export function HomeDashboardRight({ results }: Props) {
         title="24小时院内评分预警"
         action={
           <Link to="/warning" className="btn-ghost">
-            预警中心
+            更多
           </Link>
         }
       >
@@ -79,7 +79,7 @@ export function HomeDashboardRight({ results }: Props) {
         title="24小时县域智慧重症事件"
         action={
           <Link to="/critical" className="btn-ghost">
-            重症监护
+            更多
           </Link>
         }
       >

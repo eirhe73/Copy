@@ -131,6 +131,114 @@ export async function savePatient(form: PatientForm, submit: boolean): Promise<s
     : `草稿已保存 · ${time} · 任务 ${task || '未填'}`
 }
 
+export type ConsultLaunchInput = Partial<
+  Pick<PatientForm, 'task120Id' | 'eventId' | 'vehicleId' | 'vehiclePlate' | 'chiefComplaint' | 'name'>
+>
+
+/** 缺任务号或主诉时不允许发起会诊 */
+export function consultLaunchBlockReason(ctx: ConsultLaunchInput): string | null {
+  const task = (ctx.task120Id || ctx.eventId || '').trim()
+  if (!task) return '请先选择出警任务或填写 120 任务号，再发起远程会诊。'
+  if (!(ctx.chiefComplaint || '').trim()) return '请填写主诉（可从左侧任务带入），再发起远程会诊。'
+  return null
+}
+
+type ConsultDialogOpts = {
+  variant?: 'alert' | 'confirm'
+  title?: string
+  body?: string
+  lead?: string
+  confirmText?: string
+  cancelText?: string
+}
+
+declare global {
+  interface Window {
+    __hxConsultDialog?: (opts: ConsultDialogOpts) => Promise<boolean>
+  }
+}
+
+async function consultDialog(opts: ConsultDialogOpts): Promise<boolean> {
+  if (typeof window.__hxConsultDialog === 'function') {
+    return window.__hxConsultDialog(opts)
+  }
+  if (opts.variant === 'alert') {
+    window.alert([opts.body, opts.lead].filter(Boolean).join('\n\n'))
+    return true
+  }
+  const msg = [opts.body, opts.lead].filter(Boolean).join('\n\n')
+  return window.confirm(msg || '确认？')
+}
+
+export async function confirmConsultLaunchAsync(ctx: ConsultLaunchInput): Promise<boolean> {
+  const block = consultLaunchBlockReason(ctx)
+  if (block) {
+    await consultDialog({
+      variant: 'alert',
+      title: '暂无法发起远程会诊',
+      body: block,
+      confirmText: '知道了',
+    })
+    return false
+  }
+  if (!(ctx.name || '').trim()) {
+    return consultDialog({
+      variant: 'confirm',
+      title: '发起远程会诊',
+      body: '建议先保存草稿或填写姓名，便于会诊队列关联患者。',
+      lead: '仍要现在发起远程会诊吗？',
+      confirmText: '仍要发起',
+      cancelText: '返回填写',
+    })
+  }
+  return true
+}
+
+/** @deprecated 使用 confirmConsultLaunchAsync */
+export function confirmConsultLaunch(ctx: ConsultLaunchInput): boolean {
+  const block = consultLaunchBlockReason(ctx)
+  if (block) {
+    window.alert(block)
+    return false
+  }
+  if (!(ctx.name || '').trim()) {
+    return window.confirm('建议先保存草稿或填写姓名。\n\n仍要现在发起远程会诊吗？')
+  }
+  return true
+}
+
+/** 出警列表嵌在 app.html iframe 内时，须在顶层窗口打开主站，避免整页套娃 */
+export function isDispatchEmbedded(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const q = new URLSearchParams(location.hash.split('?')[1] || '')
+    if (q.get('embed') === '1') return true
+    return window.parent !== window
+  } catch {
+    return false
+  }
+}
+
+export function navigateToAppHref(href: string) {
+  const path = href.startsWith('/') ? href : `/${href}`
+  const url = `${location.origin}${path}`
+  const topWin = window.top ?? window
+  if (isDispatchEmbedded() && topWin !== window) {
+    topWin.location.href = url
+    return
+  }
+  window.location.href = url
+}
+
+export async function goConsultationAsync(ctx: ConsultLaunchInput) {
+  if (!(await confirmConsultLaunchAsync(ctx))) return
+  navigateToAppHref(consultHref(ctx))
+}
+
+export function goConsultation(ctx: ConsultLaunchInput) {
+  void goConsultationAsync(ctx)
+}
+
 export function consultHref(
   ctx: Partial<Pick<PatientForm, 'task120Id' | 'vehicleId' | 'vehiclePlate' | 'chiefComplaint'>> = {},
 ) {
@@ -140,7 +248,7 @@ export function consultHref(
   if (ctx.vehicleId) q.set('vehicle', ctx.vehicleId)
   if (ctx.chiefComplaint) q.set('complaint', ctx.chiefComplaint)
   const s = q.toString()
-  return s ? `/app.html#/consultations?${s}` : '/app.html#/consultations'
+  return s ? `/app.html#/consultations?${s}&launch=1` : '/app.html#/consultations?tab=grassroots'
 }
 
 /** 本地日历日 YYYY-MM-DD（按 startedAt / updatedAt 的本地时区） */

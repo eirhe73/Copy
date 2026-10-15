@@ -223,7 +223,9 @@ watch(dayEvents, () => {
         </section>
         <section class="dh-panel dh-col-register">
           <h3 class="dh-h3">就地登记</h3>
-          <p class="dh-lead dh-lead-tight">危急时在此直接填写并提交，任务号与车牌随左侧事件带入。</p>
+          <p class="dh-lead dh-lead-tight">
+            任务号与车牌随左侧事件带入。可先<strong>发起远程会诊</strong>（需任务号+主诉），也可先<strong>保存草稿/提交登记</strong>再会诊，三者非强制顺序。
+          </p>
           <RegisterForm compact :seed="seed" />
         </section>
       </template>

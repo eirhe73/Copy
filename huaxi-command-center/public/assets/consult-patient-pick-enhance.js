@@ -32,6 +32,10 @@
     },
   ]
 
+  function hashPath() {
+    return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+  }
+
   function hashQuery() {
     const raw = location.hash.replace(/^#/, '')
     const q = raw.includes('?') ? raw.slice(raw.indexOf('?') + 1) : ''
@@ -233,7 +237,7 @@
       )
       .join('')
     const grassroots = isGrassrootsTab()
-    const backHref = grassroots ? '#/consultations?tab=grassroots' : '#/consultations'
+    const backHref = '#/consultations?launch=1'
     return { hospitalOpts, deptOpts, target, grassroots, backHref }
   }
 

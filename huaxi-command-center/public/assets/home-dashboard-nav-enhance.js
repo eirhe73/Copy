@@ -8,6 +8,17 @@
     return p === '/' || p === ''
   }
 
+  function panelTitleFrom(panel) {
+    const h2 = panel?.querySelector('.panel-title h2')
+    if (h2) return (h2.textContent || '').replace(/\s+/g, ' ').trim()
+    const header = panel?.querySelector('.panel-title')
+    if (!header) return ''
+    const clone = header.cloneNode(true)
+    clone.querySelector('.v-mark')?.remove()
+    clone.querySelector('.panel-action')?.remove()
+    return (clone.textContent || '').replace(/\s+/g, ' ').trim()
+  }
+
   function panelHash(title) {
     if (title.includes('急救调度')) return '#/patients'
     if (title.includes('预警')) return '#/warning'
@@ -112,11 +123,30 @@
         const target = event.target
         if (!(target instanceof Element)) return
 
-        const moreBtn = target.closest('.panel-title a, .panel-title button')
+        const moreBtn = target.closest(
+          '.panel-action .link-button, .panel-action a, .panel-action button, .panel-title .link-button, .panel-title a, .panel-title button',
+        )
         if (moreBtn) {
+          const label = (moreBtn.textContent || '').replace(/\s+/g, '').trim()
+          const isMore =
+            label.includes('更多') || label === '预警中心' || label === '重症监护'
           const panel = moreBtn.closest('.panel')
-          const titleEl = panel?.querySelector('.panel-title span, .panel-title h2, .panel-title')
-          const title = (titleEl?.textContent || '').replace(/\s+/g, ' ').trim()
+          const title = panelTitleFrom(panel)
+          if (isMore && typeof window.__hxHomeMoreOpen === 'function') {
+            const kind = title.includes('急救调度')
+              ? 'dispatch'
+              : title.includes('预警')
+                ? 'warning'
+                : title.includes('重症')
+                  ? 'critical'
+                  : null
+            if (kind) {
+              event.preventDefault()
+              event.stopImmediatePropagation()
+              window.__hxHomeMoreOpen(kind, title, panel)
+              return
+            }
+          }
           const hash = panelHash(title)
           if (hash) {
             event.preventDefault()

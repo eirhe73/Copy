@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { channelLabel, consultHref, etaText, statusLabel, vehicleLabel } from '../context'
+import { channelLabel, etaText, goConsultationAsync, statusLabel, vehicleLabel } from '../context'
 import VehicleMonitor from '../pages/VehicleMonitor.vue'
 
 const props = defineProps<{
@@ -16,6 +16,16 @@ const props = defineProps<{
   scorePlan?: string
   treatPlan?: string
 }>()
+
+function onConsult() {
+  void goConsultationAsync({
+    task120Id: props.task120Id,
+    vehicleId: props.vehicleId,
+    vehiclePlate: props.plate,
+    chiefComplaint: props.complaint,
+    name: '',
+  })
+}
 </script>
 
 <template>
@@ -29,7 +39,7 @@ const props = defineProps<{
           <span v-if="task120Id">任务 {{ task120Id }}</span>
         </p>
       </div>
-      <a class="dh-btn primary" :href="consultHref(props)">发起会诊</a>
+      <button type="button" class="dh-btn primary" @click="onConsult">发起会诊</button>
     </header>
     <dl class="dh-desk-meta">
       <div v-if="destination"><dt>去向</dt><dd>{{ destination }}</dd></div>
