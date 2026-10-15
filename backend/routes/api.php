@@ -99,6 +99,7 @@ Route::prefix('v1')->group(function () {
         // 远程会诊 & 会诊室（01 §5.1~5.9、§3.1）
         // 静态段必须先于 {sessionId} 注册
         Route::get('consultations/admission', [ConsultationController::class, 'admission']);
+        Route::get('consultations/workspace', [ConsultationController::class, 'workspace']);
         Route::get('consultations/doctors', [ConsultationController::class, 'doctors']);
         Route::get('consultations', [ConsultationController::class, 'index']);
         Route::post('consultations', [ConsultationController::class, 'store']);

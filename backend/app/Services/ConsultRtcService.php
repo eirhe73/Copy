@@ -157,6 +157,63 @@ class ConsultRtcService extends Service
     }
 
     /**
+     * 并行探活多个房间（队列对账用）
+     *
+     * 串行探活时每个房间一次 HTTP 往返，队列请求会被探活个数线性拖慢；
+     * 这里一次 pool 全部发出，总耗时≈单次往返。
+     *
+     * @param  array<int, string>  $rtcSessionIds
+     * @return array<string, string|null> sessionId → 状态（同 roomState 语义）
+     */
+    public function probeStates(array $rtcSessionIds): array
+    {
+        $ids = array_values(array_unique(array_filter($rtcSessionIds)));
+        if (! $this->enabled() || $ids === []) {
+            return [];
+        }
+
+        $cfg = config('services.consultation');
+        $baseUrl = rtrim((string) $cfg['base_url'], '/');
+        $timeout = max(1, (int) ($cfg['probe_timeout'] ?? 2));
+        $headers = array_filter([
+            'X-Service-Token' => (string) ($cfg['service_token'] ?? ''),
+        ]);
+
+        try {
+            $responses = Http::pool(function ($pool) use ($ids, $baseUrl, $timeout, $headers) {
+                foreach ($ids as $id) {
+                    $pool->as((string) $id)
+                        ->timeout($timeout)
+                        ->connectTimeout(min(2, $timeout))
+                        ->acceptJson()
+                        ->withHeaders($headers)
+                        ->get($baseUrl.'/api/rooms/'.rawurlencode($id));
+                }
+            });
+        } catch (\Throwable $e) {
+            Log::warning('会诊系统批量探活失败', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+
+        $states = [];
+        foreach ($responses as $id => $response) {
+            if ($response instanceof \Throwable) {
+                $states[(string) $id] = null;
+                continue;
+            }
+            if (! $response->successful()) {
+                $states[(string) $id] = $response->status() === 404 ? 'GONE' : null;
+                continue;
+            }
+            $state = strtoupper(trim((string) ($response->json('state') ?? '')));
+            $states[(string) $id] = $state !== '' ? $state : null;
+        }
+
+        return $states;
+    }
+
+    /**
      * 拉取参会人，用于主系统补参会留痕
      *
      * 优先取"曾入会成员" attended（含已退出）——只取在线列表会漏记先退出的医生。

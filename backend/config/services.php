@@ -48,6 +48,8 @@ return [
         'service_token' => env('CONSULT_RTC_SERVICE_TOKEN', ''),
         'join_base_url' => env('CONSULT_RTC_JOIN_BASE_URL', ''),
         'timeout' => (int) env('CONSULT_RTC_TIMEOUT', 3),
+        // 批量探活（队列对账）专用超时，调短避免队列请求被跨系统拖慢
+        'probe_timeout' => (int) env('CONSULT_RTC_PROBE_TIMEOUT', 2),
         'enabled' => (bool) env('CONSULT_RTC_ENABLED', false),
         // 患者姓名在会诊系统侧是否脱敏。false = 直接显示姓名（当前院方确认口径）
         'name_masked' => (bool) env('CONSULT_RTC_NAME_MASKED', false),

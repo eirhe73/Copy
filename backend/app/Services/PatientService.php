@@ -172,6 +172,7 @@ class PatientService extends Service
             'admittedAt' => optional($patient->admitted_at)->toIso8601String(),
             'source' => $patient->source,
             'sourceLabel' => self::SOURCE_LABELS[$patient->source] ?? $patient->source,
+            'createdAt' => optional($patient->created_at)->toIso8601String(),
         ];
     }
 

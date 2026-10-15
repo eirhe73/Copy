@@ -13,7 +13,7 @@ export const IA_PLATES: IaPlate[] = [
       ['/dispatch', '实时出警'],
       ['/dispatch/list', '出警列表'],
       ['/ambulances', '救护车列表'],
-      ['/patients', '急救事件'],
+      ['/patients', '患者列表'],
       ['/register', '患者登记'],
       ['/consultations', '远程会诊'],
       ['/consultations?tab=grassroots', '基层会诊'],
@@ -57,7 +57,6 @@ export const IA_PLATES: IaPlate[] = [
     home: '/dr',
     links: [
       ['/dr?view=videos', '视频展示'],
-      ['/dr?view=saved', '我的收藏'],
     ],
   },
 ]

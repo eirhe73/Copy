@@ -1,5 +1,5 @@
 import fs from 'fs'
-const css = fs.readFileSync('public/assets/index-BRuArrdm.css', 'utf8')
+const css = fs.readFileSync('public/assets/vendor/index-BRuArrdm.css', 'utf8')
 for (const cls of [
   'home-header',
   'compact-header',
