@@ -60,7 +60,7 @@
     const org = row.org || row.organization || '—'
     const hospital = row.boundHospital || row.bound_hospital || row.hospital || '—'
     const crew = row.crew || row.team || '—'
-    const status = row.status || '—'
+    const status = zhVehicleStatus(row.status, row.statusLabel)
     const ev = row.currentEventId || row.current_event_id || '—'
     const liveHref = `#/dispatch?vehicle=${encodeURIComponent(id)}&plate=${encodeURIComponent(plate)}`
     return `<tr>
@@ -72,6 +72,39 @@
       <td>${esc(ev)}</td>
       <td class="hx-amb-actions"><a class="btn-ghost" href="${liveHref}">实时出警</a></td>
     </tr>`
+  }
+
+  /* 与 src/lib/vehicleStatus.ts 中的 VEHICLE_STATUS_LABELS 保持一致
+   *  覆盖后端可能返回的全部英文字段，含 ON_MISSION / EN_ROUTE 等。 */
+  const VEHICLE_STATUS_LABELS = {
+    STANDBY: '待命',
+    DISPATCHING: '出警中',
+    ON_MISSION: '出警中',
+    EN_ROUTE: '出警中',
+    ON_SCENE: '现场处置',
+    RETURNING: '返院途中',
+    TRANSPORT: '转运中',
+    AVAILABLE: '空闲中',
+    IDLE: '空闲中',
+    MAINTENANCE: '维护中',
+    OFFLINE: '维护中',
+    UNAVAILABLE: '不能调用',
+    DISABLED: '不能调用',
+  }
+
+  function zhVehicleStatus(raw, statusLabel) {
+    const label = String(statusLabel ?? '').trim()
+    if (label) return label
+    const s = String(raw ?? '').trim()
+    if (!s) return '—'
+    const u = s.toUpperCase()
+    if (VEHICLE_STATUS_LABELS[u]) return VEHICLE_STATUS_LABELS[u]
+    if (s === '出警中' || s === '现场处置' || s === '返院途中' || s === '转运中') return s
+    if (s === '站内待命' || s === '待命') return '空闲中'
+    if (s === '维护中') return '维护中'
+    if (s === '不能调用') return '不能调用'
+    if (s === '空闲中') return '空闲中'
+    return s
   }
 
   async function renderPage() {

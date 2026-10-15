@@ -412,8 +412,17 @@ const STATUS_LABELS: Record<string, string> = {
   STAGE_CLOSED: '已结束',
   STANDBY: '待命',
   DISPATCHING: '出警中',
+  EN_ROUTE: '出警中',
+  ON_MISSION: '出警中',
   ON_SCENE: '现场处置',
   RETURNING: '返院途中',
+  TRANSPORT: '转运中',
+  AVAILABLE: '空闲中',
+  IDLE: '空闲中',
+  MAINTENANCE: '维护中',
+  OFFLINE: '维护中',
+  UNAVAILABLE: '不能调用',
+  DISABLED: '不能调用',
 }
 
 export function statusLabel(status: string) {
