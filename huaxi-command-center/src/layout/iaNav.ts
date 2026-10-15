@@ -57,7 +57,6 @@ export const IA_PLATES: IaPlate[] = [
     home: '/dr',
     links: [
       ['/dr?view=videos', '视频展示'],
-      ['/dr?view=saved', '我的收藏'],
     ],
   },
 ]

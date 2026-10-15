@@ -18,7 +18,7 @@
 import fs from 'fs'
 import path from 'path'
 
-const jsPath = path.join('public', 'assets', 'index-BA_IO3dC.js')
+const jsPath = path.join('public', 'assets', 'vendor', 'index-BA_IO3dC.js')
 const START = 'function rfe(){'
 const END = 'function ife(){'
 

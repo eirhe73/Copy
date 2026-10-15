@@ -3,10 +3,10 @@
  * 运行: npm run sync:app-html
  */
 export const APP_SHELL_VERSION = {
-  themeLight: '20260315u',
+  themeLight: '20260315v',
   sidebarLayout: '34',
   mapPresentation: '20260315map4',
-  reactBundle: 'app-shell-2',
+  reactBundle: 'app-shell-3',
 }
 
 export const styles = [
