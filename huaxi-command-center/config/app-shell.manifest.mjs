@@ -3,8 +3,8 @@
  * 运行: npm run sync:app-html
  */
 export const APP_SHELL_VERSION = {
-  themeLight: '20261015bed3',
-  sidebarLayout: '38',
+  themeLight: '20261015bed6',
+  sidebarLayout: '42',
   mapPresentation: '20260315map12',
   reactBundle: 'app-shell-3',
 }
@@ -53,7 +53,7 @@ export const mapScripts = [
   { src: '/assets/enhance/nav-ia-enhance.js?v=13', defer: true },
   { src: '/assets/enhance/dispatch-subnav-parity-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/sidebar-shell-enhance.js?v=29', defer: true },
-  { src: '/assets/enhance/breadcrumb-nav-enhance.js?v=8', defer: true },
+  { src: '/assets/enhance/breadcrumb-nav-enhance.js?v=11', defer: true },
   { src: '/assets/enhance/command-map-page-enhance.js?v=14', defer: true },
 ]
 
@@ -82,7 +82,7 @@ export const enhanceScripts = [
   { src: '/assets/enhance/qc-sla-enhance.js', defer: true },
   { src: '/assets/enhance/qc-task-sla-enhance.js', defer: true },
   { src: '/assets/enhance/video-placeholder-enhance.js?v=1', defer: true },
-  { src: '/assets/enhance/bed-page-layout-enhance.js?v=8', defer: true },
+  { src: '/assets/enhance/bed-page-layout-enhance.js?v=10', defer: true },
   { src: '/assets/enhance/bed-video-fill-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/critical-bed-summary-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/ward-video-enhance.js?v=2', defer: true },
