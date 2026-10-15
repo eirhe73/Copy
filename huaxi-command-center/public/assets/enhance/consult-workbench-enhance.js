@@ -486,7 +486,6 @@
       '<div class="' + HOST_ID + '-form">' +
       '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-patient">患者选择</label><select id="hx-cw-f-patient"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-complaint">主诉</label><input id="hx-cw-f-complaint" type="text" placeholder="如：胸痛2小时"></div>' +
-      '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-hospital">目标医院</label><select id="hx-cw-f-hospital"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-dept">目标科室</label><select id="hx-cw-f-dept"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-doctor">指定接诊医生</label><select id="hx-cw-f-doctor"></select></div>' +
       '<div class="' + HOST_ID + '-field"><label for="hx-cw-f-note">备注</label><input id="hx-cw-f-note" type="text" placeholder="选填"></div>' +
@@ -1158,12 +1157,6 @@
       return who + '）'
     }, '请选择患者'))
 
-    fillSelect($('hx-cw-f-hospital'), options(state.orgs, function (o) {
-      return o.name
-    }, function (o) {
-      return o.name
-    }, '请选择目标医院'))
-
     fillSelect($('hx-cw-f-dept'), options(state.depts, function (d) {
       return d.dept_name
     }, function (d) {
@@ -1352,10 +1345,9 @@
       return setFormMsg('演示队列：请从「患者登记/急救事件」发起会诊，或连接后端后在此提交。', 'err')
     }
     var pid = ($('hx-cw-f-patient') || {}).value || ''
-    var hospital = ($('hx-cw-f-hospital') || {}).value || ''
     var dept = ($('hx-cw-f-dept') || {}).value || ''
     if (!pid) return setFormMsg('请选择患者', 'err')
-    if (!hospital || !dept) return setFormMsg('请选择目标医院与科室', 'err')
+    if (!dept) return setFormMsg('请选择目标科室', 'err')
 
     var patient = state.patients.filter(function (p) {
       return p.patientId === pid
