@@ -85,4 +85,29 @@
     normalizeHash: normalizeHash,
     assignHash: assignHash,
   }
+
+  function hashPath() {
+    return (location.hash.replace(/^#/, '').split('?')[0] || '/').replace(/\/$/, '') || '/'
+  }
+
+  var prevHashPath = hashPath()
+
+  /** React 内部 navigate 直进 #/room 时，从会诊列表补拦到 episode（p3） */
+  window.addEventListener('hashchange', function () {
+    var cur = hashPath()
+    var fromConsult =
+      prevHashPath === '/consultations' || prevHashPath.indexOf('/consultations/') === 0
+    var toRoom = cur.indexOf('/room/') === 0
+    var fromEpisode = prevHashPath.indexOf('/episode/') === 0
+    prevHashPath = cur
+    if (!fromConsult || !toRoom || fromEpisode) return
+    var token = decodeURIComponent((cur.split('/')[2] || '').split('?')[0])
+    if (!token) return
+    loadScenarioIndex().then(function () {
+      var ep = episodeHash({ token: token })
+      if (ep && location.hash !== ep) location.hash = ep
+    })
+  })
+
+  loadScenarioIndex()
 })()

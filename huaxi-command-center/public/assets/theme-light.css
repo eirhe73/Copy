@@ -3708,22 +3708,54 @@ body:has(.huaxi-dispatch-subnav) .app-shell {
 }
 
 /* ========== 浅色扫尾：会诊 / 监控 / 表单 / 质控 workspace ========== */
-main.meeting,
-main.meeting header {
+body:not(.hx-sidebar-shell) main.meeting,
+body:not(.hx-sidebar-shell) main.meeting header {
   background: #fff !important;
   color: #334155 !important;
 }
 
-main.meeting header a {
+body:not(.hx-sidebar-shell) main.meeting header a {
   color: #0369a1 !important;
 }
 
-main.meeting strong {
+body:not(.hx-sidebar-shell) main.meeting strong {
   color: #0f172a !important;
 }
 
-main.meeting small {
+body:not(.hx-sidebar-shell) main.meeting small {
   color: #64748b !important;
+}
+
+/* app.html · React 会诊室 p4：保留 bundle 深色全屏，勿用浅色扫尾 */
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting {
+  grid-column: 2 !important;
+  grid-row: 2 / -1 !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: auto !important;
+  background: #061321 !important;
+  color: #e2e8f0 !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting > header {
+  background: #10263c !important;
+  border-bottom: 1px solid #2a4b63 !important;
+  color: inherit !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting header a {
+  color: #93c5fd !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting strong {
+  color: #f1f5f9 !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting small {
+  color: #94a3b8 !important;
 }
 
 .doctor-queue {
@@ -6877,12 +6909,21 @@ body.hx-home-more-open {
   border-radius: 8px !important;
 }
 
-main.meeting .video-pane,
-main.meeting .clinical-device-frame,
-main.meeting .video-state {
+body:not(.hx-sidebar-shell) main.meeting .video-pane,
+body:not(.hx-sidebar-shell) main.meeting .clinical-device-frame,
+body:not(.hx-sidebar-shell) main.meeting .video-state {
   background: #f8fafc !important;
   border: 1px solid #e2e8f0 !important;
   color: #64748b !important;
+}
+
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .video-pane,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .clinical-device-frame,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .video-state,
+body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main.meeting .meeting-stage {
+  background: #0b1623 !important;
+  border-color: #334155 !important;
+  color: #cbd5e1 !important;
 }
 
 .workspace .filter-bar,

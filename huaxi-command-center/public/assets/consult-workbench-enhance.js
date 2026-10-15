@@ -707,11 +707,11 @@
     return '<a class="' + HOST_ID + '-btn' + (primary ? ' primary' : ' link') + '" href="' + esc(href) + '">' + esc(text) + '</a>'
   }
 
-  /** 「进入会诊室」统一为同一套按钮样式（不随状态在 link / 大蓝块之间切换） */
+  /** 「进入会诊室」→ episode；episode 页再「进入视频会诊」→ room */
   function opEnterRoom(it) {
-    var label = '进入视频会诊'
+    var label = '进入会诊室'
     var cls = HOST_ID + '-btn ' + HOST_ID + '-btn-enter'
-    var rh = roomHref(it)
+    var rh = consultEntryHref(it)
     if (rh) {
       return '<a class="' + cls + '" href="' + esc(rh) + '">' + esc(label) + '</a>'
     }
@@ -733,8 +733,7 @@
     return (hit && hit.patientId) || ''
   }
 
-  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
-  function roomHref(it) {
+  function consultToken(it) {
     if (!it) return ''
     var token =
       it.consultationToken ||
@@ -746,9 +745,25 @@
     if (!token && it.sessionId && state.scenarioBySession[it.sessionId]) {
       token = state.scenarioBySession[it.sessionId].token || ''
     }
-    // 会诊室 API 按 consult_rooms.token 查，勿用 sessionId 以免空白页
+    return token || ''
+  }
+
+  /** 本系统内会诊室 hash（优先 token，否则 sessionId） */
+  function roomHref(it) {
+    var token = consultToken(it)
     if (!token) return ''
     return '#/room/' + encodeURIComponent(token)
+  }
+
+  /** 列表入口：连续诊疗 episode（p3），episode 内再进 room（p4） */
+  function consultEntryHref(it) {
+    var pid = resolvePatientId(it)
+    var token = consultToken(it)
+    if (window.hxConsultEpisodeNav && window.hxConsultEpisodeNav.episodeHash) {
+      var ep = window.hxConsultEpisodeNav.episodeHash({ patientId: pid, token: token })
+      if (ep) return ep
+    }
+    return roomHref(it)
   }
 
   function ingestScenarioPack(pack) {
@@ -1420,7 +1435,7 @@
 
   function enterRoom(sessionId) {
     var it = state.queue.filter(function (x) { return x.sessionId === sessionId })[0]
-    var rh = roomHref(it || { sessionId: sessionId })
+    var rh = consultEntryHref(it || { sessionId: sessionId })
     if (rh) {
       location.hash = rh.replace(/^\/#/, '#')
       setMsg('')
