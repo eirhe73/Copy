@@ -1,9 +1,17 @@
 /**
  * /#/devices · 设备与床位绑定弹窗：机构 / 科室 / 床位 / 责任人员
+ *
+ * 注：页面本体已打补丁（scripts/patch-devices-page.mjs，main[data-hx-devices-edit]），
+ * 自带「编辑」弹窗与完整字段，本脚本自动让位；仅当页面回退到未打补丁的原始产物时生效。
  */
 ;(function () {
   const STORAGE_KEY = 'huaxi-demo-device-bindings'
   const META_KEY = 'huaxi-demo-device-bind-meta'
+
+  /** 页面已是补丁版（自带编辑弹窗）时为 true —— 本脚本不再接管弹窗 */
+  function patchedPage() {
+    return !!document.querySelector('main[data-hx-devices-edit]')
+  }
 
   const ORG_LABEL = {
     weiyuan: '威远县人民医院',
@@ -393,7 +401,7 @@
   document.addEventListener(
     'click',
     (e) => {
-      if (path() !== '/devices') return
+      if (path() !== '/devices' || patchedPage()) return
       const btn = e.target.closest('button')
       if (!btn || !(btn.textContent || '').includes('绑定床位')) return
       const tr = btn.closest('tr')
@@ -405,7 +413,7 @@
   )
 
   function tick() {
-    if (path() !== '/devices') return
+    if (path() !== '/devices' || patchedPage()) return
     const modal = findModal()
     if (modal) enhanceModal(modal)
   }
