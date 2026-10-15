@@ -28,6 +28,57 @@ export function formatPatientTime(iso?: string | null) {
   }
 }
 
+type RawObject = Record<string, unknown>
+
+function pickString(o: RawObject, keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = o[key]
+    if (value == null) continue
+    if (typeof value === 'string') {
+      const s = value.trim()
+      if (s !== '') return s
+    } else if (typeof value === 'number' && Number.isFinite(value)) {
+      return String(value)
+    }
+  }
+  return undefined
+}
+
+function pickNumber(o: RawObject, keys: string[]): number | null {
+  for (const key of keys) {
+    const value = o[key]
+    if (value == null || value === '') continue
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return null
+}
+
+/**
+ * 后端契约（03-患者与床位/02-患者管理接口 §3.2/§3.3）为 camelCase：
+ * patientId / name / gender / genderLabel / createdAt；本地页面沿用 snake_case，
+ * 这里统一做一次字段归一化，避免编号、姓名、建档时间取值失败显示「— / undefined」。
+ */
+export function normalizePatient(raw: unknown): PatientRecord {
+  const o = (raw && typeof raw === 'object' ? raw : {}) as RawObject
+  const code = pickString(o, ['patientId', 'patient_code'])
+
+  return {
+    id: code ?? pickString(o, ['id']) ?? '',
+    patient_code: code,
+    real_name: pickString(o, ['name', 'real_name']),
+    gender: pickString(o, ['gender', 'genderLabel']),
+    birth_date: pickString(o, ['birthDate', 'birth_date']) ?? null,
+    age: pickNumber(o, ['age']),
+    id_card: pickString(o, ['idCard', 'id_card']) ?? null,
+    phone: pickString(o, ['phone']) ?? null,
+    address: pickString(o, ['address']) ?? null,
+    medical_history: pickString(o, ['medicalHistory', 'medical_history']) ?? null,
+    allergy_history: pickString(o, ['allergyHistory', 'allergy_history']) ?? null,
+    created_at: pickString(o, ['createdAt', 'created_at']) ?? null,
+  }
+}
+
 export function patientDisplayName(p: PatientRecord) {
   return p.real_name || p.patient_code || String(p.id)
 }
@@ -48,7 +99,10 @@ export function patientDetailFields(p: PatientRecord): { label: string; value: s
   ]
 }
 
-export function parsePatientListPayload(raw: unknown): {
+export function parsePatientListPayload(
+  raw: unknown,
+  pageSize = 20,
+): {
   rows: PatientRecord[]
   meta: { current_page: number; last_page: number; total: number }
 } {
@@ -56,24 +110,27 @@ export function parsePatientListPayload(raw: unknown): {
   let meta = { current_page: 1, last_page: 1, total: 0 }
 
   if (Array.isArray(raw)) {
-    rows = raw as PatientRecord[]
-    meta.total = rows.length
+    rows = (raw as unknown[]).map(normalizePatient)
+    meta = { current_page: 1, last_page: 1, total: rows.length }
     return { rows, meta }
   }
 
   if (raw && typeof raw === 'object') {
     const o = raw as Record<string, unknown>
-    if (Array.isArray(o.data)) rows = o.data as PatientRecord[]
-    else if (Array.isArray(o.list)) rows = o.list as PatientRecord[]
+    if (Array.isArray(o.data)) rows = (o.data as unknown[]).map(normalizePatient)
+    else if (Array.isArray(o.list)) rows = (o.list as unknown[]).map(normalizePatient)
+
+    // 后端 §3.2 只返回 {total, list}，没有分页元信息，last_page 由 total/pageSize 推算
     const m = o.meta as Record<string, unknown> | undefined
-    if (m) {
-      meta = {
-        current_page: Number(m.current_page ?? 1),
-        last_page: Number(m.last_page ?? 1),
-        total: Number(m.total ?? rows.length),
-      }
-    } else {
-      meta.total = rows.length
+    const totalRaw = m?.total ?? o.total ?? rows.length
+    const total = Number(totalRaw)
+    const safeTotal = Number.isFinite(total) ? total : rows.length
+    const lastPageRaw = m?.last_page ?? m?.lastPage
+
+    meta = {
+      current_page: Number(m?.current_page ?? m?.pageNum ?? 1) || 1,
+      last_page: Number(lastPageRaw) || Math.max(1, Math.ceil(safeTotal / pageSize)),
+      total: safeTotal,
     }
   }
 
@@ -83,7 +140,11 @@ export function parsePatientListPayload(raw: unknown): {
 export function patientFromUnknown(raw: unknown): PatientRecord | null {
   if (!raw || typeof raw !== 'object') return null
   const o = raw as Record<string, unknown>
-  if ('real_name' in o || 'patient_code' in o || 'id' in o) return o as PatientRecord
-  if (o.data && typeof o.data === 'object') return patientFromUnknown(o.data)
+  if ('data' in o && o.data && typeof o.data === 'object' && !('patientId' in o) && !('id' in o)) {
+    return patientFromUnknown(o.data)
+  }
+  if ('patientId' in o || 'name' in o || 'real_name' in o || 'patient_code' in o || 'id' in o) {
+    return normalizePatient(o)
+  }
   return null
 }

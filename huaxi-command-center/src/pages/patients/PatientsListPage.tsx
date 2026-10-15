@@ -13,6 +13,9 @@ import {
 } from '../../lib/patientDisplay'
 import type { PatientRecord } from '../../types/patient'
 
+/** 与后端 §3.2 pageSize 保持一致，用于推算总页数 */
+const PAGE_SIZE = 30
+
 export function PatientsListPage() {
   const { ready, authenticated } = useAuth()
   const navigate = useNavigate()
@@ -29,11 +32,12 @@ export function PatientsListPage() {
     setError('')
     try {
       const qs = new URLSearchParams()
-      qs.set('per_page', '30')
-      qs.set('page', String(page))
+      // 后端 §3.2 分页入参为 pageNum / pageSize
+      qs.set('pageSize', String(PAGE_SIZE))
+      qs.set('pageNum', String(page))
       if (keyword.trim()) qs.set('keyword', keyword.trim())
       const raw = await apiGet<unknown>(`/patients?${qs}`)
-      const parsed = parsePatientListPayload(raw)
+      const parsed = parsePatientListPayload(raw, PAGE_SIZE)
       setRows(parsed.rows)
       setLastPage(parsed.meta.last_page)
       setTotal(parsed.meta.total)
