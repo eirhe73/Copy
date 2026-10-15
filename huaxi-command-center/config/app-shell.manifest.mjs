@@ -3,7 +3,7 @@
  * 运行: npm run sync:app-html
  */
 export const APP_SHELL_VERSION = {
-  themeLight: '20261015bed6',
+  themeLight: '20261015bed10',
   sidebarLayout: '43',
   mapPresentation: '20260315map17',
   reactBundle: 'app-shell-3',
@@ -104,7 +104,7 @@ export const enhanceScripts = [
   { src: '/assets/enhance/nav-back-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/grassroots-demo-enhance.js', defer: true },
   { src: '/assets/enhance/ia-query-views-enhance.js?v=7', defer: true },
-  { src: '/assets/enhance/organizations-flow-enhance.js?v=4', defer: true },
+  { src: '/assets/enhance/organizations-flow-enhance.js?v=7', defer: true },
   { src: '/assets/enhance/plate-three-backend-enhance.js?v=6', defer: true },
   { src: '/assets/enhance/medical-quality-backend-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/demo-compliance-enhance.js?v=2', defer: true },
