@@ -50,7 +50,7 @@
     const next = rule()
     const el = document.getElementById('hx-back-float')
 
-    if (!next || hasInlineBack()) {
+    if (!next || hasInlineBack() || document.getElementById('hx-nav-tabs')) {
       el?.remove()
       return
     }

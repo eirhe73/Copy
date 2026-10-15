@@ -3,8 +3,8 @@
  * 运行: npm run sync:app-html
  */
 export const APP_SHELL_VERSION = {
-  themeLight: '20260315v',
-  sidebarLayout: '35',
+  themeLight: '20261015bed3',
+  sidebarLayout: '38',
   mapPresentation: '20260315map12',
   reactBundle: 'app-shell-3',
 }
@@ -53,6 +53,7 @@ export const mapScripts = [
   { src: '/assets/enhance/nav-ia-enhance.js?v=13', defer: true },
   { src: '/assets/enhance/dispatch-subnav-parity-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/sidebar-shell-enhance.js?v=27', defer: true },
+  { src: '/assets/enhance/breadcrumb-nav-enhance.js?v=8', defer: true },
   { src: '/assets/enhance/command-map-page-enhance.js?v=14', defer: true },
 ]
 
@@ -77,11 +78,13 @@ export const enhanceScripts = [
   { src: '/assets/enhance/warning-messages-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/device-binding-enhance.js?v=4', defer: true },
   { src: '/assets/enhance/device-bind-modal-enhance.js?v=3', defer: true },
-  { src: '/assets/enhance/care-link-enhance.js?v=2', defer: true },
+  { src: '/assets/enhance/care-link-enhance.js?v=3', defer: true },
   { src: '/assets/enhance/qc-sla-enhance.js', defer: true },
   { src: '/assets/enhance/qc-task-sla-enhance.js', defer: true },
   { src: '/assets/enhance/video-placeholder-enhance.js?v=1', defer: true },
+  { src: '/assets/enhance/bed-page-layout-enhance.js?v=8', defer: true },
   { src: '/assets/enhance/bed-video-fill-enhance.js?v=2', defer: true },
+  { src: '/assets/enhance/critical-bed-summary-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/ward-video-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/town-video-fill-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/consult-context-enhance.js?v=10', defer: true },
@@ -90,7 +93,7 @@ export const enhanceScripts = [
   { src: '/assets/enhance/consult-workbench-enhance.js?v=38', defer: true },
   { src: '/assets/enhance/consult-patient-pick-enhance.js?v=11', defer: true },
   { src: '/assets/enhance/grassroots-consult-enhance.js?v=11', defer: true },
-  { src: '/assets/enhance/nav-back-enhance.js', defer: true },
+  { src: '/assets/enhance/nav-back-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/grassroots-demo-enhance.js', defer: true },
   { src: '/assets/enhance/ia-query-views-enhance.js?v=7', defer: true },
   { src: '/assets/enhance/organizations-flow-enhance.js?v=4', defer: true },
