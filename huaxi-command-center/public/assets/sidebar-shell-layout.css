@@ -607,6 +607,13 @@ body.hx-sidebar-shell.hx-sidebar-home .dashboard-right .event-feed button {
   line-height: 1.55 !important;
 }
 
+/* hash 已离开首页时勿再露出指挥概览 dashboard（避免与 #/consultations 等视图叠在一起） */
+body.hx-sidebar-shell:not(.hx-sidebar-home):not(.hx-page-map-only)
+  .app-shell.hx-sidebar-ready
+  > main.dashboard.screen {
+  display: none !important;
+}
+
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.workspace,
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.dispatch-screen,
 body.hx-sidebar-shell:not(.hx-sidebar-home) .app-shell.hx-sidebar-ready > main.warning-screen,

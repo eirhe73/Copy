@@ -1,7 +1,8 @@
 /**
- * 远程会诊页上下文：
- * - 顶栏「全县 / 基层上转」与远程会诊同一页切换（基层不再单独侧栏入口）
- * - 「返回指挥中枢 / 返回实时出警」在 nav.subnav 右侧
+ * 远程会诊页上下文（React 演示退避时用）：
+ * - 侧栏「远程会诊」=#/consultations（全县）；「基层会诊」=?tab=grassroots（同页基层视角）
+ * - 正式环境由 consult-workbench-enhance 接管，本脚本仅补 dispatch 任务条 / 演示 Tab
+ * - 「返回实时出警」在 nav.subnav 右侧
  */
 ;(function () {
   function path() {
@@ -71,44 +72,23 @@
     return p === '/consultations' || p.indexOf('/consultations/') === 0
   }
 
+  function syncConsultHeading(tab) {
+    const h1 = document.querySelector('main.workspace .workspace-heading h1')
+    if (!h1) return
+    const next = tab === 'grassroots' ? '基层会诊' : '远程会诊'
+    if ((h1.textContent || '').trim() !== next) h1.textContent = next
+  }
+
   function renderConsultTabs() {
-    if (!isConsultModule()) {
-      document.getElementById('hx-consult-mode')?.remove()
-      return
-    }
-    if (path() === '/consultations/pick') {
-      document.getElementById('hx-consult-mode')?.remove()
-      return
-    }
-    // 侧栏三级 + 工作台接管：不再插页内 Tab
-    if (document.body.classList.contains('hx-cw-active')) {
-      document.getElementById('hx-consult-mode')?.remove()
-      return
-    }
-    const host =
-      document.querySelector('main.workspace .workspace-heading') ||
-      document.querySelector('main.workspace')
-    if (!host) return
+    document.getElementById('hx-consult-mode')?.remove()
+    if (!isConsultModule() || path() === '/consultations/pick') return
     const tab = consultTab()
-    let box = document.getElementById('hx-consult-mode')
-    if (!box) {
-      box = document.createElement('div')
-      box.id = 'hx-consult-mode'
-      box.className = 'hx-consult-mode'
-      host.insertAdjacentElement('afterend', box)
+    document.body.classList.toggle('hx-consult-scope-grassroots', tab === 'grassroots')
+    document.body.classList.toggle('hx-consult-scope-all', tab !== 'grassroots')
+    syncConsultHeading(tab)
+    if (!document.body.classList.contains('hx-cw-active')) {
+      window.__hxConsultApplyScope?.()
     }
-    const html = `<nav class="hx-consult-tabs" aria-label="会诊范围">
-      <a class="hx-consult-tab${tab === 'all' ? ' is-active' : ''}" href="#/consultations">全县会诊</a>
-      <a class="hx-consult-tab${tab === 'grassroots' ? ' is-active' : ''}" href="#/consultations?tab=grassroots">基层上转</a>
-    </nav>
-    <p class="hx-consult-mode__text">${
-      tab === 'grassroots'
-        ? '乡镇、村卫生室发起的上转会诊，按接收医院接诊；与全县院前、县域队列同一工作台。'
-        : '全县会诊队列，含院前、县域及上级医院；基层上转请切到「基层上转」。'
-    }</p>`
-    if (box.dataset.body === html) return
-    box.dataset.body = html
-    box.innerHTML = html
   }
 
   function renderDispatchStrip() {

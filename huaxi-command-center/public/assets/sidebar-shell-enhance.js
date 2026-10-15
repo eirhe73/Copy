@@ -203,17 +203,18 @@
       if (right) header.insertBefore(el, right)
       else header.appendChild(el)
     }
+    let next = ''
     if (isHome()) {
-      el.textContent = hashPath() === '/map' ? '协作三维地图' : '县域指挥概览'
-      return
+      next = hashPath() === '/map' ? '协作三维地图' : '县域指挥概览'
+    } else {
+      const fromPath = pageNavLabel()
+      if (fromPath) next = fromPath
+      else {
+        const active = menu.querySelector('.hx-nav-l2__link.active')
+        next = active?.dataset.navLabel || active?.textContent?.trim() || ''
+      }
     }
-    const fromPath = pageNavLabel()
-    if (fromPath) {
-      el.textContent = fromPath
-      return
-    }
-    const active = menu.querySelector('.hx-nav-l2__link.active')
-    el.textContent = active?.dataset.navLabel || active?.textContent?.trim() || ''
+    if (el.textContent !== next) el.textContent = next
   }
 
   function syncRouteBodyClasses() {
@@ -234,22 +235,16 @@
     const p = hashPath()
     if (!p.startsWith('/consultations')) return
 
-    const label = pageNavLabel()
-    if (label) syncHeaderTitle(menu)
-
-    menu.querySelectorAll('.hx-nav-l2__link').forEach((a) => {
-      a.classList.remove('active')
-      a.removeAttribute('aria-current')
-    })
     let key = '/consultations'
     if (p !== '/consultations/pick' && isGrassrootsConsult()) {
       key = '/consultations?tab=grassroots'
     }
-    const hit = menu.querySelector(`.hx-nav-l2__link[data-nav-href="${key}"]`)
-    if (hit) {
-      hit.classList.add('active')
-      hit.setAttribute('aria-current', 'page')
-    }
+    menu.querySelectorAll('.hx-nav-l2__link').forEach((a) => {
+      const on = a.dataset.navHref === key
+      a.classList.toggle('active', on)
+      if (on) a.setAttribute('aria-current', 'page')
+      else a.removeAttribute('aria-current')
+    })
   }
 
   function syncActive(menu) {
@@ -262,19 +257,6 @@
     })
     pinConsultRouteChrome(menu)
     syncHeaderTitle(menu)
-  }
-
-  let headerWatch = null
-  function watchHeaderTitle(menu) {
-    if (headerWatch) return
-    const header = document.querySelector('.command-header')
-    if (!header || typeof MutationObserver === 'undefined') return
-    headerWatch = new MutationObserver(() => {
-      if (!hashPath().startsWith('/consultations')) return
-      syncHeaderTitle(menu)
-      pinConsultRouteChrome(menu)
-    })
-    headerWatch.observe(header, { childList: true, subtree: true, characterData: true })
   }
 
   function clonePlateIcon(shell, index) {
@@ -294,6 +276,36 @@
         slot.dataset.filled = '1'
       }
     })
+  }
+
+  function navigateSidebarHash(href) {
+    let target = href || ''
+    if (window.hxConsultEpisodeNav?.normalizeHash) {
+      target = window.hxConsultEpisodeNav.normalizeHash(target) || target
+    } else if (target.indexOf('/#/') === 0) {
+      target = target.slice(1)
+    }
+    if (!target.startsWith('#')) return
+    if (location.hash !== target) location.hash = target
+    else window.dispatchEvent(new HashChangeEvent('hashchange'))
+  }
+
+  function bindSidebarNav(menu) {
+    if (menu.dataset.navBound === '1') return
+    menu.dataset.navBound = '1'
+    menu.addEventListener(
+      'click',
+      (e) => {
+        const a = e.target instanceof Element ? e.target.closest('a.hx-nav-l2__link') : null
+        if (!a || !menu.contains(a)) return
+        const href = a.getAttribute('href') || ''
+        if (!href.startsWith('#') && href.indexOf('/#/') !== 0) return
+        e.preventDefault()
+        e.stopImmediatePropagation()
+        navigateSidebarHash(href)
+      },
+      true,
+    )
   }
 
   function buildMenu(menu) {
@@ -377,18 +389,12 @@
     if (!menu) return
 
     buildMenu(menu)
+    bindSidebarNav(menu)
     fillIcons(menu, shell)
     syncActive(menu)
-    watchHeaderTitle(menu)
   }
 
   window.hxEnhance(() => apply(), { wait: 200, afterNav: 100 })
   window.addEventListener('hashchange', () => apply())
-  setInterval(() => {
-    if (!document.body.classList.contains('hx-sidebar-shell')) return
-    if (!hashPath().startsWith('/consultations')) return
-    const menu = document.querySelector('.hx-sidebar-menu')
-    if (menu) pinConsultRouteChrome(menu)
-  }, 800)
   setTimeout(() => apply(), 600)
 })()

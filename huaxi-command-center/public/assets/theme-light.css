@@ -7219,34 +7219,86 @@ main.meeting .video-state {
 }
 
 .hx-consult-tabs {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 0;
   margin: 0;
+  padding: 3px;
+  background: #e2e8f0;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
 }
 
 .hx-consult-tab {
   display: inline-flex;
   align-items: center;
-  min-height: 32px;
-  padding: 5px 14px;
+  justify-content: center;
+  min-height: 34px;
+  padding: 6px 16px;
   font-size: 13px;
-  font-weight: 500;
-  color: #0369a1;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: 1.25;
+  color: #334155;
   text-decoration: none;
-  background: #fff;
-  border: 1px solid #7dd3fc;
-  border-radius: 999px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: none;
+  -webkit-text-fill-color: currentColor;
 }
 
 .hx-consult-tab:hover {
-  background: #e0f2fe;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.65);
 }
 
 .hx-consult-tab.is-active {
-  color: #fff;
-  background: #0284c7;
-  border-color: #0284c7;
+  color: #ffffff;
+  background: #1e4b7b;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+  -webkit-text-fill-color: #ffffff;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab.is-active {
+  color: #ffffff !important;
+  background: #1e4b7b !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+body.hx-consult-page .hx-consult-mode .hx-consult-tabs .hx-consult-tab.is-active:hover {
+  color: #ffffff !important;
+  background: #163a60 !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+.hx-consult-scope-empty {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #475569;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 8px;
+}
+
+body.hx-consult-scope-grassroots .hx-consult-mode {
+  background: #ecfdf5;
+  border-color: #6ee7b7;
+}
+
+.consultation-queue article.hx-consult-scope-hidden {
+  display: none !important;
+}
+
+.consultation-queue.hx-consult-scope-section-empty {
+  display: none !important;
 }
 
 .hx-consult-pick-bar {
@@ -9318,6 +9370,16 @@ body.hx-cw-active {
   overflow: hidden;
 }
 
+body.hx-cw-active main.workspace > *:not(.workspace-heading) {
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
 body.hx-cw-active .workspace {
   border: 0 !important;
   box-shadow: none !important;
@@ -9893,6 +9955,23 @@ body.hx-consult-page .consultation-grid > article footer a,
 body.hx-consult-page .consultation-grid > article footer button {
   pointer-events: auto !important;
   cursor: pointer !important;
+}
+
+/* 远程会诊 p2：指定医生 / 确认分配 — 提高边框与字色对比 */
+body.hx-consult-page .consultation-queue select {
+  border: 1px solid #64748b !important;
+  color: #0f172a !important;
+  background: #fff !important;
+  min-height: 36px !important;
+  font-size: 13px !important;
+}
+
+body.hx-consult-page .consultation-queue button.primary:not(:disabled) {
+  background: #1e4b7b !important;
+  border-color: #1e4b7b !important;
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  min-height: 36px !important;
 }
 
 body.hx-consult-page .consultation-grid {
