@@ -4,7 +4,7 @@
  */
 export const APP_SHELL_VERSION = {
   themeLight: '20260315u',
-  sidebarLayout: '33',
+  sidebarLayout: '34',
   mapPresentation: '20260315map4',
   reactBundle: 'app-shell-2',
 }

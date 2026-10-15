@@ -862,8 +862,11 @@ body.hx-dispatch-vue-embed .app-shell > #hx-ambulances-page {
 
 body.hx-sidebar-shell.hx-dispatch-vue-embed .app-shell > #hx-dispatch-embed-wrap,
 body.hx-dispatch-vue-embed .app-shell > #hx-dispatch-embed-wrap {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-self: stretch !important;
   min-height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
