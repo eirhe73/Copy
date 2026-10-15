@@ -12,7 +12,12 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule): void
     {
-        // $schedule->command('inspire')->hourly();
+        // 远程会诊房间兜底对账：会诊系统单向依赖、不反向回调，队列页/详情页无人访问时
+        // 靠这里把已在会诊系统侧结束（房间 state=ENDED）的会诊单收口为"已结束"。
+        // 生效前提：服务器 cron 每分钟执行一次 `php artisan schedule:run`。
+        $schedule->command('consult:reconcile')
+            ->everyFiveMinutes()
+            ->withoutOverlapping();
     }
 
     /**
