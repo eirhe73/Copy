@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 侧栏：分组标题 + 子菜单常显，子项直接点击（无折叠）
  */
 ;(function () {
@@ -18,9 +18,8 @@
       links: [
         ['/dispatch', '实时出警'],
         ['/dispatch/list', '出警列表'],
-        ['/dispatch/events', '事件列表'],
         ['/ambulances', '救护车列表'],
-        ['/patients', '患者列表'],
+        ['/patients', '急救事件'],
         ['/register', '患者登记'],
         ['/consultations', '远程会诊'],
         ['/consultations?tab=grassroots', '基层会诊'],
@@ -60,13 +59,13 @@
       ],
     },
     {
-        id: 'dr',
-        title: '基层医声Dr.',
-        links: [
-          ['/dr?view=videos', '视频展示'],
-          ['/dr?view=saved', '我的收藏'],
-        ],
-      },
+      id: 'dr',
+      title: '基层医声Dr.',
+      links: [
+        ['/dr?view=videos', '视频展示'],
+        ['/dr?view=saved', '我的收藏'],
+      ],
+    },
   ]
 
   const GROUPS = [HOME, ...PLATES]
@@ -113,9 +112,8 @@
     const labels = {
       '/dispatch': '实时出警',
       '/dispatch/list': '出警列表',
-      '/dispatch/events': '事件列表',
       '/ambulances': '救护车列表',
-      '/patients': '患者列表',
+      '/patients': '急救事件',
       '/register': '患者登记',
       '/transfers': '医院转诊',
       '/critical': '重症监护',
