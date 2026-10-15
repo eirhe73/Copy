@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
+import EventCreateForm from '../components/EventCreateForm.vue'
 import RegisterForm from '../components/RegisterForm.vue'
 import { contextFromHash, loadEvents, type PatientForm } from '../context'
 
@@ -29,15 +30,22 @@ onMounted(async () => {
   <div class="dh-page">
     <section class="dh-page-head">
       <div>
-        <h2 class="dh-h2">急救患者登记</h2>
-        <p class="dh-lead">这一屏填完就保存。任务号和车牌从出警页带入。</p>
+        <h2 class="dh-h2">患者登记 · 创建事件</h2>
+        <p class="dh-lead">本页同时完成患者登记与急救事件建档；任务号和车牌从出警页带入。</p>
       </div>
       <a class="dh-back-inline" href="#live">返回实时出警</a>
     </section>
     <div class="dh-register">
-      <section class="dh-panel">
-        <RegisterForm :seed="seed" />
-      </section>
+      <div class="dh-register-main">
+        <section class="dh-panel">
+          <h3 class="dh-h3">患者登记</h3>
+          <RegisterForm :seed="seed" />
+        </section>
+        <section class="dh-panel">
+          <h3 class="dh-h3">创建事件</h3>
+          <EventCreateForm />
+        </section>
+      </div>
       <aside class="dh-side-note">
         <h3>当前出车</h3>
         <p>任务号和车牌从出警带入。姓名在车上直接填，保存后即可发起会诊。</p>
