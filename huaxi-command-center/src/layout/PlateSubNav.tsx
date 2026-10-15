@@ -1,5 +1,22 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { plateSubLinks } from './navActive'
+
+function useSidebarShell() {
+  const [on, setOn] = useState(() => document.body.classList.contains('hx-sidebar-shell'))
+  useEffect(() => {
+    const sync = () => setOn(document.body.classList.contains('hx-sidebar-shell'))
+    sync()
+    const obs = new MutationObserver(sync)
+    obs.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+    window.addEventListener('hashchange', sync)
+    return () => {
+      obs.disconnect()
+      window.removeEventListener('hashchange', sync)
+    }
+  }, [])
+  return on
+}
 
 function linkMatches(link: string, pathname: string, search: string): boolean {
   const ref = new URL(link, 'http://local')
@@ -12,6 +29,8 @@ function linkMatches(link: string, pathname: string, search: string): boolean {
 
 export function PlateSubNav() {
   const { pathname, search } = useLocation()
+  const sidebarShell = useSidebarShell()
+  if (sidebarShell) return null
   if (pathname === '/' || pathname === '/login' || pathname === '') return null
   const links = plateSubLinks(pathname, search)
   if (!links.length) return null

@@ -24,10 +24,16 @@ export function activePlateIndex(pathname: string, search: string): number {
   const idx = IA_PLATES.findIndex((plate) =>
     plate.links.some(([link]) => linkMatches(link, pathname, search)),
   )
-  return idx >= 0 ? idx : 0
+  if (idx >= 0) return idx
+  const byHome = IA_PLATES.findIndex((plate) => {
+    const homePath = plate.home.split('?')[0]
+    return pathname === homePath || pathname.startsWith(`${homePath}/`)
+  })
+  return byHome >= 0 ? byHome : -1
 }
 
 export function plateSubLinks(pathname: string, search: string): typeof IA_PLATES[0]['links'] {
   const idx = activePlateIndex(pathname, search)
+  if (idx < 0) return []
   return IA_PLATES[idx]?.links ?? []
 }
