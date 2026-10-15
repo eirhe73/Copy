@@ -93,6 +93,21 @@ body.hx-sidebar-shell nav.subnav {
   display: none !important;
 }
 
+/* 侧栏 IA 已含二级链接：勿再露出 React PlateSubNav（否则会叠在侧栏列里像「弹出菜单」） */
+body.hx-sidebar-shell nav.filter-bar[aria-label='模块二级导航'],
+body.hx-sidebar-shell .app-shell > nav.filter-bar[aria-label='模块二级导航'],
+.app-shell.hx-sidebar-ready > nav.filter-bar[aria-label='模块二级导航'] {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  border: none !important;
+}
+
 /* —— 侧栏 —— */
 body.hx-sidebar-shell .hx-sidebar {
   grid-column: 1;
@@ -474,11 +489,6 @@ body.hx-sidebar-shell nav.detail-trail {
    的 rect 定位的固定层，于是只盖住上半屏，下半屏露出这排按钮，看上去像页面被切成两截。
    侧栏（aside.hx-sidebar）已经按 IA_PLATES 渲染了完全相同的二级导航，这里隐藏即可，
    隐式行随之消失，workspace 恢复整屏。 */
-body.hx-sidebar-shell
-  .app-shell.hx-sidebar-ready
-  > nav.filter-bar[aria-label='模块二级导航'] {
-  display: none !important;
-}
 
 body.hx-sidebar-shell.hx-sidebar-home .app-shell.hx-sidebar-ready:has(#hx-panel-toggles) {
   grid-template-rows: var(--hx-topbar-h) auto minmax(0, 1fr) !important;

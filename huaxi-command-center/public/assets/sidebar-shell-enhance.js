@@ -354,6 +354,15 @@
 
   }
 
+  function suppressReactPlateSubNav(shell) {
+    shell.querySelectorAll('nav.filter-bar[aria-label="模块二级导航"]').forEach((nav) => {
+      nav.hidden = true
+      nav.setAttribute('aria-hidden', 'true')
+      nav.style.setProperty('display', 'none', 'important')
+      nav.style.setProperty('pointer-events', 'none', 'important')
+    })
+  }
+
   function apply() {
     const shell = document.querySelector('.app-shell')
     if (!shell || skipShell()) {
@@ -392,8 +401,10 @@
     bindSidebarNav(menu)
     fillIcons(menu, shell)
     syncActive(menu)
+    suppressReactPlateSubNav(shell)
   }
 
+  apply()
   window.hxEnhance(() => apply(), { wait: 200, afterNav: 100 })
   window.addEventListener('hashchange', () => apply())
   window.addEventListener('hx-map-page', () => apply())
