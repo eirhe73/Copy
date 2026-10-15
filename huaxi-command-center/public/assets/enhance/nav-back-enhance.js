@@ -33,7 +33,7 @@
     }
     if (p === '/coordination') return null
     if (p.startsWith('/medical-quality/rectify')) return { href: '/#/medical-quality', label: '返回质控看板' }
-    if (p.startsWith('/episode/')) return { href: '/#/patients', label: '返回急救事件' }
+    if (p.startsWith('/episode/')) return { href: '/#/patients', label: '返回患者列表' }
     if (p.startsWith('/transport/')) return { href: '/dispatch.html#live', label: '返回实时出警' }
     return null
   }

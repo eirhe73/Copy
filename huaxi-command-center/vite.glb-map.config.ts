@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { defineConfig } from 'vite'
 
-/** 产出 app.html 可用的 ES 模块：public/assets/map-hospital-glb-enhance.js */
+/** 产出 app.html 可用的 ES 模块：public/assets/enhance/map-hospital-glb-enhance.js */
 export default defineConfig({
   resolve: {
     alias: { '@': path.resolve(__dirname, 'src') },

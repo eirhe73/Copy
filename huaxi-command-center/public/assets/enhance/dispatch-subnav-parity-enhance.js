@@ -6,7 +6,7 @@
     ['/dispatch', '实时出警'],
     ['/dispatch/list', '出警列表'],
     ['/ambulances', '救护车列表'],
-    ['/patients', '急救事件'],
+    ['/patients', '患者列表'],
     ['/register', '患者登记'],
     ['/consultations', '远程会诊'],
     ['/transfers?scope=grassroots', '医院转诊'],

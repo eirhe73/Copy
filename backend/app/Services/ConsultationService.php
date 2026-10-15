@@ -75,7 +75,7 @@ class ConsultationService extends Service
      * 只认明确的 ENDED：房间 404（会诊系统重启导致内存态丢失）不代表会诊结束，不能据此关单，
      * 那种情况由下次入会时按同一 consultId 重建房间兜底。
      */
-    private function reconcileRtcClosed($rows): void
+    private function reconcileRtcClosed($rows, int $limit = self::RTC_PROBE_LIMIT): void
     {
         if (! $this->rtc->enabled()) {
             return;
@@ -88,7 +88,7 @@ class ConsultationService extends Service
                 && (int) $s->room->rtc_sync_status === ConsultRtcService::SYNC_OK)
             // 会诊中的优先对账，且限制探活个数：探活是跨系统 HTTP 调用，队列页不宜无上限外呼
             ->sortByDesc(fn (ConsultSession $s) => (int) $s->status === 1)
-            ->take(self::RTC_PROBE_LIMIT);
+            ->take($limit);
 
         if ($candidates->isEmpty()) {
             return;
@@ -112,6 +112,39 @@ class ConsultationService extends Service
             // 单个房间探活失败（含系统不可达）只跳过该条：并行结果互不影响，
             // 其余房间照常对账
         }
+    }
+
+    /**
+     * 定时兜底对账（供 artisan 调度调用）
+     *
+     * 队列页/详情页的探活对账只在有人访问时才跑；会诊室是另开标签页打开的，
+     * 房主在那边点"结束"后若长时间没人打开主系统队列，会诊单会一直停在"待接诊/会诊中"。
+     * 这里按状态拉一批候选会话做一次对账，让状态在无人访问时也能收口，
+     * 保证统计与质控口径与会诊系统一致。
+     *
+     * @return int 本次由"待接诊/会诊中"收口为"已结束"的会诊单数
+     */
+    public function reconcilePending(int $limit = 30): int
+    {
+        if (! $this->rtc->enabled()) {
+            return 0;
+        }
+
+        $rows = ConsultSession::query()
+            ->with('room')
+            ->whereIn('status', [0, 1])
+            ->orderByDesc('id')
+            ->limit($limit)
+            ->get();
+
+        if ($rows->isEmpty()) {
+            return 0;
+        }
+
+        $this->reconcileRtcClosed($rows, $limit);
+
+        // reconcileRtcClosed 是就地刷新命中的会话实例，这里据刷新后的状态统计本次收口条数
+        return $rows->filter(fn (ConsultSession $s) => (int) $s->status === 2)->count();
     }
 
     /**

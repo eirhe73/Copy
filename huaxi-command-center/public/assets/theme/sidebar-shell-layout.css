@@ -19,9 +19,27 @@ body.hx-sidebar-shell {
   overflow: hidden;
 }
 
+/* 侧栏挂在 body 上，避免 React 重渲染清掉 .app-shell 内的增强 DOM */
+body.hx-sidebar-shell {
+  display: grid !important;
+  grid-template-columns: var(--hx-sidebar-w) minmax(0, 1fr) !important;
+  grid-template-rows: 1fr !important;
+  margin: 0;
+  background: var(--hx-shell-bg) !important;
+}
+
+body.hx-sidebar-shell > #root {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
 body.hx-sidebar-shell #root,
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready {
-  height: 100dvh;
+  height: 100%;
   max-height: 100dvh;
   min-height: 0;
   overflow: hidden;
@@ -29,11 +47,13 @@ body.hx-sidebar-shell .app-shell.hx-sidebar-ready {
 
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready {
   display: grid !important;
-  grid-template-columns: var(--hx-sidebar-w) minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   grid-template-rows: var(--hx-topbar-h) minmax(0, 1fr) !important;
   background: var(--hx-shell-bg) !important;
   padding-bottom: 0 !important;
   gap: 0 !important;
+  width: 100%;
+  min-width: 0;
 }
 
 body.hx-sidebar-shell .app-shell:has(main.dashboard.screen) {
@@ -109,9 +129,12 @@ body.hx-sidebar-shell .app-shell > nav.filter-bar[aria-label='模块二级导航
 }
 
 /* —— 侧栏 —— */
+body.hx-sidebar-shell > aside.hx-sidebar,
 body.hx-sidebar-shell .hx-sidebar {
   grid-column: 1;
-  grid-row: 1 / -1;
+  grid-row: 1;
+  height: 100dvh;
+  max-height: 100dvh;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -338,7 +361,7 @@ body.hx-sidebar-shell .hx-nav-l2__link.active::after {
 
 /* —— 顶栏 —— */
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready > header.command-header {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 1 !important;
   height: var(--hx-topbar-h) !important;
   min-height: var(--hx-topbar-h) !important;
@@ -495,7 +518,7 @@ body.hx-sidebar-shell.hx-sidebar-home .app-shell.hx-sidebar-ready:has(#hx-panel-
 }
 
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready > main {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
   min-height: 0 !important;
   overflow: hidden !important;
@@ -506,7 +529,7 @@ body.hx-sidebar-shell.hx-sidebar-home .app-shell.hx-sidebar-ready:has(#hx-panel-
 }
 
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready > #hx-panel-toggles {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
   align-self: stretch !important;
   justify-self: stretch !important;
@@ -660,7 +683,7 @@ body.hx-sidebar-shell.hx-page-ambulances .app-shell.hx-sidebar-ready > main:not(
 }
 
 body.hx-sidebar-shell.hx-page-ambulances .app-shell.hx-sidebar-ready > #hx-ambulances-page {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
   min-height: 0 !important;
   background: #fff;
@@ -694,7 +717,18 @@ body.hx-sidebar-shell .hx-ambulances-page .hx-amb-empty {
   color: #64748b;
 }
 
-/* 指挥中枢 · 协作三维地图独立页（#/map）— 主内容区铺满 */
+/* 指挥中枢 · 协作三维地图全屏 — 主内容区铺满（勿留空侧栏列） */
+body.hx-sidebar-shell.hx-page-map-only {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+body.hx-sidebar-shell.hx-page-map-only > #root {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
 body.hx-sidebar-shell.hx-page-map-only #hx-panel-toggles,
 body.hx-sidebar-shell.hx-page-map-only .huaxi-demo-links {
   display: none !important;
@@ -714,7 +748,7 @@ body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > #hx-panel-t
 
 body.hx-sidebar-shell.hx-page-map-only .app-shell.hx-sidebar-ready > main.dashboard.screen {
   grid-row: 2 / -1 !important;
-  grid-column: 2 / -1 !important;
+  grid-column: 1 / -1 !important;
 }
 
 body.hx-sidebar-shell.hx-page-map-only footer.system-footer {
@@ -828,8 +862,11 @@ body.hx-dispatch-vue-embed .app-shell > #hx-ambulances-page {
 
 body.hx-sidebar-shell.hx-dispatch-vue-embed .app-shell > #hx-dispatch-embed-wrap,
 body.hx-dispatch-vue-embed .app-shell > #hx-dispatch-embed-wrap {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  justify-self: stretch !important;
   min-height: 0 !important;
   overflow: hidden !important;
   display: flex !important;
@@ -859,7 +896,7 @@ body.hx-sidebar-shell .app-shell.hx-sidebar-ready:has(main.warning-screen.screen
 
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready main.warning-screen.screen {
   display: grid !important;
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
   grid-template-columns: minmax(228px, 0.88fr) minmax(0, 2.35fr) minmax(268px, 1fr) !important;
   grid-template-rows: minmax(0, 1fr) !important;
@@ -1133,7 +1170,7 @@ body.hx-sidebar-shell .app-shell.hx-sidebar-ready:has(main.department-overview.s
 }
 
 body.hx-sidebar-shell .app-shell.hx-sidebar-ready main.department-overview.screen {
-  grid-column: 2 !important;
+  grid-column: 1 !important;
   grid-row: 2 !important;
   display: grid !important;
   grid-template-columns: 228px minmax(0, 1fr) 268px !important;
