@@ -17,6 +17,12 @@
     return !!document.querySelector('main.dashboard.screen, main.dashboard')
   }
 
+  /** 首页 dashboard 在侧栏 CSS 里依赖 hx-sidebar-home / hx-sidebar-map-view，须先于或同步挂载 */
+  function markMapShellReady() {
+    document.body.classList.add('hx-sidebar-home')
+    document.body.classList.add('hx-sidebar-map-view')
+  }
+
   function goHomeHash() {
     const home = `${location.pathname}${location.search}#/`
     try {
@@ -72,10 +78,7 @@
       document.querySelector('.hx-map-page-chrome')?.remove()
       return
     }
-    const mainMap = document.querySelector('.dashboard-center .main-map')
-    if (!mainMap) return
-    const host = mainMap.closest('.dashboard-center') || mainMap
-    if (host.querySelector('.hx-map-page-chrome')) return
+    if (document.querySelector('.hx-map-page-chrome')) return
 
     if (!document.querySelector('.hx-map-drawer-backdrop')) {
       const backdrop = document.createElement('div')
@@ -90,11 +93,11 @@
     chrome.setAttribute('role', 'toolbar')
     chrome.innerHTML =
       '<div class="hx-map-chrome-left">' +
-      '<button type="button" class="hx-map-chrome-btn" data-action="menu">鑿滃崟</button>' +
-      '<button type="button" class="hx-map-chrome-btn" data-action="exit">杩斿洖姒傝</button>' +
+      '<button type="button" class="hx-map-chrome-btn" data-action="menu">菜单</button>' +
+      '<button type="button" class="hx-map-chrome-btn" data-action="exit">返回概览</button>' +
       '</div>' +
-      '<span class="hx-map-chrome-title">鍗忎綔涓夌淮鍦板浘</span>'
-    host.appendChild(chrome)
+      '<span class="hx-map-chrome-title">协作三维地图</span>'
+    document.body.appendChild(chrome)
 
     chrome.querySelector('[data-action="menu"]')?.addEventListener('click', () => {
       setMapDrawerOpen(!document.body.classList.contains('hx-map-drawer-open'))
@@ -122,6 +125,7 @@
   function enterMapChrome() {
     if (!hasDashboard()) {
       pendingMap = true
+      markMapShellReady()
       if (path() === '/map') goHomeHash()
       else if (path() !== '/') location.hash = '#/'
       ensureHomeThenMap()
@@ -130,10 +134,8 @@
     pendingMap = false
     clearMapBlockers()
 
-    /* 鍚屾鎵撲笂鍏ㄥ睆 class锛岄伩鍏?#/map 鈫?#/ 鏃?dashboard 琚晶鏍?CSS 璇殣钘?*/
+    markMapShellReady()
     document.body.classList.add(FLAG)
-    document.body.classList.add('hx-sidebar-home')
-    document.body.classList.add('hx-sidebar-map-view')
     window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
 
     if (path() === '/map') goHomeHash()

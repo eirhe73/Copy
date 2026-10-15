@@ -307,10 +307,8 @@
         if (key === '/map' || href.replace(/^#/, '').split('?')[0] === '/map') {
           if (typeof window.hxMapPage?.enter === 'function') {
             window.hxMapPage.enter()
-          } else {
-            document.body.classList.add('hx-page-map-only')
-            window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
-            if (location.hash !== '#/') location.hash = '#/'
+          } else if (location.hash !== '#/') {
+            location.hash = '#/'
           }
           return
         }

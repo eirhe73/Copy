@@ -119,6 +119,7 @@
   function skipShell() {
     const p = hashPath()
     if (/^\/phone/.test(p)) return true
+    if (isMapPage()) return true
     if (!document.body.classList.contains('hx-sidebar-shell')) return true
     if (!document.querySelector('.app-shell')) return true
     return false
@@ -507,10 +508,8 @@
     if (href.replace(/^#/, '').split('?')[0] === '/map') {
       if (typeof window.hxMapPage?.enter === 'function') {
         window.hxMapPage.enter()
-        return
       }
-      document.body.classList.add('hx-page-map-only')
-      window.dispatchEvent(new CustomEvent('hx-map-page', { detail: { active: true } }))
+      return
     }
     if (location.hash !== href) location.hash = href
     else window.dispatchEvent(new HashChangeEvent('hashchange'))
@@ -637,6 +636,9 @@
   }
 
   window.addEventListener('hashchange', function () {
+    setTimeout(mount, 0)
+  })
+  window.addEventListener('hx-map-page', function () {
     setTimeout(mount, 0)
   })
   window.hxEnhance(mount, { wait: 280, observeRoot: true, afterNav: 100 })
