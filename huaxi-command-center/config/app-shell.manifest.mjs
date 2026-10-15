@@ -59,9 +59,10 @@ export const mapScripts = [
 export const enhanceScripts = [
   { src: '/assets/enhance/ambulances-page-enhance.js?v=1', defer: true },
   { src: '/assets/enhance/dispatch-vue-embed-enhance.js?v=3', defer: true },
-  { src: '/assets/enhance/consult-launch-dialog-enhance.js?v=1', defer: true },
+  { src: '/assets/enhance/consult-launch-dialog-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/consult-episode-nav.js?v=4', defer: true },
-  { src: '/assets/enhance/register-consult-flow-enhance.js?v=7', defer: true },
+  { src: '/assets/enhance/register-consult-flow-enhance.js?v=8', defer: true },
+  { src: '/assets/enhance/dispatch-consult-bridge-enhance.js?v=3', defer: true },
   { src: '/assets/enhance/consult-nav-fix-enhance.js?v=3', defer: true },
   { src: '/assets/enhance/dispatch-ui-enhance.js?v=2', defer: true },
   { src: '/assets/enhance/dr-ui-enhance.js', defer: true },
