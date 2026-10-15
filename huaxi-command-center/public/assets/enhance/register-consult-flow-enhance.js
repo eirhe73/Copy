@@ -176,6 +176,7 @@
   }
 
   window.__hxTryConsultLaunch = tryLaunch
+  window.__hxNavigateConsult = navigateConsult
 
   document.addEventListener(
     'click',

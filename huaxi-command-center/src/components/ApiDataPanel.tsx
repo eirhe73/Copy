@@ -24,6 +24,7 @@ export function ApiDataPanel({ bindings, params = {} }: Props) {
         try {
           const data = await apiGet(path)
           out.push({ path, ok: true, data })
+          
         } catch (e) {
           out.push({ path, ok: false, error: String(e instanceof Error ? e.message : e) })
         }
