@@ -1,6 +1,6 @@
 import fs from 'fs'
 
-const js = fs.readFileSync('public/assets/index-BA_IO3dC.js', 'utf8')
+const js = fs.readFileSync('public/assets/vendor/index-BA_IO3dC.js', 'utf8')
 const hpStart = js.indexOf('const HP=[')
 const hpEnd = js.indexOf('];function n$', hpStart)
 const HP = eval(js.slice(hpStart + 'const HP='.length, hpEnd + 1))

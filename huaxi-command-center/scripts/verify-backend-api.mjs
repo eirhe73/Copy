@@ -13,7 +13,7 @@ const USER = process.env.HX_API_USER || 'admin'
 const PASS = process.env.HX_API_PASS || '123456'
 
 function loadGetPaths() {
-  const src = readFileSync(join(__dir, '../public/assets/backend-api-catalog.js'), 'utf8')
+  const src = readFileSync(join(__dir, '../public/assets/backend/backend-api-catalog.js'), 'utf8')
   const paths = []
   const re = /method:\s*'GET',\s*path:\s*'([^']+)'/g
   let m

@@ -12,7 +12,7 @@ const embed = computed(
 
 const tabs = [
   { id: 'live', label: '实时出警', hint: '选中车辆就地登记' },
-  { id: 'events', label: '急救事件', hint: '一次出车一条事件' },
+  { id: 'events', label: '事件列表', hint: '一次出车一条事件' },
   { id: 'ambulances', label: '救护车列表', hint: '绑定与状态' },
   { id: 'register', label: '患者登记', hint: '医生一屏录入' },
 ] as const

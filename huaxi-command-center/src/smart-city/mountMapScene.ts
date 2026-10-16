@@ -9,7 +9,11 @@ import {
   loadCampusTemplates,
 } from '../lib/hospitalCampusOnMap'
 import { createCampusInfoPanel, type CollabNodeDetail } from '../lib/campusMapInfoPanel'
-import { campusUnifiedColor, campusUnifiedHex } from '../lib/hospitalCampusStyle'
+import {
+  campusUnifiedColor,
+  campusUnifiedHex,
+  TIER_LEGEND_HEX,
+} from '../lib/hospitalCampusStyle'
 import type { GeoJson } from './geo'
 import {
   buildShapeFromPoints,
@@ -18,7 +22,6 @@ import {
   projectLngLat,
   projectRing,
   ringBounds,
-  snapLngLatToRing,
 } from './geo'
 
 type CollabNode = CollabNodeDetail
@@ -26,15 +29,26 @@ type CollabNode = CollabNodeDetail
 type CollabLink = { from: string; to: string }
 
 const MARKER = {
-  tierHeight: [0.92, 0.68, 0.54] as const,
-  diamondRadius: 0.058,
-  beamTopR: 0.007,
-  beamBottomR: 0.018,
+  tierHeight: [1.18, 0.96, 0.82] as const,
+  diamondRadius: 0.145,
+  beamTopR: 0.018,
+  beamBottomR: 0.044,
   flowArcLift: 0.48,
-  flowOpacity: 0.28,
-  pulseRadius: 0.024,
+  flowOpacity: 0.72,
+  pulseRadius: 0.042,
   curveSegments: 36,
 } as const
+
+function tierIndex(tier: number) {
+  return Math.min(2, Math.max(0, tier))
+}
+
+/** 浅色底图上更醒目的节点色（仍对应图例三级） */
+const MARKER_TIER_BRIGHT: [number, number, number] = [
+  0x7dd3fc,
+  0x38bdf8,
+  0xfbbf24,
+]
 
 function tierMarkerHeight(tier: number) {
   return MARKER.tierHeight[Math.min(2, Math.max(0, tier))] ?? 0.7
@@ -56,8 +70,12 @@ export type MountMapSceneOptions = {
   region?: 'weiyuan' | 'dafang'
   variant?: 'default' | 'command'
   layout?: 'dashboard' | 'fullscreen'
-  /** 院区在模板尺寸上再放大（首页建议 1.1~1.25） */
+  /** 为 false 时使用菱形节点 + 飞线粒子，不加载 GLB 院区模型 */
+  useCampusGlb?: boolean
+  /** 院区在模板尺寸上再放大（仅 useCampusGlb 时有效） */
   campusDisplayScale?: number
+  /** 优先于 /api/gis-collab.json（如 /dashboard/county-map） */
+  collabPack?: { nodes: CollabNode[]; links?: CollabLink[] }
 }
 
 function shortNodeName(name: string) {
@@ -72,8 +90,10 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
     themeId,
     region = 'weiyuan',
     variant = 'default',
+    useCampusGlb = false,
     campusDisplayScale = variant === 'command' ? 1.18 : 1,
     layout = 'dashboard',
+    collabPack: collabPackIn,
   } = options
   const view =
     variant === 'command'
@@ -108,7 +128,10 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         return collab[region] ?? collab.weiyuan
       }
 
-      const pack = await loadCollabPack()
+      const pack =
+        collabPackIn?.nodes?.length ?
+          { nodes: collabPackIn.nodes, links: collabPackIn.links ?? [] }
+        : await loadCollabPack()
       nodes = pack.nodes
       links = pack.links
       if (disposed) return
@@ -154,6 +177,21 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       controls.minPolarAngle = 0.35
       controls.maxPolarAngle = Math.PI * 0.48
       controls.target.set(0, 0, 0.25)
+
+      const onMapZoom = (ev: Event) => {
+        const dir = (ev as CustomEvent<{ dir?: string }>).detail?.dir
+        if (dir !== 'in' && dir !== 'out') return
+        const offset = new THREE.Vector3().subVectors(camera.position, controls.target)
+        const len = offset.length()
+        if (!Number.isFinite(len) || len <= 0) return
+        const factor = dir === 'in' ? 0.88 : 1.14
+        const next = Math.max(controls.minDistance, Math.min(controls.maxDistance, len * factor))
+        offset.setLength(next)
+        camera.position.copy(controls.target).add(offset)
+        controls.update()
+      }
+      window.addEventListener('hx-map-camera-zoom', onMapZoom)
+      cleanups.push(() => window.removeEventListener('hx-map-camera-zoom', onMapZoom))
 
       scene.add(new THREE.AmbientLight(t.ambient, 0.55))
       const key = new THREE.DirectionalLight(t.keyLight, 1.1)
@@ -204,7 +242,7 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         mapGroup.add(grid)
       }
 
-      const campusTemplates = await loadCampusTemplates()
+      const campusTemplates = useCampusGlb ? await loadCampusTemplates() : null
       if (disposed) return
       if (campusTemplates) {
         console.info('[MapScene] GLB 院区模板已加载', campusTemplates.size)
@@ -213,6 +251,7 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       const posById = new Map<string, THREE.Vector3>()
       const nodeById = new Map<string, CollabNode>()
       const markerByNodeId = new Map<string, THREE.Group>()
+      const diamondSpinners: THREE.Mesh[] = []
       const pickables: THREE.Object3D[] = []
       let selectedNodeId: string | null = null
 
@@ -233,13 +272,17 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
           grp.scale.setScalar(on ? 1.06 : 1)
           const label = grp.userData.labelEl as HTMLElement | undefined
           label?.classList.toggle('hx-campus-map-label--selected', on)
+          label?.classList.toggle('hx-command-map-label--selected', on)
           grp.traverse((obj) => {
             if (!(obj instanceof THREE.Mesh) || !obj.material) return
             const mats = Array.isArray(obj.material) ? obj.material : [obj.material]
             for (const m of mats) {
               if (!(m instanceof THREE.MeshStandardMaterial || m instanceof THREE.MeshPhongMaterial)) continue
-              const base = (m.userData.baseEmissiveIntensity as number) ?? 0.2
-              m.emissiveIntensity = on ? base + 0.22 : base
+              if (m.userData.baseEmissiveIntensity == null) {
+                m.userData.baseEmissiveIntensity = m.emissiveIntensity
+              }
+              const base = m.userData.baseEmissiveIntensity as number
+              m.emissiveIntensity = on ? base + 0.35 : base
             }
           })
         }
@@ -264,23 +307,24 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       }
 
       for (const node of nodes) {
-        nodeById.set(node.id, node)
-        let lng = node.lng
-        let lat = node.lat
+        let lng = Number(node.lng)
+        let lat = Number(node.lat)
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) continue
         if (!pointInLngLatRing(lng, lat, lngLatRing)) {
-          const snapped = snapLngLatToRing(lng, lat, lngLatRing)
-          console.warn('[MapScene] 节点不在县界内，已吸附', node.id, node.name)
-          lng = snapped.lng
-          lat = snapped.lat
+          console.warn('[MapScene] 节点不在县界内，已跳过', node.id, node.name)
+          continue
         }
+        nodeById.set(node.id, node)
         const pt = projectLngLat(lng, lat, center, scale, cosLat)
         let h: number = tierMarkerHeight(node.tier)
-        const markerColor = campusUnifiedColor()
-        const markerHex = campusUnifiedHex()
+        const ti = tierIndex(node.tier ?? 0)
+        const markerColor =
+          useCampusGlb ? campusUnifiedColor() : (MARKER_TIER_BRIGHT[ti] ?? t.markerByTier[ti])
+        const markerHex = useCampusGlb ? campusUnifiedHex() : TIER_LEGEND_HEX[ti]
         const g = new THREE.Group()
-        g.position.set(pt.x, pt.y, 0.58)
+        g.position.set(pt.x, pt.y, 0.72)
 
-        addCampusBasePlate(g, t, node.tier)
+        addCampusBasePlate(g, t, node.tier, markerColor)
 
         let usedCampus = false
         if (campusTemplates) {
@@ -310,25 +354,47 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
             new THREE.MeshBasicMaterial({
               color: markerColor,
               transparent: true,
-              opacity: 0.18,
+              opacity: 0.42,
               side: THREE.DoubleSide,
             }),
           )
           beam.position.z = h * 0.42
           g.add(beam)
-          const diamond = new THREE.Mesh(
-            new THREE.OctahedronGeometry(MARKER.diamondRadius, 0),
-            new THREE.MeshPhongMaterial({
-              color: markerColor,
-              emissive: markerColor,
-              emissiveIntensity: 0.32,
-              shininess: 80,
+
+          const glow = new THREE.Mesh(
+            new THREE.OctahedronGeometry(MARKER.diamondRadius * 1.65, 0),
+            new THREE.MeshBasicMaterial({
+              color: 0xffffff,
               transparent: true,
-              opacity: 0.95,
+              opacity: 0.22,
+              depthWrite: false,
             }),
           )
+          glow.position.z = h
+          g.add(glow)
+
+          const diamondMat = new THREE.MeshStandardMaterial({
+            color: markerColor,
+            emissive: markerColor,
+            emissiveIntensity: 1.45,
+            metalness: 0.2,
+            roughness: 0.18,
+          })
+          diamondMat.userData.baseEmissiveIntensity = 1.45
+          const diamond = new THREE.Mesh(new THREE.OctahedronGeometry(MARKER.diamondRadius, 0), diamondMat)
           diamond.position.z = h
+          diamond.renderOrder = 10
           g.add(diamond)
+
+          const core = new THREE.Mesh(
+            new THREE.OctahedronGeometry(MARKER.diamondRadius * 0.42, 0),
+            new THREE.MeshBasicMaterial({ color: 0xffffff }),
+          )
+          core.position.z = h
+          core.renderOrder = 11
+          g.add(core)
+
+          diamondSpinners.push(diamond)
         }
 
         const labelEl = document.createElement('div')
@@ -364,6 +430,8 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         color: t.flowLine,
         transparent: true,
         opacity: MARKER.flowOpacity,
+        depthTest: true,
+        linewidth: 1,
       })
       const pulses: { mesh: THREE.Mesh; curve: THREE.CatmullRomCurve3; phase: number }[] = []
 
@@ -392,18 +460,19 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       mapGroup.position.z = 0.15
       mapGroup.scale.setScalar(view.mapScale)
 
-      if (variant === 'command' && pickables.length) {
+      if (variant === 'command' && infoPanel) {
         const raycaster = new THREE.Raycaster()
         const pointer = new THREE.Vector2()
         let dragStart: { x: number; y: number } | null = null
 
         const pickNodeId = (clientX: number, clientY: number) => {
           const rect = renderer.domElement.getBoundingClientRect()
+          if (rect.width < 1 || rect.height < 1) return null
           pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
           pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
           raycaster.setFromCamera(pointer, camera)
           mapGroup.updateMatrixWorld(true)
-          const hits = raycaster.intersectObjects(pickables, false)
+          const hits = raycaster.intersectObjects(mapGroup.children, true)
           for (const hit of hits) {
             let o: THREE.Object3D | null = hit.object
             while (o) {
@@ -423,22 +492,33 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
           const dx = ev.clientX - dragStart.x
           const dy = ev.clientY - dragStart.y
           dragStart = null
-          if (dx * dx + dy * dy > 36) return
+          if (dx * dx + dy * dy > 64) return
           const id = pickNodeId(ev.clientX, ev.clientY)
-          setNodeSelected(id && id === selectedNodeId ? null : id)
+          if (!id) {
+            setNodeSelected(null)
+            return
+          }
+          setNodeSelected(id === selectedNodeId ? null : id)
         }
         const onKeyDown = (ev: KeyboardEvent) => {
           if (ev.key === 'Escape') setNodeSelected(null)
         }
+        const onNodeFocus = (ev: Event) => {
+          const id = (ev as CustomEvent<{ id?: string }>).detail?.id
+          if (id) setNodeSelected(String(id))
+        }
 
         renderer.domElement.style.cursor = 'grab'
+        renderer.domElement.style.touchAction = 'none'
         renderer.domElement.addEventListener('pointerdown', onPointerDown)
         renderer.domElement.addEventListener('pointerup', onPointerUp)
         window.addEventListener('keydown', onKeyDown)
+        window.addEventListener('hx-map-node-focus', onNodeFocus)
         cleanups.push(() => {
           renderer.domElement.removeEventListener('pointerdown', onPointerDown)
           renderer.domElement.removeEventListener('pointerup', onPointerUp)
           window.removeEventListener('keydown', onKeyDown)
+          window.removeEventListener('hx-map-node-focus', onNodeFocus)
           infoPanel?.panel.remove()
         })
       }
@@ -449,6 +529,11 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
         frame = requestAnimationFrame(animate)
         const elapsed = (now - t0) / 1000
         mapGroup.rotation.z = Math.sin(elapsed * 0.08) * 0.02
+        for (let i = 0; i < diamondSpinners.length; i++) {
+          const d = diamondSpinners[i]
+          d.rotation.y = elapsed * 0.85 + i * 0.4
+          d.rotation.x = 0.35 + Math.sin(elapsed * 0.5 + i) * 0.08
+        }
         for (const p of pulses) {
           p.mesh.position.copy(p.curve.getPoint((elapsed * 0.35 + p.phase) % 1))
         }
@@ -483,7 +568,15 @@ export function mountMapScene(mount: HTMLDivElement, options: MountMapSceneOptio
       })
 
       requestAnimationFrame(onResize)
-      console.info('[MapScene] 地图已挂载', { region, nodes: nodes.length, glb: !!campusTemplates })
+      ;[80, 200, 450, 800].forEach((ms) => {
+        const t = window.setTimeout(onResize, ms)
+        cleanups.push(() => clearTimeout(t))
+      })
+      console.info('[MapScene] 地图已挂载', {
+        region,
+        nodes: nodes.length,
+        glb: useCampusGlb && !!campusTemplates,
+      })
     } catch (err) {
       console.error('[MapScene] 挂载失败', err)
     }

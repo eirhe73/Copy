@@ -6,6 +6,8 @@ import { useHomeMapEnhancers } from '../../hooks/useHomeMapEnhancers'
 import { useRouteApi } from '../../hooks/useRouteApi'
 import type { ApiBinding } from '../../routes/apiBindings'
 import { CenterMetricsBar } from './CenterMetricsBar'
+import { MapScene } from '../../smart-city/MapScene'
+import { buildMapCollabPack, type GisCollabStaticPack } from '../../lib/homeMapCollabPack'
 import { MapCollabPanel } from './MapCollabPanel'
 import { MapLegend, MapTools } from './MapChrome'
 
@@ -25,6 +27,32 @@ export function HomeCountyMap({
   onCountyMap,
 }: Props) {
   const { region, setRegion } = useHomeRegion()
+  const [mapFullPage, setMapFullPage] = useState(() =>
+    document.body.classList.contains('hx-page-map-only'),
+  )
+
+  useEffect(() => {
+    const sync = () => setMapFullPage(document.body.classList.contains('hx-page-map-only'))
+    const onMapPage = (ev: Event) => {
+      const active = !!(ev as CustomEvent<{ active?: boolean }>).detail?.active
+      setMapFullPage(active)
+    }
+    sync()
+    window.addEventListener('hx-map-page', onMapPage)
+    return () => window.removeEventListener('hx-map-page', onMapPage)
+  }, [])
+
+  /** 全屏只改 CSS 布局；勿重建 MapScene（否则容器高度为 0 时会一直空白） */
+  useEffect(() => {
+    if (!mapFullPage) return
+    const bump = () => {
+      window.dispatchEvent(new Event('resize'))
+      window.dispatchEvent(new CustomEvent('hx-glb-map-layout'))
+    }
+    bump()
+    const delays = [50, 120, 280, 520, 900].map((ms) => window.setTimeout(bump, ms))
+    return () => delays.forEach((id) => window.clearTimeout(id))
+  }, [mapFullPage])
   const { ready, authenticated } = useAuth()
   const countyBindings = useMemo(() => COUNTY_MAP_BINDINGS, [])
   const { results, loading: countyLoading } = useRouteApi(countyBindings, {}, { enabled: ready && authenticated })
@@ -32,7 +60,6 @@ export function HomeCountyMap({
   const [demoCounty, setDemoCounty] = useState<unknown>(undefined)
 
   useEffect(() => {
-    if (authenticated) return
     let cancelled = false
     ;(async () => {
       try {
@@ -42,13 +69,13 @@ export function HomeCountyMap({
         if (cancelled) return
         setDemoCounty(pack)
       } catch {
-        /* demo 静态包可选 */
+        /* 静态坐标包 */
       }
     })()
     return () => {
       cancelled = true
     }
-  }, [authenticated])
+  }, [])
 
   const countyFromApi = countyResult?.ok ? countyResult.data : undefined
   const county = useMemo(() => {
@@ -73,21 +100,37 @@ export function HomeCountyMap({
 
   useHomeMapEnhancers(true)
 
+  const collabPack = useMemo(() => {
+    const pack =
+      demoCounty && typeof demoCounty === 'object' ?
+        (demoCounty as GisCollabStaticPack)
+      : undefined
+    return buildMapCollabPack(region, pack, county)
+  }, [county, demoCounty, region])
+
   return (
     <>
       <CenterMetricsBar region={region} bedsOverview={bedsOverview} />
-      <div className="region-switch segmented">
-        <button type="button" className={region === 'dafang' ? 'selected' : ''} onClick={() => setRegion('dafang')}>
-          大方参考
-        </button>
-        <button type="button" className={region === 'weiyuan' ? 'selected' : ''} onClick={() => setRegion('weiyuan')}>
-          威远协作
-        </button>
-      </div>
       <div className="main-map">
+        <div className="hx-map-region-bar region-switch segmented" aria-label="县域切换">
+          <button type="button" className={region === 'dafang' ? 'selected' : ''} onClick={() => setRegion('dafang')}>
+            大方参考
+          </button>
+          <button type="button" className={region === 'weiyuan' ? 'selected' : ''} onClick={() => setRegion('weiyuan')}>
+            威远协作
+          </button>
+        </div>
         <MapLegend />
         <MapTools />
         <div className="county-map">
+          <MapScene
+            themeId="light"
+            region={region}
+            variant="command"
+            layout="dashboard"
+            useCampusGlb={false}
+            collabPack={collabPack}
+          />
           <MapCollabPanel
             loading={ready && authenticated && countyLoading}
             error={countyError}

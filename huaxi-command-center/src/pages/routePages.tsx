@@ -10,6 +10,10 @@ import { PatientsListPage } from './patients/PatientsListPage'
 
 const BUSINESS_PAGES = new Set(['/patients', '/patient/:id', '/register'])
 
+/**
+ * 仅 src-shell.html + main.tsx 使用本表。
+ * 演示入口 app.html 使用 vendor bundle，勿改为加载 src。
+ */
 /** 有定制实现的路由，不走 createLegacyPage 自动生成 */
 const CUSTOM_PAGES = new Set(['/room/:token'])
 

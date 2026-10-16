@@ -1,4 +1,10 @@
-import { cellText, columnsFromRows, rowsFromPayload, summarizeFieldValue } from '../../lib/extractRows'
+import {
+  cellText,
+  columnsFromRows,
+  labelForField,
+  rowsFromPayload,
+  summarizeFieldValue,
+} from '../../lib/extractRows'
 
 type Props = {
   title: string
@@ -36,7 +42,7 @@ export function BusinessTable({ title, payload, error }: Props) {
               <tbody>
                 {Object.entries(obj).map(([k, v]) => (
                   <tr key={k}>
-                    <th>{k}</th>
+                    <th>{labelForField(k)}</th>
                     <td>{summarizeFieldValue(v)}</td>
                   </tr>
                 ))}
@@ -65,7 +71,7 @@ export function BusinessTable({ title, payload, error }: Props) {
           <thead>
             <tr>
               {cols.map((c) => (
-                <th key={c}>{c}</th>
+                <th key={c}>{labelForField(c)}</th>
               ))}
             </tr>
           </thead>

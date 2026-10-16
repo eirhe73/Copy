@@ -2,14 +2,9 @@ import { useEffect, useState } from 'react'
 
 const TIER = ['一级', '二级', '基层'] as const
 
-type Node = {
-  id?: string
-  name?: string
-  tier?: number
-  er?: number
-  bedsFree?: number
-  tight?: boolean
-}
+import { nodesFromCountyPayload, type CountyCollabNode } from '../../lib/countyCollabNodes'
+
+type Node = CountyCollabNode
 
 type Props = {
   loading?: boolean
@@ -17,26 +12,28 @@ type Props = {
   payload?: unknown
 }
 
-export function nodesFromCountyPayload(payload: unknown): Node[] {
-  if (!payload || typeof payload !== 'object') return []
-  const raw = (payload as Record<string, unknown>).nodes
-  if (!Array.isArray(raw)) return []
-  return raw.filter((n): n is Node => n !== null && typeof n === 'object')
-}
+export { nodesFromCountyPayload }
 
 export function MapCollabPanel({ loading, error, payload }: Props) {
   const nodes = payload ? nodesFromCountyPayload(payload) : []
   const [open, setOpen] = useState(false)
-  const [mapFullPage, setMapFullPage] = useState(() =>
-    document.body.classList.contains('hx-page-map-only'),
-  )
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    const onSelect = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ id?: string } | null>).detail
+      setSelectedId(detail?.id ? String(detail.id) : null)
+    }
+    window.addEventListener('hx-map-node-select', onSelect)
+    return () => window.removeEventListener('hx-map-node-select', onSelect)
+  }, [])
 
   useEffect(() => {
     const mainMap = document.querySelector('.dashboard-center .main-map')
     if (!mainMap) return
-    mainMap.classList.toggle('map-nodes-open', open && !mapFullPage)
+    mainMap.classList.toggle('map-nodes-open', open)
     return () => mainMap.classList.remove('map-nodes-open')
-  }, [open, mapFullPage])
+  }, [open])
 
   useEffect(() => {
     const onMapPage = (ev: Event) => {
@@ -45,13 +42,10 @@ export function MapCollabPanel({ loading, error, payload }: Props) {
         setOpen(false)
         document.querySelector('.dashboard-center .main-map')?.classList.remove('map-nodes-open')
       }
-      setMapFullPage((prev) => (prev === active ? prev : active))
     }
     window.addEventListener('hx-map-page', onMapPage)
     return () => window.removeEventListener('hx-map-page', onMapPage)
   }, [])
-
-  if (mapFullPage) return null
 
   return (
     <>
@@ -94,7 +88,14 @@ export function MapCollabPanel({ loading, error, payload }: Props) {
               <button
                 key={String(node.id ?? node.name)}
                 type="button"
-                className="map-med-row map-collab-row"
+                className={`map-med-row map-collab-row${selectedId && String(node.id) === selectedId ? ' active' : ''}`}
+                onClick={() => {
+                  if (node.id) {
+                    window.dispatchEvent(
+                      new CustomEvent('hx-map-node-focus', { detail: { id: String(node.id) } }),
+                    )
+                  }
+                }}
               >
                 <span className={`map-med-tier t${tier}`}>{TIER[tier]}</span>
                 <span className="map-med-row-name" title={node.name}>
